@@ -40,6 +40,14 @@ export const activationUpdateSchema = z.object({
   ledgerReference: z.string().trim().max(120).optional(),
 });
 
+export const applicationReviewSchema = z.object({
+  applicationId: z.string().uuid(),
+  state: z.enum(["approved", "rejected", "waitlisted"]),
+  reason: z.string().trim().max(500).optional(),
+}).superRefine((value, context) => {
+  if (value.state === "rejected" && !value.reason) context.addIssue({ code: z.ZodIssueCode.custom, message: "A rejection reason is required." });
+});
+
 export function normaliseIndianPhone(value: string) {
   const compact = value.replace(/[\s()-]/g, "");
   const phone = /^\d{10}$/.test(compact) ? `+91${compact}` : compact;
