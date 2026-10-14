@@ -22,6 +22,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | 2026-10-14 | Build after activation/review/selection migration | Passed | Unit tests, typecheck, lint and production build passed. T04-T10/T21 database and direct API checks remain unexecuted pending a Supabase project. |
 | 2026-10-14 | Account provisioning route checks | Passed | Seven total unit tests, typecheck, lint and production build passed; dynamic sign-up, sign-in, logout and public-batch routes compile with `Cache-Control: no-store` for auth mutations. Supabase phone/password, profile provisioning and session behavior are not yet exercised against a real project. |
 | 2026-10-14 | Recovery-token route checks | Passed locally | Eight total unit tests, typecheck, lint and production build passed; main-admin recovery issuance and anonymous redemption routes compile with `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. Token expiry/reuse, database grants and Supabase password/session behavior are not yet exercised against a real project. |
+| 2026-10-14 | My Fest protected dashboard build | Passed locally | Unit tests, typecheck, lint and production build passed. The route is explicitly dynamic and its server code uses the authenticated request client rather than the service key; real RLS/session reads require a Supabase project. |
 | 2026-10-14 | Browser rendering check | Unavailable | No automation browser surface was available. Local server started successfully at `http://localhost:3000`; visual/device review is still required. |
 
 ## Not yet executable
