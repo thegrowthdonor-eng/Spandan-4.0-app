@@ -1,0 +1,1262 @@
+[
+  {
+    "slug": "01_Project_Brief",
+    "title": "Project brief and scope",
+    "pages": [
+      {
+        "title": "Confirmed project baseline",
+        "blocks": [
+          [
+            "p",
+            "SPANDAN 4.0 is a mobile-first, installable festival web app for GMC Firozabad. This brief records the organising student's decisions and separates them from implementation recommendations. It is intended for the committee, Himanshu Sharma as the developer, and the AI tools assisting development."
+          ],
+          [
+            "table",
+            [
+              "Item",
+              "Confirmed baseline"
+            ],
+            [
+              [
+                "Audience",
+                "GMC Firozabad students only; approximately 500 to 1,000 users"
+              ],
+              [
+                "Programme",
+                "Approximately 31 to 50 sports and cultural events"
+              ],
+              [
+                "Dates",
+                "Sports start 17 November; main fest 21 to 26 November. Year 2026 is a planning assumption requiring confirmation."
+              ],
+              [
+                "Launch",
+                "All selected features within 2 to 3 weeks; 28 October to 4 November 2026 if work begins 14 October"
+              ],
+              [
+                "Delivery",
+                "PWA built from scratch by the organiser with AI assistance"
+              ],
+              [
+                "Budget",
+                "Free-tier-first; Supabase and Vercel preferred, subject to capacity and permitted-use checks"
+              ],
+              [
+                "Access",
+                "Public event information; event registration only for activated students"
+              ],
+              [
+                "Contribution",
+                "One common fest contribution collected outside the app; no payment gateway"
+              ],
+              [
+                "Login",
+                "Batch, roll number and password; no student email requirement or paid OTP dependency"
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Participation model"
+          ],
+          [
+            "p",
+            "Students create a profile containing name, batch, roll number and phone. Main admin or treasurer verifies college identity and contribution before activating access. Students apply individually to events. Each sport and each cultural event has its own assigned head, who approves applications and directly selects squads, pairs or groups. Sports teams are batch-specific; the head assigns the captain tag. There is no overall event participation cap, but individual event rules apply."
+          ],
+          [
+            "p",
+            "Application approval is not the same as final selection. This distinction must appear in the interface. Only final competition positions contribute to the overall batch leaderboard; exact points remain undecided. QR-based login, gate entry and attendance were discussed and then removed from the scope. A public QR may simply open the app."
+          ]
+        ]
+      },
+      {
+        "title": "Delivery scope and decision register",
+        "blocks": [
+          [
+            "h",
+            "Included in the launch"
+          ],
+          [
+            "p",
+            "Event catalogue and details; registration and selection; treasurer activation; event-head administration; fixtures and published results; sport-specific live scores; batch leaderboard; personal schedule and reminders; announcements; audience polls; feedback; sponsors and partner pages; social links; share cards; curated photo/video gallery; Main Stage and artist reveals; FAQs and organiser queries; committee profiles; teaser, anthem and aftermovie sections; merchandise showcase without checkout."
+          ],
+          [
+            "h",
+            "Boundaries"
+          ],
+          [
+            "p",
+            "No online payment, wallet, fee collection, ticket checkout or refunds workflow. No student email login, open chat, anonymous confessions, livestream production, automated ball-by-ball commentary, marketplace or intercollege accommodation system. Certificates, treasure hunts, student media uploads, venue maps, volunteer recruitment and additional analytics are future possibilities, not launch commitments. Unreleased media and unannounced artists must have honest empty states."
+          ],
+          [
+            "h",
+            "Proposed defaults rather than confirmed decisions"
+          ],
+          [
+            "p",
+            "English interface; responsive desktop admin; configurable registration windows and capacities; waitlist support; editing and withdrawal before roster lock; clash warnings rather than blanket blocking; in-app reminders with optional browser notifications and calendar export; moderated content; manual head-entered score snapshots; head-published final results with audit history. These defaults can change through the decision register without changing confirmed requirements."
+          ],
+          [
+            "table",
+            [
+              "Pending item",
+              "Owner and latest decision point"
+            ],
+            [
+              [
+                "Official college name, eligible batches/courses, organising line, year",
+                "Committee; before profile configuration"
+              ],
+              [
+                "Event list, formats, capacity, deadlines, venues and head assignments",
+                "Event heads; before event publishing"
+              ],
+              [
+                "Contribution amount and acceptable verification evidence",
+                "Treasurer; before activation opens"
+              ],
+              [
+                "Points, ties, shared places, disqualifications and mixed-batch cultural rules",
+                "Committee; before registrations open"
+              ],
+              [
+                "Auth adapter proof and production hosting eligibility",
+                "Developer; first two build days"
+              ],
+              [
+                "Final brand assets, consent wording and retention period",
+                "Committee; before public launch"
+              ]
+            ]
+          ],
+          [
+            "p",
+            "The requested deadline is a constraint, not evidence that the build is feasible. All features remain in scope. If a gate fails, report the specific blocker and seek a decision on resources, budget or date; do not silently drop features or bypass access checks."
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "02_Product_Requirements",
+    "title": "Product requirements and acceptance criteria",
+    "pages": [
+      {
+        "title": "Accounts and participation",
+        "blocks": [
+          [
+            "p",
+            "Requirement identifiers are shared with the testing document. Every state-changing action must be authorised on the server; hiding a button alone is insufficient."
+          ],
+          [
+            "table",
+            [
+              "ID",
+              "Requirement and acceptance condition"
+            ],
+            [
+              [
+                "R01 Public discovery",
+                "Visitors can search/filter published events by category, date and availability without signing in. Draft/private records never appear."
+              ],
+              [
+                "R02 Profile and login",
+                "Batch plus canonical roll number identifies the account. Required name and phone are collected. Wrong credentials return a generic error. Duplicate identities enter a recovery process, not a second active account."
+              ],
+              [
+                "R03 Activation",
+                "Only main admin/treasurer can activate, suspend or reject access. A reason, actor and time are recorded. Pending students can read their status but cannot register."
+              ],
+              [
+                "R04 Application",
+                "Active student submits once per event. Eligibility, deadline and capacity are checked transactionally. Double-click/retry creates one entry. Clear confirmation gives the current status."
+              ],
+              [
+                "R05 Event review",
+                "Assigned head approves, rejects with reason or waitlists. A head cannot read or edit another head's private applicant list."
+              ],
+              [
+                "R06 Selection",
+                "Head selects approved applicants into valid squads, pairs or groups. Minimum/maximum size and batch rules apply. Selected members see group, reporting time and captain where relevant."
+              ],
+              [
+                "R07 Student control",
+                "Proposed: students can correct permitted details and withdraw before lock. Identity changes after activation require admin review. Locked withdrawal becomes a head request."
+              ],
+              [
+                "R08 Personal schedule",
+                "Approved event commitments and selected match/performance slots appear with venue, reporting time and status. Changes update the same record and generate a reminder."
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Status clarity"
+          ],
+          [
+            "p",
+            "Show contribution access separately from event application and selection. An active account does not guarantee acceptance or a squad place. An approved applicant can still be unselected. Suggested copy: 'Approved for selection; final squad pending'. A changed event schedule should warn all affected students of new conflicts."
+          ]
+        ]
+      },
+      {
+        "title": "Competition and engagement",
+        "blocks": [
+          [
+            "table",
+            [
+              "ID",
+              "Requirement and acceptance condition"
+            ],
+            [
+              [
+                "R09 Fixtures",
+                "Head creates league or knockout fixtures with teams, stage, venue and start/reporting time. Admin validates venue and participant clashes. Rescheduling preserves history."
+              ],
+              [
+                "R10 Scores",
+                "Cricket supports innings totals, wickets, legal balls/overs and target; football supports goals, period and status; badminton supports games and points. Other sports use agreed templates. Every display has an update time."
+              ],
+              [
+                "R11 Results",
+                "Head previews and publishes final positions. Publication validates completeness. Corrections require reason/version and recalculate standings without double counting."
+              ],
+              [
+                "R12 Batch standings",
+                "Sum configured points from published positions only. No votes, reactions or participation points. Equal totals remain tied unless a published tie rule exists."
+              ],
+              [
+                "R13 Announcements",
+                "Global or event-specific notices show timestamp and urgency. Schedule changes link to the changed event. Only authorised publishers can target students."
+              ],
+              [
+                "R14 Polls",
+                "Activated students can vote once per poll within its window. Proposed: votes are final and totals hidden until close. Audience awards do not change official positions by default."
+              ],
+              [
+                "R15 Feedback",
+                "An activated student can submit or update one response for the configured fest/event survey. Responses are visible only to authorised staff; no public phone data."
+              ],
+              [
+                "R16 Sharing",
+                "Public event cards link to the event; participant cards require student action. Cards exclude phone, roll number, passwords and activation/recovery tokens."
+              ],
+              [
+                "R17 Reminders",
+                "In-app reminders persist even when notifications are denied. Time changes replace obsolete reminders. Optional push requires permission; delivery is best-effort, not guaranteed."
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Live score boundaries"
+          ],
+          [
+            "p",
+            "Live means head-entered score snapshots, with active-view refresh. Detailed commentary, automatic umpire feeds, player statistics and streaming are not included. Head edits need version checks: a stale tab must not overwrite a newer score. An offline write must not display as saved."
+          ]
+        ]
+      },
+      {
+        "title": "Content and service quality",
+        "blocks": [
+          [
+            "table",
+            [
+              "ID",
+              "Requirement and acceptance condition"
+            ],
+            [
+              [
+                "R18 Sponsors",
+                "Approved logos, tiers, descriptions and outbound links. Event sponsorship labels where supplied. No forced ads or student contact exports for sponsors."
+              ],
+              [
+                "R19 Media",
+                "Admin-curated compressed images and externally hosted video/audio links. Alt text/captions, rights confirmation and unpublished states. No student upload queue in launch."
+              ],
+              [
+                "R20 Stage and identity",
+                "Main Stage schedule, artist reveals with publish times, organising committee and event-head profiles. Contact visibility is explicitly approved."
+              ],
+              [
+                "R21 Help",
+                "FAQs plus signed-in private queries. Student sees their own thread; assigned head or admin sees routed queries. Emergency text points to verified local contacts rather than an unstaffed queue."
+              ],
+              [
+                "R22 Merchandise",
+                "Images, descriptions, sizes/availability and offline collection/contact instructions. No cart, reservation or checkout unless separately approved."
+              ],
+              [
+                "R23 Administration",
+                "Search/filter applications, bulk review with preview, Excel-compatible export, role assignments, content publishing and append-only audit records. Exports are event-scoped and logged."
+              ],
+              [
+                "R24 PWA",
+                "Responsive browser experience, manifest/icons, install guidance and safe offline shell. Cached public information is labelled stale; account and private API responses are not offline-cached."
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Proposed measurable targets"
+          ],
+          [
+            "p",
+            "Public page loading should target LCP at or below 2.5 seconds on a representative mid-range phone and reasonable mobile connection. Test API p95 below 1 second for reads and 2 seconds for writes at the agreed load, excluding external network latency. These are validation targets, not measured claims. Score refresh target is within 15 seconds while visible and online. If delayed, show the last successful update."
+          ],
+          [
+            "p",
+            "Support keyboard navigation, visible focus, labelled forms, readable contrast, 44 px touch targets, reduced-motion preferences and clear error messages. Test current Android Chrome and iOS Safari plus desktop Chrome/Edge. Security, access control, data integrity and accurate confirmations are release gates; cosmetic polish cannot compensate for failures."
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "03_User_Flows_and_Screens",
+    "title": "User flows and screen specification",
+    "pages": [
+      {
+        "title": "Navigation and student experience",
+        "blocks": [
+          [
+            "table",
+            [
+              "Area",
+              "Screens and primary action"
+            ],
+            [
+              [
+                "Home",
+                "Fest identity, date, current notice, countdown/happening now, featured event, stage reveal, sponsor strip; Explore events"
+              ],
+              [
+                "Explore",
+                "Search and category/day/status filters; event detail with rules, eligibility, slots, venue, head and Apply"
+              ],
+              [
+                "Live",
+                "Fixtures, match detail, score status, final results and batch table"
+              ],
+              [
+                "My Fest",
+                "Access status, applications, selection/group, personal schedule, reminders and Fest ID"
+              ],
+              [
+                "More",
+                "Sponsors, gallery, media, merchandise, organisers, FAQs, help and feedback"
+              ],
+              [
+                "Account",
+                "Create profile, batch-roll login, password recovery, edit contact details, logout"
+              ],
+              [
+                "Admin",
+                "Activation queue, assigned events, applicants, groups, fixtures, score entry, results, notices, content and audit"
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Primary flows"
+          ],
+          [
+            "p",
+            "Visitor: poster/social link opens event detail; browse without login; Apply opens login/create profile. After profile creation, pending activation page explains who verifies contribution and how to contact support. It must not show a checkout or imply payment was taken by the app."
+          ],
+          [
+            "p",
+            "Active participant: open event, read rules, confirm participation, receive application status. The event head approves/rejects; approval permits selection. Head builds the final squad/group. Student sees a selection notice, captain tag where relevant and schedule. Rejection and non-selection are shown separately."
+          ],
+          [
+            "p",
+            "Cultural participant: select event, provide role/skill/preferences requested by its head, apply individually. The head creates pairs/groups from approved applicants and publishes membership. Do not ship captain-created group registration from earlier planning."
+          ],
+          [
+            "h",
+            "Required screen states"
+          ],
+          [
+            "p",
+            "Every list needs loading, empty, error and retry states. Event detail needs closed, full/waitlist, ineligible, already applied, cancelled and rescheduled states. My Fest needs pending contribution, active, suspended and no applications states. Media and stage pages need 'To be announced' rather than fabricated artists or dates."
+          ]
+        ]
+      },
+      {
+        "title": "Staff flows and interaction details",
+        "blocks": [
+          [
+            "h",
+            "Treasurer activation"
+          ],
+          [
+            "p",
+            "Search student by batch-roll or Fest ID; inspect profile; verify identity against college ID/authorised roster and external contribution ledger; record minimal verification reference; activate. Confirmation appears in the student's account without needing an email. Bulk activation requires a preview and per-row error report. An event head never gains treasury rights from their captain/head label."
+          ],
+          [
+            "h",
+            "Head workflow"
+          ],
+          [
+            "p",
+            "Open assigned event; filter applicants by batch and status; review entries; select approved members into teams/groups; assign captain within each selected sports squad; publish roster; create fixtures or performance slots. During competition, enter a score using the sport template, review and save. On completion, enter positions, preview leaderboard impact and publish. Corrections require a reason and preserve the previous version."
+          ],
+          [
+            "h",
+            "Help and recovery"
+          ],
+          [
+            "p",
+            "Student opens account help without login for recovery instructions. Identity verification is handled by the authorised help desk/admin, not by publicly exposing account existence. An approved recovery produces a short-lived, single-use reset token. After reset, revoke existing sessions and show success. Do not send passwords through group chats or let staff view existing passwords."
+          ],
+          [
+            "table",
+            [
+              "Interaction",
+              "Proposed behaviour"
+            ],
+            [
+              [
+                "Clashing times",
+                "Warn with both event names and times; allow application unless event rule blocks it"
+              ],
+              [
+                "Expired session during submission",
+                "Preserve non-sensitive form draft; re-authenticate; retry using the same submission key"
+              ],
+              [
+                "Offline score view",
+                "Keep last public snapshot; show offline and update timestamp"
+              ],
+              [
+                "Offline admin update",
+                "Disable final confirmation; do not queue silent roster/result writes"
+              ],
+              [
+                "Rescheduled fixture",
+                "Replace old schedule entry; notify affected participants and followers"
+              ],
+              [
+                "Suspended account",
+                "Block new protected actions immediately; existing selection is flagged for head review, not silently deleted"
+              ],
+              [
+                "Captain tag",
+                "Visible role within selected squad; no scoring, treasury or admin privileges"
+              ],
+              [
+                "Deleted/cancelled event",
+                "Retain registration history; show cancellation and contact route"
+              ]
+            ]
+          ],
+          [
+            "p",
+            "Proposed desktop admin layout: left navigation, event selector, searchable central table and contextual action panel. Mobile head tools prioritise applicant search and large score controls. Confirmation dialogs name the event, action and affected count; success messages reflect actual server outcomes."
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "04_Data_and_Access",
+    "title": "Data model and access rules",
+    "pages": [
+      {
+        "title": "Core records and constraints",
+        "blocks": [
+          [
+            "p",
+            "This is a logical schema to guide migrations, not executable SQL. Use UUID primary keys internally and a separate human-readable Fest ID. Store timestamps in UTC and display Asia/Kolkata. Include edition_id on edition-specific data so future reuse does not mix registrations."
+          ],
+          [
+            "table",
+            [
+              "Record",
+              "Key fields and invariants"
+            ],
+            [
+              [
+                "editions / batches",
+                "Edition name, dates, timezone, status; eligible batch/course definitions. Year and official labels are configuration."
+              ],
+              [
+                "profiles",
+                "auth_user_id, name, batch_id, roll_canonical, private phone, fest_id. Unique(batch_id, roll_canonical) and unique fest_id."
+              ],
+              [
+                "access_records",
+                "edition_id, profile_id, pending/active/rejected/suspended, verifier, verified_at, minimal ledger reference and reason. Unique edition/profile."
+              ],
+              [
+                "staff_assignments",
+                "user_id, role, event_id where applicable; only main admin grants roles"
+              ],
+              [
+                "events",
+                "category, solo/pair/group/sport format, rules, eligibility, capacity, windows, reporting/start/end, venue, state, roster_lock_at"
+              ],
+              [
+                "applications",
+                "event_id, student_id, review_status, selection_status, submitted_at, answers, reviewer/reason. One record per event/student; history separate."
+              ],
+              [
+                "groups / memberships",
+                "event_id, batch_id where required, name, captain_id; membership references approved application. One active group per event/student."
+              ],
+              [
+                "fixtures / score_snapshots",
+                "event_id, opponents, round/stage, timing, status, sport_type, validated score payload, version, updater/time"
+              ],
+              [
+                "results / point_rules",
+                "event_id, placing, recipient/group, publication version; points keyed by edition/event/place. No duplicate active result for recipient/place."
+              ],
+              [
+                "points_ledger",
+                "result_version, batch, points; transactional replacement/reversal when result changes. Derived totals, not editable totals."
+              ]
+            ]
+          ],
+          [
+            "p",
+            "Canonicalise batch and roll according to the college's actual identifier scheme. Preserve significant leading zeros if required; do not guess that 047 and 47 are different students. Batch/course combinations must uniquely identify a student, or add the required course discriminator before launch."
+          ]
+        ]
+      },
+      {
+        "title": "Supporting data and role permissions",
+        "blocks": [
+          [
+            "table",
+            [
+              "Record",
+              "Purpose and constraints"
+            ],
+            [
+              [
+                "notices / reminders",
+                "Scope, publish time, urgency, audience; reminders link to source version to invalidate stale times"
+              ],
+              [
+                "polls / options / votes",
+                "Eligibility, open/close time; unique poll/student vote; public aggregate only after close"
+              ],
+              [
+                "help_threads / messages",
+                "Owner, optional event, assignee, state; private threaded replies; attachments excluded initially"
+              ],
+              [
+                "feedback",
+                "Form/event, student, ratings/text, submission version; one editable response per configured scope"
+              ],
+              [
+                "sponsors / placements",
+                "Tier, logo, approved text, link, associated event; no participant contact dataset"
+              ],
+              [
+                "media / stage / merchandise",
+                "Asset URL, publish state, rights/consent note, alt text; stage timings and approved artist details"
+              ],
+              [
+                "audit_log / recovery_tokens",
+                "Actor/action/object/time/reason and redacted change; recovery token hash, expiry, attempt count, used_at"
+              ],
+              [
+                "auth_identity_map",
+                "Server-only batch-roll to auth identifier mapping; inaccessible to public/student database clients"
+              ]
+            ]
+          ],
+          [
+            "table",
+            [
+              "Role",
+              "Read and write boundary"
+            ],
+            [
+              [
+                "Public",
+                "Read published event, fixture, score, result and promotional content; no private profiles"
+              ],
+              [
+                "Pending student",
+                "Read/update own permitted profile, access status and help; cannot apply/vote"
+              ],
+              [
+                "Active student",
+                "Own applications, group view, schedule, vote and feedback; no direct role/access/result updates"
+              ],
+              [
+                "Event head",
+                "Assigned-event applicants/contact details as needed; reviews, grouping, captain, fixtures, scores, results and event notices"
+              ],
+              [
+                "Treasurer",
+                "Identity/contribution activation and relevant private profiles; no implicit authority to alter scores"
+              ],
+              [
+                "Main admin",
+                "Roles, global configuration/content and audited corrections; recovery and activation"
+              ],
+              [
+                "Captain",
+                "Participant permissions only plus visible team role"
+              ]
+            ]
+          ],
+          [
+            "p",
+            "Apply database row policies and column-safe public views, not only client filtering. Never expose phone or roll in public squads. Limit exports to authorised scope and record who exported. No participant data should be shared with sponsors by default. Prevent role changes through user-editable metadata. Supabase RLS and server-only secrets are relevant implementation foundations [S5]."
+          ]
+        ]
+      },
+      {
+        "title": "State transitions and transactions",
+        "blocks": [
+          [
+            "h",
+            "Independent state machines"
+          ],
+          [
+            "p",
+            "Access: pending -> active or rejected; active -> suspended; rejected/suspended -> active only after verified review. Application: submitted -> approved, rejected or waitlisted; waitlisted -> submitted/approved when a place is offered; permitted withdrawal -> withdrawn. Selection: unselected -> selected/reserve/not_selected; selected -> removed only through a reasoned head action. An approved record is not automatically selected."
+          ],
+          [
+            "p",
+            "Event: draft -> published/open -> closed -> ongoing -> completed; cancellation may occur after publication with notice. Result: draft -> published -> superseded on correction. A superseded result remains auditable but contributes no active points."
+          ],
+          [
+            "h",
+            "Atomic operations"
+          ],
+          [
+            "p",
+            "Registration locks/checks availability, validates current access/eligibility/deadline, then inserts or returns the existing application in one transaction. Capacity counts the configured unit explicitly: applicants, pairs or groups. For head-created groups, track applicant capacity separately from final group capacity."
+          ],
+          [
+            "p",
+            "Group publication validates current active access, approved applications, group size and batch policy. Result publication validates recipient membership and ranks, then writes results and points together. Correction retires prior points and inserts replacement points atomically; refresh totals only after commit. Poll submission checks time and eligibility with a unique constraint. Score writes compare an expected version and reject stale updates."
+          ],
+          [
+            "h",
+            "Proposed validation rules"
+          ],
+          [
+            "p",
+            "Names: trim spaces, allow ordinary Unicode names, cap length at 100 characters. Phone: normalise to E.164, default India +91 with validation; possession is not proven by format. Password: proposed minimum 12 characters, permit password managers and paste, no arbitrary composition puzzles. Phone changes and batch-roll corrections require staff review after activation. Avoid storing government ID scans; visually check college ID or use an authorised roster."
+          ],
+          [
+            "h",
+            "Lifecycle"
+          ],
+          [
+            "p",
+            "Proposed retention: close new registrations after fest; keep private records for 90 days after 26 November to resolve corrections, then remove unnecessary phone/help data and retain approved public results. Committee must approve the period. Backups follow the same retention policy. Account deletion requests require identity verification and an explicit decision on retained competition history."
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "05_Design_Brief",
+    "title": "Design brief and content plan",
+    "pages": [
+      {
+        "title": "Premium festive visual direction",
+        "blocks": [
+          [
+            "p",
+            "The accepted direction is premium festive: refined typography, rich colours, purposeful imagery and controlled animation. SPANDAN 4.0 should feel like a carefully designed cultural festival while keeping forms and results readable. This document proposes a direction; it does not claim an approved logo or final palette."
+          ],
+          [
+            "table",
+            [
+              "Element",
+              "Proposed treatment"
+            ],
+            [
+              [
+                "Palette",
+                "Deep aubergine #261923, warm ivory #F5F0E8, muted brass #B49A68, restrained coral #BC6256. Contrast-test actual text/background pairs; brass is an accent."
+              ],
+              [
+                "Typography",
+                "Refined display serif for short fest/editorial titles, neutral sans serif for UI. Regular/medium weights; avoid bulky headline lettering. Final licensed font selection pending."
+              ],
+              [
+                "Imagery",
+                "Real performance, sports and campus photography; carefully cropped hero/feature imagery. No invented artist endorsements or fake event photos."
+              ],
+              [
+                "Layout",
+                "Generous spacing, crisp cards, restrained borders, strong hierarchy. Decorative surfaces on promotional pages; clean forms and scoreboards."
+              ],
+              [
+                "Motion",
+                "Short transitions, gentle reveals and score-change feedback. No constant particles, neon glow or autoplay audio. Respect reduced motion."
+              ],
+              [
+                "Mobile",
+                "Bottom navigation, thumb-friendly actions, sticky Apply/status area, clear filters; optional PWA install suggestion after useful engagement"
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Screen composition"
+          ],
+          [
+            "p",
+            "Home begins with fest identity, date, one strong image and Explore/Register actions. Follow with a pinned notice, happening-now/upcoming strip, event categories, Main Stage feature, sponsor section and social/footer links. The pre-fest version uses countdown and registration deadlines; the live version prioritises timings and scores."
+          ],
+          [
+            "p",
+            "Event detail places rules, eligibility, timing, venue and head before the application action. My Fest separates access status, application status and selection. The score screen uses tabular numbers and distinct match states; colour alone must not communicate winning or cancelled status."
+          ],
+          [
+            "p",
+            "All sample art, artist names and sponsor marks must be labelled placeholders in development. Final approval of logo, tagline, palette and images remains with the organising committee."
+          ]
+        ]
+      },
+      {
+        "title": "Content ownership and festival inspiration",
+        "blocks": [
+          [
+            "table",
+            [
+              "Content",
+              "Owner and publishing requirement"
+            ],
+            [
+              [
+                "Fest identity and dates",
+                "Main admin; confirm official college name, edition and organising line"
+              ],
+              [
+                "Rules and event pages",
+                "Assigned head; mandatory eligibility, format, deadlines, venue, contacts and selection method"
+              ],
+              [
+                "Scores and results",
+                "Assigned head; live updater named before event starts; corrections logged"
+              ],
+              [
+                "Announcements",
+                "Admin globally; heads only for assigned events; expiry for urgent notices"
+              ],
+              [
+                "Sponsors and merchandise",
+                "Committee; approved logos, rights, tiers, links and offline contact details"
+              ],
+              [
+                "Stage reveals and media",
+                "Media team through admin; authorised artist announcement times and cleared photographs"
+              ],
+              [
+                "Help and FAQs",
+                "Admin routes queries; proposed daytime response target 12 hours, with fest-day staffing published"
+              ],
+              [
+                "Leaderboard rules",
+                "Committee; approve points and tie policy before any counted result"
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Pulse inspired patterns"
+          ],
+          [
+            "p",
+            "Pulse's public site presents event categories, a participant dashboard/pass flow, schedules, live notices and scoreboards, gallery, sponsors, organising team and help links [S7]. Its older site also presents an anthem and aftermovie [S8]. These patterns inform SPANDAN's discovery, media and support sections. Their private implementation was not tested. SPANDAN uses one offline contribution and college-only verification; it does not copy Pulse's ticket/card checkout."
+          ],
+          [
+            "h",
+            "Minimum content sheet"
+          ],
+          [
+            "p",
+            "For every event collect: title, category, individual application questions, competition format, batch/gender/course eligibility where applicable, team/group limits, applicant and final-group capacities, rules file, registration dates, roster lock, reporting/start/end times, venue, head name/contact visibility, fixture type, score template and point eligibility."
+          ],
+          [
+            "h",
+            "Deferred possibilities"
+          ],
+          [
+            "p",
+            "Certificates, campus map, volunteer applications, scavenger hunts, student-submitted media and deeper analytics can be described in the roadmap after launch. They are not approved launch features. Do not add anonymous chat or additional data collection merely to appear interactive."
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "06_Technical_and_Delivery_Plan",
+    "title": "Technical architecture and delivery plan",
+    "pages": [
+      {
+        "title": "Architecture and email free authentication",
+        "blocks": [
+          [
+            "p",
+            "Proposed stack: TypeScript web application, Supabase Postgres/Auth/Storage, server-side API layer and PWA assets. Vercel is the preferred deployment candidate, conditional on permitted use. Keep hosting-specific code small so another suitable host can be selected without rewriting domain logic. Use database migrations, separate development/production configuration and source control from day one."
+          ],
+          [
+            "h",
+            "Authentication decision requiring a prototype"
+          ],
+          [
+            "p",
+            "Supabase documents password authentication with email or phone, not native batch-roll usernames [S1]. Proposed adapter: securely map the batch-roll identifier to a private phone-based Auth identity on the server, then delegate password validation and sessions to Supabase. Do not return the mapped phone or distinguish unknown users from wrong passwords."
+          ],
+          [
+            "p",
+            "Prototype signup with phone/password and provider phone confirmation disabled, while marking the application profile as unverified/pending. This is a proposed integration setting, not proof of phone ownership. All participation stays blocked until treasurer verifies identity and contribution. Test duplicate phones, failed mapping writes, sessions and recovery before committing. If the hosted configuration cannot support this safely without SMS, escalate the auth design; do not invent a custom password database or silently require email."
+          ],
+          [
+            "h",
+            "Trust and session boundaries"
+          ],
+          [
+            "p",
+            "Browser requests reach the server over HTTPS. Passwords are transient inputs, never stored in app tables or logs. Use established session handling with Secure, HttpOnly, SameSite cookies where compatible, CSRF protections and server-side token validation. Do not cache private responses in the service worker. A database check of current access and event role is required for every privileged mutation, even with an older valid session."
+          ],
+          [
+            "p",
+            "Apply persistent account/IP throttling to login and signup, generic responses and an identity-claim recovery route. Administrative recovery issues a random, short-lived, single-use token, stores only its hash, limits attempts and revokes previous sessions after success. Main admin/treasurer must have an additional authenticator factor or equivalently reviewed protection before production. Secrets stay server-side; use least privilege and RLS [S5]."
+          ]
+        ]
+      },
+      {
+        "title": "API boundaries and free tier capacity",
+        "blocks": [
+          [
+            "table",
+            [
+              "API family",
+              "Contract"
+            ],
+            [
+              [
+                "Account",
+                "Create profile, login, own profile/status, reset-token redemption. Idempotent signup; no public identity lookup."
+              ],
+              [
+                "Access and roles",
+                "Activate/suspend, assign head, audit query. Main admin/treasurer permissions checked by action."
+              ],
+              [
+                "Participation",
+                "Apply/withdraw, review, group allocation, roster publication. Server validates active access and assigned event."
+              ],
+              [
+                "Competition",
+                "Create/reschedule fixture, versioned score update, publish/correct results. Transactions preserve points consistency."
+              ],
+              [
+                "Engagement",
+                "Vote, feedback, help thread, follow/bookmark, reminders. User-owned records and unique constraints."
+              ],
+              [
+                "Content",
+                "Published read endpoints; role-restricted draft/edit/publish. Pagination, compression and cache headers."
+              ]
+            ]
+          ],
+          [
+            "p",
+            "Use request IDs, explicit validation errors, generic auth failures, 409 conflicts for stale/duplicate state and idempotency keys for retry-prone mutations. Audit privileged requests without recording passwords or tokens."
+          ],
+          [
+            "h",
+            "Capacity snapshot checked 14 October 2026"
+          ],
+          [
+            "p",
+            "Supabase Free lists 500 MB database, 1 GB file storage, 5 GB uncached plus 5 GB cached egress, 50,000 monthly active users, 200 peak Realtime connections and 2 million monthly Realtime messages. Automatic backups are not included and inactive projects may pause after one week [S2]. Limits can change; verify in the actual account before launch."
+          ],
+          [
+            "p",
+            "Planning estimate, not measurement: 1,000 users x 10 applications yields about 10,000 applications. Metadata is likely modest; media and score traffic dominate. For 300 spectators polling every 15 seconds over 4 hours, there are 288,000 requests. At 5 KB per response that is about 1.44 GB payload before overhead. Cache a public score snapshot; pause refresh in background tabs and return only changed/minimal data. Do not attach 1,000 persistent Realtime clients to a 200-connection allowance."
+          ],
+          [
+            "p",
+            "Use compressed thumbnails and external video/audio hosting. Proposed media budget 250 MB initially; alert at 60/80 percent of relevant quotas. Export data daily and test restore; private backups must be encrypted and access-controlled. Never count a participant CSV as a complete system backup."
+          ],
+          [
+            "h",
+            "Hosting decision gate"
+          ],
+          [
+            "p",
+            "Vercel Hobby is restricted to personal, non-commercial use [S3,S4]. Sponsor promotion and fest contribution context mean eligibility must be resolved before public production; absence of checkout alone does not establish eligibility. Obtain provider clarification or choose suitable hosting. A zero-cost production outcome is a goal, not a promise."
+          ]
+        ]
+      },
+      {
+        "title": "Twenty one day execution plan",
+        "blocks": [
+          [
+            "p",
+            "Planning anchor: 14 October 2026. Requested launch window: 28 October to 4 November. The 21-day plan ends 3 November with 4 November as launch buffer. All selected modules are included; estimates assume sustained daily development and prompt committee input."
+          ],
+          [
+            "table",
+            [
+              "Days",
+              "Deliverable and exit gate"
+            ],
+            [
+              [
+                "1 to 2",
+                "Auth adapter and hosting decision; roles/schema; prove signup, pending access, activation, protected write and recovery"
+              ],
+              [
+                "3 to 5",
+                "Public event pages, profile, applications, event-head queue; test duplicates and cross-event permissions"
+              ],
+              [
+                "6 to 8",
+                "Selection/groups/captains, fixtures, sport score templates, result publishing and points correction"
+              ],
+              [
+                "9 to 11",
+                "Personal schedule, reminders, notices, polls, feedback and private help threads"
+              ],
+              [
+                "12 to 14",
+                "Sponsors, stage reveals, gallery/media, organiser profiles, merchandise and share cards"
+              ],
+              [
+                "15 to 16",
+                "PWA, accessibility, mobile polish, real content and staff training draft"
+              ],
+              [
+                "17 to 18",
+                "Functional/access tests, realistic traffic runs, cache/quotas and backup restore"
+              ],
+              [
+                "19 to 20",
+                "Multi-batch pilot, head/treasurer rehearsal and fixes; no scope expansion"
+              ],
+              [
+                "21",
+                "Production smoke test, rollback readiness, final approval and launch"
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Operational preparation after app launch"
+          ],
+          [
+            "p",
+            "Before 17 November: every sport has a named score operator, published rules, approved squads, fixtures and tested score template. Before 21 November: cultural groups, stage programme, artists/media permissions and help coverage are confirmed. After 26 November: publish final standings and feedback, reconcile disputes, export records and apply the retention plan."
+          ],
+          [
+            "h",
+            "Development method"
+          ],
+          [
+            "p",
+            "Build one feature vertically through database, server, UI and acceptance checks before moving on. Commit small reviewed changes. Give AI tools the relevant requirement IDs and forbid role checks based only on client state. Keep credentials outside prompts and repositories. Maintain a defect list; never use generated sample data in live participant records."
+          ],
+          [
+            "h",
+            "Risks and escalation"
+          ],
+          [
+            "p",
+            "Critical risks are an unproven auth adapter, unsuitable hosting, late event rules, free-tier traffic ceilings, absent score operators and no tested recovery. A failed critical gate means not ready. Fixed scope and deadline do not justify insecure authentication or untested activation. Present the blocker with resource/date/budget options to the organiser rather than quietly reducing scope."
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "07_Testing_and_Launch",
+    "title": "Testing and launch checklist",
+    "pages": [
+      {
+        "title": "Acceptance test catalogue",
+        "blocks": [
+          [
+            "p",
+            "This is a test plan, not a test report. No application has been built or tested in this document task. Execute with synthetic profiles from at least two batches, one pending student, two active students, two event heads, a treasurer and a main admin."
+          ],
+          [
+            "table",
+            [
+              "Test",
+              "Expected outcome"
+            ],
+            [
+              [
+                "T01 R01 Public/draft access",
+                "Public reads only published content; direct draft URL/API denied"
+              ],
+              [
+                "T02 R02 Signup collision",
+                "Concurrent same batch-roll creates one claim; no duplicate active identity"
+              ],
+              [
+                "T03 R02 Login/recovery",
+                "Correct password works; unknown/wrong returns generic error; throttle persists; reset token expires and cannot be reused"
+              ],
+              [
+                "T04 R03 Activation bypass",
+                "Pending/rejected/suspended user cannot apply through UI or direct API"
+              ],
+              [
+                "T05 R03 Role boundary",
+                "Head/student cannot activate or grant roles by edited request or metadata"
+              ],
+              [
+                "T06 R04 Duplicate/capacity",
+                "Double submit returns one entry; simultaneous last-place claims never overfill"
+              ],
+              [
+                "T07 R04 Rules",
+                "Closed window, ineligible batch and roster lock enforced on server clock"
+              ],
+              [
+                "T08 R05 Head isolation",
+                "Head A cannot export/review Head B's applicants or contacts"
+              ],
+              [
+                "T09 R06 Groups",
+                "Only approved eligible applicants selected; batch/size/duplicate-membership rules enforced; captain is selected member"
+              ],
+              [
+                "T10 R07 Withdrawal",
+                "Allowed before lock; after lock becomes a request; history preserved"
+              ],
+              [
+                "T11 R08 R17 Schedule",
+                "Reschedule updates personal entry, warns clashes and suppresses obsolete reminder"
+              ],
+              [
+                "T12 R09 R10 Scores",
+                "Cricket legal balls render valid overs; football/badminton rules validated; stale version rejected"
+              ],
+              [
+                "T13 R11 R12 Results",
+                "Republish same result adds zero duplicate points; correction replaces prior points; ties follow configured rule"
+              ]
+            ]
+          ],
+          [
+            "p",
+            "Security checks must use direct API requests as well as the normal screens. Save expected result, actual result, test date, commit ID and evidence reference for each test. A passed UI test does not establish database policy correctness."
+          ]
+        ]
+      },
+      {
+        "title": "Engagement checks and release gates",
+        "blocks": [
+          [
+            "table",
+            [
+              "Test",
+              "Expected outcome"
+            ],
+            [
+              [
+                "T14 R14 Voting",
+                "One vote per eligible account; closed poll rejects; concurrent vote retries do not duplicate"
+              ],
+              [
+                "T15 R15 R21 Privacy",
+                "Student sees only own feedback/help; public cannot query phone, roll, recovery or private application tables"
+              ],
+              [
+                "T16 R16 Sharing",
+                "Cards contain no private identifiers/tokens; shared URL opens the correct event"
+              ],
+              [
+                "T17 R18 to R22 Content",
+                "Draft reveals hidden; authorised publish works; links valid; merchandise has no checkout"
+              ],
+              [
+                "T18 R23 Audit/export",
+                "Scoped exports and admin changes audited; CSV cells cannot execute spreadsheet formulas"
+              ],
+              [
+                "T19 R24 Offline",
+                "Public cache labelled stale; private data not cached; offline mutation never falsely confirmed"
+              ],
+              [
+                "T20 Reminders/permission",
+                "Denied push still leaves in-app reminder; duplicate sends avoided"
+              ],
+              [
+                "T21 Session revocation",
+                "Suspend/reset blocks protected writes from an already open session"
+              ],
+              [
+                "T22 Failure recovery",
+                "Interrupted signup/publication is recoverable; no orphan active identity or partial points"
+              ],
+              [
+                "T23 Accessibility/devices",
+                "Android/iOS install paths, keyboard, labels, contrast and reduced motion checked"
+              ],
+              [
+                "T24 Backups",
+                "Restore schema/data and asset references to a test environment; validate sampled registrations and totals"
+              ]
+            ]
+          ],
+          [
+            "h",
+            "Load and endurance"
+          ],
+          [
+            "p",
+            "Proposed baseline: 1,000 synthetic profiles, 50 events, 10,000 applications, 100 simultaneous mixed users for 30 minutes and 300 score readers during a four-hour rehearsal or equivalent staged test. Measure API latency, error rate, database/egress usage and connection count. If 1,000 simultaneous readers are expected, add that test explicitly; total users do not equal concurrency. Use a local/staging environment first and respect provider limits."
+          ],
+          [
+            "h",
+            "Go or no go"
+          ],
+          [
+            "p",
+            "Launch only when all access/integrity tests pass, there are no unresolved critical/high-severity defects, auth and hosting gates are resolved, event content is approved, staff have rehearsed, restore/rollback is demonstrated and monitoring contacts are named. Confirm zero live payment/QR-check-in features slipped into scope. Keep a known-good deploy and migration-compatible rollback path. If a blocker remains, issue a no-go report with owner and remedy; do not describe the app as production ready."
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "08_Organiser_Operations",
+    "title": "Organiser operations and handover guide",
+    "pages": [
+      {
+        "title": "Daily procedures and incident handling",
+        "blocks": [
+          [
+            "h",
+            "Treasurer procedure"
+          ],
+          [
+            "p",
+            "Review pending profiles daily. Match batch/roll/name to the college roster or college ID and reconcile the common contribution externally. Record only the minimum ledger reference and activate. Do not mark someone active solely because they claim to have paid. Incorrect activation must be suspended with a reason and reviewed; never delete their history to hide the mistake."
+          ],
+          [
+            "h",
+            "Event head procedure"
+          ],
+          [
+            "p",
+            "Before registration opens, complete rules, eligibility, capacities, dates and coordinator details. Review applications and communicate reasons. Select the batch squad or cultural group directly; assign sports captain; publish roster only after validating size and membership. Keep head role and captain tag distinct. Before play, verify opponents, stage, venue and score template. During play, update official score snapshots; afterwards publish positions and review the resulting batch points."
+          ],
+          [
+            "h",
+            "Corrections and disputes"
+          ],
+          [
+            "p",
+            "A wrong score is corrected through a versioned update with a note. A wrong final result is superseded, never added as a second result. Admin/head records the dispute, evidence and decision. When rules are unclear, the committee decides before publication. Do not invent tie-breakers after seeing the standings."
+          ],
+          [
+            "table",
+            [
+              "Incident",
+              "Response"
+            ],
+            [
+              [
+                "Lost password/claimed identity",
+                "Verify student through authorised roster/college ID; authorised admin issues one-use reset; revoke old sessions"
+              ],
+              [
+                "Internet/service outage",
+                "Post outage notice if possible; heads use exported lists and manual official score records; reconcile once restored"
+              ],
+              [
+                "Traffic/quota pressure",
+                "Reduce score refresh frequency, cache public snapshots, disable nonessential auto-refresh; preserve registrations and show delays"
+              ],
+              [
+                "Private data exposure",
+                "Restrict affected endpoint, rotate exposed secrets if any, preserve logs, inform organiser and assess affected records"
+              ],
+              [
+                "Mistaken suspension/activation",
+                "Investigate ledger/identity record, correct through audited action and notify affected student privately"
+              ]
+            ]
+          ],
+          [
+            "p",
+            "Do not accept an offline entry silently into the app without later validation. During recovery, reconcile by student/event identity and record original time plus entry operator. If capacity or deadline is disputed, refer to the event head rather than overriding automatically."
+          ]
+        ]
+      },
+      {
+        "title": "Handover and source register",
+        "blocks": [
+          [
+            "h",
+            "Handover package"
+          ],
+          [
+            "p",
+            "Provide source repository, deployment instructions, environment-variable names without values, schema/migrations, role roster, content ownership list, backup and restore instructions, test evidence, known issues and emergency contacts. Committee-controlled accounts should own production services; protect admin access and recovery. Exact ownership and retention approvers remain TBD."
+          ],
+          [
+            "h",
+            "Use of this document set"
+          ],
+          [
+            "p",
+            "Confirmed items reflect the requirements conversation through 14 October 2026. Proposed defaults and technical recommendations are not retrospective user approvals. Before implementation, copy unresolved decisions into the issue tracker with owner/date. Eight editable documents, their Markdown equivalents and a combined master are included. The master PDF is the review copy; update source documents together to avoid divergence."
+          ],
+          [
+            "h",
+            "Sources checked 14 October 2026"
+          ],
+          [
+            "p",
+            "S1 Supabase Password based Auth: https://supabase.com/docs/guides/auth/passwords — supported identifiers and password flows."
+          ],
+          [
+            "p",
+            "S2 Supabase Pricing: https://supabase.com/pricing — published free-plan allowances, pausing and backup limitations."
+          ],
+          [
+            "p",
+            "S3 Vercel Hobby: https://vercel.com/docs/plans/hobby — plan scope and limits."
+          ],
+          [
+            "p",
+            "S4 Vercel Fair Use: https://vercel.com/docs/limits/fair-use-guidelines — personal/non-commercial restriction."
+          ],
+          [
+            "p",
+            "S5 Supabase Row Level Security: https://supabase.com/docs/guides/database/postgres/row-level-security — database access policies and privileged key handling."
+          ],
+          [
+            "p",
+            "S6 MDN Installable PWAs: https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable — browser-dependent installability."
+          ],
+          [
+            "p",
+            "S7 Pulse public site: https://pulseasa.org/ — event, dashboard, media, support and sponsor patterns; public pages only."
+          ],
+          [
+            "p",
+            "S8 Pulse legacy site: https://pulseaiims.wixsite.com/pulse — anthem and aftermovie presentation."
+          ],
+          [
+            "p",
+            "Provider details are time-sensitive and must be rechecked before production. The technical design, acceptance thresholds, operational policies and effort estimates are proposals for this project, not statements endorsed by these sources."
+          ]
+        ]
+      }
+    ]
+  }
+]
