@@ -26,6 +26,12 @@ export const recoveryRedeemSchema = z.object({
   password: z.string().min(12).max(256),
 });
 
+export const eventApplicationSchema = z.object({
+  eventId: z.string().uuid(),
+  idempotencyKey: z.string().uuid(),
+  answers: z.record(z.string(), z.string().trim().max(500)).default({}),
+});
+
 export function normaliseIndianPhone(value: string) {
   const compact = value.replace(/[\s()-]/g, "");
   const phone = /^\d{10}$/.test(compact) ? `+91${compact}` : compact;
