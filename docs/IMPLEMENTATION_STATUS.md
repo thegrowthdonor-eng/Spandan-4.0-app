@@ -7,8 +7,8 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | Phase | Status | Evidence / next gate |
 | --- | --- | --- |
 | 0 - Reconciliation, architecture and feasibility | In progress | Baseline and decision register created; official Supabase and Vercel documentation rechecked. Authentication prototype and local setup next. |
-| 1 - Identity, roles and activation | In progress | Initial versioned identity/access/role/audit migration exists; no Supabase project has applied or tested it yet. |
-| 2 - Events, applications and selection | In progress | Event/application schema and transaction-safe application RPC drafted. Requires a Supabase project to apply and policy-test; no live event data is created. |
+| 1 - Identity, roles and activation | In progress | Audited treasurer/main-admin activation RPC and event-scoped role checks are drafted; no Supabase project has applied or tested them yet. |
+| 2 - Events, applications and selection | In progress | Head review, draft/published groups, membership and sports-captain controls are drafted. Requires a Supabase project to apply and policy-test; no live event data is created. |
 | 3 - Fixtures, scores and standings | In progress | Versioned fixture/score/result/ledger migration and sport score validators exist. Committee point/tie policy and Supabase policy tests remain required. |
 | 4 - Schedule, notices and support | In progress | Notice/reminder/poll/feedback/help schema and protected submission RPCs are drafted; schedule UI, staff workflows and Supabase policy tests remain. |
 | 5 - Promotional content | In progress | Editable scheduled-banner, sponsor, media, stage, organiser and merchandise schema exists with published-only public policies. Dashboard and real approved content are pending. |
@@ -21,8 +21,8 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | --- | --- | --- | --- |
 | R01 | `app/(public)/events`, published-content database views | T01 | In progress: published-only event RLS policy drafted; catalogue UI and database verification pending |
 | R02 | `app/(auth)`, `src/server/auth`, `supabase/migrations` | T02-T03 | In progress: adapter design selected; private mapping schema drafted, not yet proven |
-| R03 | `app/admin/activation`, access RPC/policies | T04-T05, T21 | In progress: access/audit schema drafted; operations not yet implemented |
-| R04-R07 | event detail, applications, groups and transactional RPCs | T06-T10, T22 | In progress: idempotency/one-per-event constraints and an event-row-locking apply RPC drafted; selection/group operations pending |
+| R03 | `app/admin/activation`, access RPC/policies | T04-T05, T21 | In progress: audited treasurer/admin activation function and role boundary checks drafted; database tests pending |
+| R04-R07 | event detail, applications, groups and transactional RPCs | T06-T10, T22 | In progress: idempotency/one-per-event constraints, application review and group/captain RPCs drafted; selection UI and database tests pending |
 | R08, R13, R17 | My Fest, notices/reminders service | T11, T20 | In progress: persistent in-app reminder and scheduled-notice data foundations exist; schedule mutation and notification dispatch pending |
 | R09-R12 | staff event tools, fixtures/scores/results/ledger RPCs | T12-T13 | In progress: fixture history, optimistic score versions, configurable point rules and superseding result ledger are drafted; staff UI and database verification pending |
 | R14-R15, R21 | polls, feedback, help tables and server actions | T14-T15 | In progress: active-only one-vote, versioned feedback, and private help-thread RPCs drafted; UI/staff routing and policy tests pending |
