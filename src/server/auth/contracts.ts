@@ -48,6 +48,12 @@ export const applicationReviewSchema = z.object({
   if (value.state === "rejected" && !value.reason) context.addIssue({ code: z.ZodIssueCode.custom, message: "A rejection reason is required." });
 });
 
+export const soloSelectionSchema = z.object({
+  applicationId: z.string().uuid(),
+  state: z.enum(["selected", "reserve", "not_selected"]),
+  reason: z.string().trim().max(500).optional(),
+});
+
 export function normaliseIndianPhone(value: string) {
   const compact = value.replace(/[\s()-]/g, "");
   const phone = /^\d{10}$/.test(compact) ? `+91${compact}` : compact;

@@ -15,7 +15,7 @@ Student login remains batch + roll + password in the UI. A server-side adapter m
 ## Immediate next steps
 
 1. Configure a disposable Supabase project with the non-committed environment values, apply all ten migrations, and run T01-T17/T20-T21 direct database/API checks, including authentication cookies, profile provisioning, rate-limit concurrency, recovery expiry/reuse/session handling, staff queue isolation/ledger-required activation, score conflicts, result corrections, vote retries, private-thread boundaries, draft/scheduled visibility and cross-event staff isolation.
-2. Build the staff UI for recovery issuance and group/squad selection; application review is now locally implemented.
+2. Build the staff UI for recovery issuance and pair/group/sport squad selection; application review and solo selection are now locally implemented.
 3. Build public event catalogue/detail routes from published-only queries once the real event configuration is supplied.
 4. Ask the committee only for the unresolved decisions in `DECISIONS.md` that gate real data/publication.
 
