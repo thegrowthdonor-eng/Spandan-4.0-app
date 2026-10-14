@@ -11,7 +11,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | 2 - Events, applications and selection | In progress | Event/application schema and transaction-safe application RPC drafted. Requires a Supabase project to apply and policy-test; no live event data is created. |
 | 3 - Fixtures, scores and standings | In progress | Versioned fixture/score/result/ledger migration and sport score validators exist. Committee point/tie policy and Supabase policy tests remain required. |
 | 4 - Schedule, notices and support | In progress | Notice/reminder/poll/feedback/help schema and protected submission RPCs are drafted; schedule UI, staff workflows and Supabase policy tests remain. |
-| 5 - Promotional content | Not started | Requires approved assets/content. |
+| 5 - Promotional content | In progress | Editable scheduled-banner, sponsor, media, stage, organiser and merchandise schema exists with published-only public policies. Dashboard and real approved content are pending. |
 | 6 - Assistant and copilot | Not started | Requires provider/cost decision; core features remain independent. |
 | 7 - PWA, QA and launch preparation | In progress | Manifest, icon, install registration and a conservative public-only offline fallback are implemented. Device/install/cache verification remains. |
 
@@ -27,7 +27,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | R09-R12 | staff event tools, fixtures/scores/results/ledger RPCs | T12-T13 | In progress: fixture history, optimistic score versions, configurable point rules and superseding result ledger are drafted; staff UI and database verification pending |
 | R14-R15, R21 | polls, feedback, help tables and server actions | T14-T15 | In progress: active-only one-vote, versioned feedback, and private help-thread RPCs drafted; UI/staff routing and policy tests pending |
 | R16 | public event metadata/share-card route | T16 | Not started |
-| R18-R20, R22 | authorised content dashboard and public content routes | T17 | Not started |
+| R18-R20, R22 | authorised content dashboard and public content routes | T17 | In progress: data model supports scheduled publication, banners/order/visibility, sponsor privacy, rights/alt text, stage reveals and display-only merchandise; UI/policy tests pending |
 | R23 | admin dashboard, exports, audit log | T18 | Not started |
 | R24 | manifest, service worker and cache controls | T19, T23 | In progress: manifest, icon and service worker exclude account/admin/API paths; browser/device cache verification pending |
 

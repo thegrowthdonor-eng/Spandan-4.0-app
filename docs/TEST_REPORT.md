@@ -18,6 +18,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | 2026-10-14 | `npm test`, typecheck, lint and build after PWA baseline | Passed | Build generated `/`, `/account`, `/offline`, and `/manifest.webmanifest`; service worker behavior still needs real-browser offline/cache inspection. |
 | 2026-10-14 | Competition validator unit tests | Passed | Five total unit tests passed, including legal-ball cricket rendering and invalid sport-payload rejection. Database score conflict/result-ledger tests remain blocked on a Supabase test project. |
 | 2026-10-14 | Build after engagement migration | Passed | Unit tests, typecheck, lint and production build all passed. Engagement database behavior remains unexecuted until a Supabase project is available. |
+| 2026-10-14 | Build after promotional-content migration | Passed | Unit tests, typecheck, lint and production build passed. Scheduled-publication and draft-visibility policies remain unexecuted until a Supabase project is available. |
 | 2026-10-14 | Browser rendering check | Unavailable | No automation browser surface was available. Local server started successfully at `http://localhost:3000`; visual/device review is still required. |
 
 ## Not yet executable
@@ -32,3 +33,4 @@ No application, migrations, Supabase project, seed data or automated test harnes
 4. Verify PWA installation and offline behavior on Android Chrome, iOS Safari and desktop Chrome/Edge; specifically inspect that account/admin/API responses are not cached.
 5. Apply `202610140003_competition_and_standings.sql` and run direct tests for stale scores, duplicate result publication and correction-ledger replacement (T12-T13).
 6. Apply `202610140004_engagement_and_support.sql` and run T14, T15 and T20 with active/pending profiles, concurrent retry attempts and staff/private-thread boundaries.
+7. Apply `202610140005_promotional_content.sql` and run T17 against draft, scheduled, expired and published content as public and staff roles.
