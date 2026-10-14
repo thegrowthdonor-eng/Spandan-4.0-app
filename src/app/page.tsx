@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const pillars = [
   ["01", "Explore", "Published event information stays open to everyone."],
   ["02", "Participate", "A verified contribution unlocks individual applications."],
@@ -11,7 +13,7 @@ export default function Home() {
     <main>
       <nav className="nav" aria-label="Primary navigation">
         <a className="wordmark" href="#top" aria-label="SPANDAN 4.0 home">Spandan <span>4.0</span></a>
-        <div className="nav-links"><a href="#experience">Experience</a><a href="#notice">Notice</a><a href="#account">My Fest</a></div>
+        <div className="nav-links"><Link href="/events">Events</Link><a href="#notice">Notice</a><a href="#account">My Fest</a></div>
         <a className="nav-cta" href="/account">Sign in <span aria-hidden>↗</span></a>
       </nav>
 
@@ -20,7 +22,7 @@ export default function Home() {
         <p className="eyebrow">GMC Firozabad · Festival edition</p>
         <h1 id="hero-title">A pulse of<br /><em>possibility.</em></h1>
         <p className="hero-copy">SPANDAN brings sports, culture and campus spirit together. Explore what is confirmed, then make your mark when registrations open.</p>
-        <div className="hero-actions"><a className="button button-light" href="#experience">Explore the fest <span>↓</span></a><a className="text-link" href="#notice">Read the latest notice <span>→</span></a></div>
+        <div className="hero-actions"><Link className="button button-light" href="/events">Explore the events <span>→</span></Link><a className="text-link" href="#notice">Read the latest notice <span>→</span></a></div>
         <div className="hero-meta"><span>Official programme dates<br /><strong>To be confirmed</strong></span><span>Built for<br /><strong>GMC Firozabad</strong></span></div>
       </section>
 

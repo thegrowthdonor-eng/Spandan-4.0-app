@@ -16,3 +16,7 @@ export function hasSupabaseConfiguration() {
       process.env.AUTH_IDENTITY_PEPPER,
   );
 }
+
+export function hasPublicSupabaseConfiguration() {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+}

@@ -19,7 +19,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 
 | Requirements | Intended implementation location | Acceptance / verification | Status |
 | --- | --- | --- | --- |
-| R01 | `app/(public)/events`, published-content database views | T01 | In progress: published-only event RLS policy drafted; catalogue UI and database verification pending |
+| R01 | `src/app/events`, public anonymous Supabase client, published-only event RLS policy | T01 | In progress: dynamic public catalogue and event-detail pages now read through the anonymous client, so only database-published rows can render; real database/RLS verification and organiser event content remain pending |
 | R02 | `app/(auth)`, `src/server/auth`, `supabase/migrations` | T02-T03 | In progress: batch-roll adapter, guarded sign-up/sign-in/logout routes, generic errors, persistent rate limit, pending-profile provisioning, main-admin-issued 30-minute one-use recovery token and redemption route are implemented locally; real Supabase auth/session proof is still required |
 | R03 | `app/admin/activation`, access RPC/policies | T04-T05, T21 | In progress: audited treasurer/admin activation function and role boundary checks drafted; database tests pending |
 | R04-R07 | event detail, applications, groups and transactional RPCs | T06-T10, T22 | In progress: idempotency/one-per-event constraints, application review and group/captain RPCs drafted; selection UI and database tests pending |
