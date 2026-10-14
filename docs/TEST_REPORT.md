@@ -21,6 +21,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | 2026-10-14 | Build after promotional-content migration | Passed | Unit tests, typecheck, lint and production build passed. Scheduled-publication and draft-visibility policies remain unexecuted until a Supabase project is available. |
 | 2026-10-14 | Build after activation/review/selection migration | Passed | Unit tests, typecheck, lint and production build passed. T04-T10/T21 database and direct API checks remain unexecuted pending a Supabase project. |
 | 2026-10-14 | Account provisioning route checks | Passed | Seven total unit tests, typecheck, lint and production build passed; dynamic sign-up, sign-in, logout and public-batch routes compile with `Cache-Control: no-store` for auth mutations. Supabase phone/password, profile provisioning and session behavior are not yet exercised against a real project. |
+| 2026-10-14 | Recovery-token route checks | Passed locally | Eight total unit tests, typecheck, lint and production build passed; main-admin recovery issuance and anonymous redemption routes compile with `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. Token expiry/reuse, database grants and Supabase password/session behavior are not yet exercised against a real project. |
 | 2026-10-14 | Browser rendering check | Unavailable | No automation browser surface was available. Local server started successfully at `http://localhost:3000`; visual/device review is still required. |
 
 ## Not yet executable
@@ -37,5 +38,4 @@ No application, migrations, Supabase project, seed data or automated test harnes
 6. Apply `202610140004_engagement_and_support.sql` and run T14, T15 and T20 with active/pending profiles, concurrent retry attempts and staff/private-thread boundaries.
 7. Apply `202610140005_promotional_content.sql` and run T17 against draft, scheduled, expired and published content as public and staff roles.
 8. Apply `202610140006_activation_review_and_selection.sql` and run T04-T10/T21 using student, head, treasurer and main-admin roles—including cross-event, captain and suspended-session attempts.
-9. Apply `202610140007_auth_rate_limits.sql` and `202610140008_profile_provisioning.sql`, then test T02-T03 with concurrent sign-up claims, correct/wrong login, generic errors, cookies, rate buckets, rollback behavior and pending access activation.
-10. Add and test the authorised recovery flow, including token expiry, single use, session revocation and no account-enumeration leakage.
+9. Apply `202610140007_auth_rate_limits.sql`, `202610140008_profile_provisioning.sql` and `202610140009_recovery_tokens.sql`, then test T02-T03 with concurrent sign-up claims, correct/wrong login, generic errors, cookies, rate buckets, rollback behavior, pending access activation, recovery-token expiry/reuse and session behavior after password update.

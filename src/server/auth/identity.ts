@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import { z } from "zod";
 
 const batchRollSchema = z.object({
@@ -36,4 +36,14 @@ export function toPrivateAuthPhone(input: BatchRoll, pepper: string) {
 export function hashRateLimitKey(value: string, pepper: string) {
   if (pepper.length < 32) throw new Error("AUTH_IDENTITY_PEPPER must be at least 32 characters.");
   return createHmac("sha256", pepper).update(value, "utf8").digest("hex");
+}
+
+/** A recovery token is an opaque server-generated capability; only its HMAC is stored. */
+export function createRecoveryToken() {
+  return randomBytes(32).toString("base64url");
+}
+
+export function hashRecoveryToken(token: string, pepper: string) {
+  if (pepper.length < 32) throw new Error("AUTH_IDENTITY_PEPPER must be at least 32 characters.");
+  return createHmac("sha256", pepper).update(`recovery-token\\u001f${token}`, "utf8").digest("hex");
 }

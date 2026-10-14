@@ -16,6 +16,16 @@ export const signUpSchema = z.object({
   password: z.string().min(12).max(256),
 });
 
+export const recoveryIssueSchema = z.object({
+  profileId: z.string().uuid(),
+  reason: z.string().trim().min(1).max(500),
+});
+
+export const recoveryRedeemSchema = z.object({
+  token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  password: z.string().min(12).max(256),
+});
+
 export function normaliseIndianPhone(value: string) {
   const compact = value.replace(/[\s()-]/g, "");
   const phone = /^\d{10}$/.test(compact) ? `+91${compact}` : compact;

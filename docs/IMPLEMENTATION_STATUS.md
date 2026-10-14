@@ -7,7 +7,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | Phase | Status | Evidence / next gate |
 | --- | --- | --- |
 | 0 - Reconciliation, architecture and feasibility | In progress | Baseline and decision register created; official Supabase and Vercel documentation rechecked. Authentication prototype and local setup next. |
-| 1 - Identity, roles and activation | In progress | Guarded sign-up/sign-in/logout routes, private identity adapter, rate-limit and atomic profile-provisioning migration now exist alongside the activation RPCs; no Supabase project has applied or tested them yet. |
+| 1 - Identity, roles and activation | In progress | Guarded sign-up/sign-in/logout/recovery routes, private identity adapter, rate-limit, atomic profile provisioning and one-use recovery-token migrations now exist alongside activation RPCs; no Supabase project has applied or tested them yet. |
 | 2 - Events, applications and selection | In progress | Head review, draft/published groups, membership and sports-captain controls are drafted. Requires a Supabase project to apply and policy-test; no live event data is created. |
 | 3 - Fixtures, scores and standings | In progress | Versioned fixture/score/result/ledger migration and sport score validators exist. Committee point/tie policy and Supabase policy tests remain required. |
 | 4 - Schedule, notices and support | In progress | Notice/reminder/poll/feedback/help schema and protected submission RPCs are drafted; schedule UI, staff workflows and Supabase policy tests remain. |
@@ -20,7 +20,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | Requirements | Intended implementation location | Acceptance / verification | Status |
 | --- | --- | --- | --- |
 | R01 | `app/(public)/events`, published-content database views | T01 | In progress: published-only event RLS policy drafted; catalogue UI and database verification pending |
-| R02 | `app/(auth)`, `src/server/auth`, `supabase/migrations` | T02-T03 | In progress: batch-roll adapter, guarded sign-up/sign-in/logout routes, generic errors, persistent rate limit and atomic pending-profile provisioning are implemented locally; real Supabase auth/session proof and authorised recovery remain required |
+| R02 | `app/(auth)`, `src/server/auth`, `supabase/migrations` | T02-T03 | In progress: batch-roll adapter, guarded sign-up/sign-in/logout routes, generic errors, persistent rate limit, pending-profile provisioning, main-admin-issued 30-minute one-use recovery token and redemption route are implemented locally; real Supabase auth/session proof is still required |
 | R03 | `app/admin/activation`, access RPC/policies | T04-T05, T21 | In progress: audited treasurer/admin activation function and role boundary checks drafted; database tests pending |
 | R04-R07 | event detail, applications, groups and transactional RPCs | T06-T10, T22 | In progress: idempotency/one-per-event constraints, application review and group/captain RPCs drafted; selection UI and database tests pending |
 | R08, R13, R17 | My Fest, notices/reminders service | T11, T20 | In progress: persistent in-app reminder and scheduled-notice data foundations exist; schedule mutation and notification dispatch pending |
