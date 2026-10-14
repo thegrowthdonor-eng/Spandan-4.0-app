@@ -32,3 +32,8 @@ export function toPrivateAuthPhone(input: BatchRoll, pepper: string) {
   const digits = BigInt(`0x${digest.slice(0, 16)}`) % 10_000_000_000n;
   return `+91${digits.toString().padStart(10, "0")}`;
 }
+
+export function hashRateLimitKey(value: string, pepper: string) {
+  if (pepper.length < 32) throw new Error("AUTH_IDENTITY_PEPPER must be at least 32 characters.");
+  return createHmac("sha256", pepper).update(value, "utf8").digest("hex");
+}

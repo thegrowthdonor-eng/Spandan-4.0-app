@@ -6,11 +6,15 @@
 .account-hero p:last-child { max-width:410px;line-height:1.7;color:#d5cac0;font-size:15px; }
 .account-grid { max-width:1100px;margin:auto;padding:78px 8vw;display:grid;grid-template-columns:1fr 1fr;gap:11vw; }
 .account-panel { background:#fffaf2;padding:34px;border:1px solid #ddd0c6;display:flex;flex-direction:column;gap:16px; }
+.auth-stack { display:grid;gap:24px; }
 .account-panel h2 { font:500 38px/.95 "Playfair Display",serif;letter-spacing:-.05em;margin:16px 0 6px; }
 .account-panel label { font-size:12px;display:grid;gap:7px; }
 .account-panel input { border:1px solid #d5c8bf;background:#f4ede4;padding:13px;font:14px "DM Sans",sans-serif;color:var(--ink); }
+.account-panel select { border:1px solid #d5c8bf;background:#f4ede4;padding:13px;font:14px "DM Sans",sans-serif;color:var(--ink); }
 .account-panel button { background:var(--ink);border:0;color:#a99ba3;padding:15px;font-size:13px;text-align:left;cursor:not-allowed; }
 .account-panel>a { font-size:12px;color:#80524d;text-decoration:underline; }
+.form-error { color:#9e3430;font-size:12px;margin:0; }
+.form-message { font-size:12px;line-height:1.5;margin:0;color:#80524d; }
 .access-steps { list-style:none;padding:0;margin:30px 0;display:grid;gap:24px; }
 .access-steps li { display:grid;grid-template-columns:45px 1fr;gap:13px; }
 .access-steps span { font:10px "DM Mono",monospace;color:#80524d;padding-top:3px; }

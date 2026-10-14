@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canonicaliseBatchRoll, toPrivateAuthPhone } from "./identity";
+import { canonicaliseBatchRoll, hashRateLimitKey, toPrivateAuthPhone } from "./identity";
 
 const pepper = "test-pepper-must-be-at-least-thirty-two-characters";
 
@@ -20,4 +20,11 @@ test("produces stable, private phone-shaped auth identities", () => {
 
 test("rejects a dangerously short identity pepper", () => {
   assert.throws(() => toPrivateAuthPhone({ batch: "MBBS 2024", rollNumber: "047" }, "short"));
+});
+
+test("hashes rate-limit keys without retaining identifiers", () => {
+  const hash = hashRateLimitKey("account:MBBS 2024\u001f047", pepper);
+  assert.match(hash, /^[a-f0-9]{64}$/);
+  assert.equal(hash.includes("047"), false);
+  assert.equal(hash.includes("MBBS"), false);
 });
