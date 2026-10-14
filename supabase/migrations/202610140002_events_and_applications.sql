@@ -14,6 +14,7 @@ create table public.events (
   slug text not null check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
   category public.event_category not null,
   format public.event_format not null,
+  score_template text not null default 'generic' check (score_template in ('generic', 'cricket', 'football', 'badminton')),
   summary text not null default '' check (char_length(summary) <= 600),
   rules_markdown text not null default '' check (char_length(rules_markdown) <= 20000),
   venue text check (char_length(venue) <= 160),

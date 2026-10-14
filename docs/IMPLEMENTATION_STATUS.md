@@ -9,7 +9,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | 0 - Reconciliation, architecture and feasibility | In progress | Baseline and decision register created; official Supabase and Vercel documentation rechecked. Authentication prototype and local setup next. |
 | 1 - Identity, roles and activation | In progress | Initial versioned identity/access/role/audit migration exists; no Supabase project has applied or tested it yet. |
 | 2 - Events, applications and selection | In progress | Event/application schema and transaction-safe application RPC drafted. Requires a Supabase project to apply and policy-test; no live event data is created. |
-| 3 - Fixtures, scores and standings | Not started | Requires points/tie policy. |
+| 3 - Fixtures, scores and standings | In progress | Versioned fixture/score/result/ledger migration and sport score validators exist. Committee point/tie policy and Supabase policy tests remain required. |
 | 4 - Schedule, notices and support | Not started | Requires Phase 1. |
 | 5 - Promotional content | Not started | Requires approved assets/content. |
 | 6 - Assistant and copilot | Not started | Requires provider/cost decision; core features remain independent. |
@@ -24,7 +24,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | R03 | `app/admin/activation`, access RPC/policies | T04-T05, T21 | In progress: access/audit schema drafted; operations not yet implemented |
 | R04-R07 | event detail, applications, groups and transactional RPCs | T06-T10, T22 | In progress: idempotency/one-per-event constraints and an event-row-locking apply RPC drafted; selection/group operations pending |
 | R08, R13, R17 | My Fest, notices/reminders service | T11, T20 | Not started |
-| R09-R12 | staff event tools, fixtures/scores/results/ledger RPCs | T12-T13 | Not started |
+| R09-R12 | staff event tools, fixtures/scores/results/ledger RPCs | T12-T13 | In progress: fixture history, optimistic score versions, configurable point rules and superseding result ledger are drafted; staff UI and database verification pending |
 | R14-R15, R21 | polls, feedback, help tables and server actions | T14-T15 | Not started |
 | R16 | public event metadata/share-card route | T16 | Not started |
 | R18-R20, R22 | authorised content dashboard and public content routes | T17 | Not started |

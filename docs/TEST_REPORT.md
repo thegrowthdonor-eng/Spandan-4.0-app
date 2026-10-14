@@ -16,6 +16,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | 2026-10-14 | `npm test` | Passed | Three deterministic auth-identity tests passed: canonicalisation, stable private identifier generation, and short-pepper rejection. |
 | 2026-10-14 | `npm run build` after account route | Passed | Production build compiled, type-checked and statically generated `/`, `/account`, and `/_not-found`. |
 | 2026-10-14 | `npm test`, typecheck, lint and build after PWA baseline | Passed | Build generated `/`, `/account`, `/offline`, and `/manifest.webmanifest`; service worker behavior still needs real-browser offline/cache inspection. |
+| 2026-10-14 | Competition validator unit tests | Passed | Five total unit tests passed, including legal-ball cricket rendering and invalid sport-payload rejection. Database score conflict/result-ledger tests remain blocked on a Supabase test project. |
 | 2026-10-14 | Browser rendering check | Unavailable | No automation browser surface was available. Local server started successfully at `http://localhost:3000`; visual/device review is still required. |
 
 ## Not yet executable
@@ -28,3 +29,4 @@ No application, migrations, Supabase project, seed data or automated test harnes
 2. Execute the auth adapter prototype against a disposable Supabase project before accepting its design.
 3. Apply `202610140001_phase1_identity.sql` and `202610140002_events_and_applications.sql` in a disposable Supabase project, then run direct policy tests for T01, T04, T06 and T07.
 4. Verify PWA installation and offline behavior on Android Chrome, iOS Safari and desktop Chrome/Edge; specifically inspect that account/admin/API responses are not cached.
+5. Apply `202610140003_competition_and_standings.sql` and run direct tests for stale scores, duplicate result publication and correction-ledger replacement (T12-T13).
