@@ -32,6 +32,14 @@ export const eventApplicationSchema = z.object({
   answers: z.record(z.string(), z.string().trim().max(500)).default({}),
 });
 
+export const activationUpdateSchema = z.object({
+  editionId: z.string().uuid(),
+  profileId: z.string().uuid(),
+  state: z.enum(["active", "rejected", "suspended"]),
+  reason: z.string().trim().max(500).optional(),
+  ledgerReference: z.string().trim().max(120).optional(),
+});
+
 export function normaliseIndianPhone(value: string) {
   const compact = value.replace(/[\s()-]/g, "");
   const phone = /^\d{10}$/.test(compact) ? `+91${compact}` : compact;
