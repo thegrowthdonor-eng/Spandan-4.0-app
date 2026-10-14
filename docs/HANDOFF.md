@@ -4,7 +4,7 @@ Current work: Phase 0 feasibility gate plus Phase 1-3 foundations
 
 ## Current state
 
-The repository initially contained planning documents only. It now has a Next.js 16 TypeScript scaffold, a premium public planning-preview home page at `src/app/page.tsx`, and a clear `/account` access explanation; neither claims that registration is live. The requirements baseline and Phase 0 records live in `docs/`. Migrations are `202610140001_phase1_identity.sql`, `202610140002_events_and_applications.sql`, and `202610140003_competition_and_standings.sql`. No production services were created, no credentials were requested or stored, and no deployment occurred.
+The repository initially contained planning documents only. It now has a Next.js 16 TypeScript scaffold, a premium public planning-preview home page at `src/app/page.tsx`, and a clear `/account` access explanation; neither claims that registration is live. The requirements baseline and Phase 0 records live in `docs/`. Migrations are `202610140001_phase1_identity.sql` through `202610140004_engagement_and_support.sql`. No production services were created, no credentials were requested or stored, and no deployment occurred.
 
 ## Architecture direction
 
@@ -14,7 +14,7 @@ Student login remains batch + roll + password in the UI. A server-side adapter i
 
 ## Immediate next steps
 
-1. Apply all three migrations in a disposable Supabase project and run T01-T13 direct database/API checks, including score conflicts and result corrections.
+1. Apply all four migrations in a disposable Supabase project and run T01-T15/T20 direct database/API checks, including score conflicts, result corrections, vote retries and private-thread boundaries.
 2. Add protected activation, review and selection RPCs with audit records; then connect signup/login and recovery endpoints around the adapter.
 3. Build public event catalogue/detail routes from published-only queries once the real event configuration is supplied.
 4. Ask the committee only for the unresolved decisions in `DECISIONS.md` that gate real data/publication.
