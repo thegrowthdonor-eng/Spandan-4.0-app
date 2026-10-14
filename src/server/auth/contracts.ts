@@ -60,6 +60,18 @@ export const groupCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("publish"), groupId: z.string().uuid(), captainId: z.string().uuid().nullable() }),
 ]);
 
+export const fixtureCreateSchema = z.object({
+  eventId: z.string().uuid(),
+  stage: z.string().trim().min(1).max(100),
+  participantALabel: z.string().trim().min(1).max(160),
+  participantBLabel: z.string().trim().min(1).max(160),
+  venue: z.string().trim().max(160).optional(),
+  reportingAt: z.string().datetime().nullable(),
+  startsAt: z.string().datetime().nullable(),
+}).superRefine((value, context) => {
+  if (value.participantALabel === value.participantBLabel) context.addIssue({ code: z.ZodIssueCode.custom, message: "Fixture participants must differ." });
+});
+
 export function normaliseIndianPhone(value: string) {
   const compact = value.replace(/[\s()-]/g, "");
   const phone = /^\d{10}$/.test(compact) ? `+91${compact}` : compact;
