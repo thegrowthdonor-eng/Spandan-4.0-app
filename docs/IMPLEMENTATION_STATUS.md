@@ -13,7 +13,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | 4 - Schedule, notices and support | Not started | Requires Phase 1. |
 | 5 - Promotional content | Not started | Requires approved assets/content. |
 | 6 - Assistant and copilot | Not started | Requires provider/cost decision; core features remain independent. |
-| 7 - PWA, QA and launch preparation | Not started | Runs throughout; formal release gate at end. |
+| 7 - PWA, QA and launch preparation | In progress | Manifest, icon, install registration and a conservative public-only offline fallback are implemented. Device/install/cache verification remains. |
 
 ## Requirement traceability
 
@@ -29,7 +29,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | R16 | public event metadata/share-card route | T16 | Not started |
 | R18-R20, R22 | authorised content dashboard and public content routes | T17 | Not started |
 | R23 | admin dashboard, exports, audit log | T18 | Not started |
-| R24 | manifest, service worker and cache controls | T19, T23 | Not started |
+| R24 | manifest, service worker and cache controls | T19, T23 | In progress: manifest, icon and service worker exclude account/admin/API paths; browser/device cache verification pending |
 
 ## Known blockers
 

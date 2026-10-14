@@ -8,7 +8,7 @@ The repository initially contained planning documents only. It now has a Next.js
 
 ## Architecture direction
 
-Use a TypeScript Next.js application with Supabase behind server-only service boundaries. Public reads are sourced from published-safe views; all protected mutations validate current access and staff assignment in database/RPC boundaries. The service worker must only cache the public shell/content and must never cache private API data.
+Use a TypeScript Next.js application with Supabase behind server-only service boundaries. Public reads are sourced from published-safe views; all protected mutations validate current access and staff assignment in database/RPC boundaries. The implemented service worker caches only the public shell/offline fallback and ignores account, admin and API paths; it must never cache private data.
 
 Student login remains batch + roll + password in the UI. A server-side adapter is planned to map the canonical identifier to a private Supabase phone identity; no custom password table or cryptography is permitted. This remains an unverified Phase 0 proof point.
 
@@ -30,3 +30,4 @@ Student login remains batch + roll + password in the UI. A server-side adapter i
 
 - `npm run dev` starts the local application.
 - `npm run typecheck`, `npm run lint`, and `npm run build` all passed on 14 October 2026.
+- `npm test` runs the currently implemented unit checks for the auth identity adapter.
