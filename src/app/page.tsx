@@ -12,7 +12,7 @@ export default function Home() {
       <nav className="nav" aria-label="Primary navigation">
         <a className="wordmark" href="#top" aria-label="SPANDAN 4.0 home">Spandan <span>4.0</span></a>
         <div className="nav-links"><a href="#experience">Experience</a><a href="#notice">Notice</a><a href="#account">My Fest</a></div>
-        <a className="nav-cta" href="#account">Sign in <span aria-hidden>↗</span></a>
+        <a className="nav-cta" href="/account">Sign in <span aria-hidden>↗</span></a>
       </nav>
 
       <section id="top" className="hero" aria-labelledby="hero-title">
@@ -39,7 +39,7 @@ export default function Home() {
         <div className="section showcase-grid"><div><p className="eyebrow">A place to show up</p><h2>Find your<br /><em>stage.</em></h2><p>Browse categories, read rules and keep up with the moments that move campus.</p></div><div className="categories">{categories.map((category, index) => <button type="button" key={category}><span>0{index + 1}</span>{category}<b>↗</b></button>)}</div></div>
       </section>
 
-      <section id="account" className="account section"><div><p className="eyebrow ink">Your SPANDAN space</p><h2>Ready when<br />you <em>are.</em></h2><p>Students will sign in with batch, roll number and password. Contribution verification happens outside the app — there is no online payment or checkout.</p></div><div className="account-card"><p className="eyebrow">Account access</p><h3>Registration opens after activation.</h3><p>Already verified? Your applications, selection updates and personal schedule will live here.</p><button type="button" disabled>Account setup coming soon</button><small>This is a planning preview, not a live registration system.</small></div></section>
+      <section id="account" className="account section"><div><p className="eyebrow ink">Your SPANDAN space</p><h2>Ready when<br />you <em>are.</em></h2><p>Students sign in with batch, roll number and password. Contribution verification happens outside the app — there is no online payment or checkout.</p></div><div className="account-card"><p className="eyebrow">Account access</p><h3>Registration opens after activation.</h3><p>Already verified? Your applications, selection updates and personal schedule will live here.</p><a className="account-button" href="/account">View account access</a><small>This is a planning preview, not a live registration system.</small></div></section>
 
       <footer><a className="wordmark" href="#top">Spandan <span>4.0</span></a><p>GMC Firozabad · A festival platform in preparation</p><a href="#notice">Back to top ↑</a></footer>
     </main>

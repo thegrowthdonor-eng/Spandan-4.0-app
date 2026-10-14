@@ -13,6 +13,8 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | 2026-10-14 | `npm run typecheck` | Passed | TypeScript compiler completed with no diagnostics. |
 | 2026-10-14 | `npm run lint` | Passed | ESLint completed with no diagnostics after the Next.js flat config was added. |
 | 2026-10-14 | `npm run build` | Passed | Next.js 16.4.0 production build compiled, type-checked and statically generated `/` and `/_not-found`. |
+| 2026-10-14 | `npm test` | Passed | Three deterministic auth-identity tests passed: canonicalisation, stable private identifier generation, and short-pepper rejection. |
+| 2026-10-14 | `npm run build` after account route | Passed | Production build compiled, type-checked and statically generated `/`, `/account`, and `/_not-found`. |
 | 2026-10-14 | Browser rendering check | Unavailable | No automation browser surface was available. Local server started successfully at `http://localhost:3000`; visual/device review is still required. |
 
 ## Not yet executable
@@ -23,4 +25,4 @@ No application, migrations, Supabase project, seed data or automated test harnes
 
 1. Run local type check, lint and build after scaffold creation.
 2. Execute the auth adapter prototype against a disposable Supabase project before accepting its design.
-3. Add direct API/database-policy tests alongside each protected vertical feature.
+3. Apply `202610140001_phase1_identity.sql` and `202610140002_events_and_applications.sql` in a disposable Supabase project, then run direct policy tests for T01, T04, T06 and T07.

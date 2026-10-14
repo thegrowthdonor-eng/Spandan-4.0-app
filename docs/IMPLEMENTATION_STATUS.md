@@ -8,7 +8,7 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 | --- | --- | --- |
 | 0 - Reconciliation, architecture and feasibility | In progress | Baseline and decision register created; official Supabase and Vercel documentation rechecked. Authentication prototype and local setup next. |
 | 1 - Identity, roles and activation | In progress | Initial versioned identity/access/role/audit migration exists; no Supabase project has applied or tested it yet. |
-| 2 - Events, applications and selection | Not started | Requires event configuration and Phase 1. |
+| 2 - Events, applications and selection | In progress | Event/application schema and transaction-safe application RPC drafted. Requires a Supabase project to apply and policy-test; no live event data is created. |
 | 3 - Fixtures, scores and standings | Not started | Requires points/tie policy. |
 | 4 - Schedule, notices and support | Not started | Requires Phase 1. |
 | 5 - Promotional content | Not started | Requires approved assets/content. |
@@ -19,10 +19,10 @@ Last updated: 14 October 2026 (Asia/Kolkata)
 
 | Requirements | Intended implementation location | Acceptance / verification | Status |
 | --- | --- | --- | --- |
-| R01 | `app/(public)/events`, published-content database views | T01 | Not started |
+| R01 | `app/(public)/events`, published-content database views | T01 | In progress: published-only event RLS policy drafted; catalogue UI and database verification pending |
 | R02 | `app/(auth)`, `src/server/auth`, `supabase/migrations` | T02-T03 | In progress: adapter design selected; private mapping schema drafted, not yet proven |
 | R03 | `app/admin/activation`, access RPC/policies | T04-T05, T21 | In progress: access/audit schema drafted; operations not yet implemented |
-| R04-R07 | event detail, applications, groups and transactional RPCs | T06-T10, T22 | Not started |
+| R04-R07 | event detail, applications, groups and transactional RPCs | T06-T10, T22 | In progress: idempotency/one-per-event constraints and an event-row-locking apply RPC drafted; selection/group operations pending |
 | R08, R13, R17 | My Fest, notices/reminders service | T11, T20 | Not started |
 | R09-R12 | staff event tools, fixtures/scores/results/ledger RPCs | T12-T13 | Not started |
 | R14-R15, R21 | polls, feedback, help tables and server actions | T14-T15 | Not started |
