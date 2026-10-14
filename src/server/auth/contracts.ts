@@ -54,6 +54,12 @@ export const soloSelectionSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
 
+export const groupCommandSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("create"), eventId: z.string().uuid(), name: z.string().trim().min(1).max(160), batchId: z.string().uuid().nullable() }),
+  z.object({ action: z.literal("add"), groupId: z.string().uuid(), applicationId: z.string().uuid() }),
+  z.object({ action: z.literal("publish"), groupId: z.string().uuid(), captainId: z.string().uuid().nullable() }),
+]);
+
 export function normaliseIndianPhone(value: string) {
   const compact = value.replace(/[\s()-]/g, "");
   const phone = /^\d{10}$/.test(compact) ? `+91${compact}` : compact;
