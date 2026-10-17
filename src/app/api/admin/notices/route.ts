@@ -3,8 +3,10 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { publicNoticeSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { broadcastNoticePush } from "@/server/push";
 
 export const runtime = "nodejs"; export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 const headers = { "Cache-Control": "no-store" };
 export async function POST(request: Request) {
   const origin = request.headers.get("origin"); if (origin && origin !== new URL(request.url).origin) return NextResponse.json({ error: "Invalid notice request." }, { status: 403, headers });
@@ -15,5 +17,6 @@ export async function POST(request: Request) {
   if (!(await client.auth.getUser()).data.user) return denied;
   const { error } = await client.rpc("publish_public_notice", { p_edition_id: parsed.data.editionId, p_title: parsed.data.title, p_body: parsed.data.body, p_urgency: parsed.data.urgency, p_expires_at: parsed.data.expiresAt });
   if (error) { if (error.code === "42501") return denied; if (error.code === "22023") return NextResponse.json({ error: "Please provide valid notice details and a future expiry time." }, { status: 400, headers }); return NextResponse.json({ error: "Unable to publish the notice. Please try again." }, { status: 503, headers }); }
-  return NextResponse.json({ ok: true }, { headers });
+  const push = await broadcastNoticePush({ title: parsed.data.title, body: parsed.data.body, urgency: parsed.data.urgency }).catch(() => null);
+  return NextResponse.json({ ok: true, push }, { headers });
 }

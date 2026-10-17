@@ -76,6 +76,10 @@ export function PushNotificationCard() {
         }
 
         const keyRes = await fetch("/api/push/subscribe");
+        if (!keyRes.ok) {
+          setMessage("Festival alerts are not configured yet. Please try again shortly.");
+          return;
+        }
         const keyData = await keyRes.json();
         const vapidPublicKey = keyData.publicKey;
 

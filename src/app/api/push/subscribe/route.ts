@@ -9,13 +9,13 @@ export const dynamic = "force-dynamic";
 
 const headers = { "Cache-Control": "no-store" };
 
-// Default public VAPID key if not configured in environment
-const DEFAULT_VAPID_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-  "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBKr3qBUYhHBQFLXY5cev48HY";
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 export async function GET() {
-  return NextResponse.json({ ok: true, publicKey: DEFAULT_VAPID_PUBLIC_KEY }, { headers });
+  if (!vapidPublicKey) {
+    return NextResponse.json({ error: "Push notifications are not configured." }, { status: 503, headers });
+  }
+  return NextResponse.json({ ok: true, publicKey: vapidPublicKey }, { headers });
 }
 
 export async function POST(request: Request) {
