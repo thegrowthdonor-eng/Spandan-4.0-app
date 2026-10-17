@@ -370,12 +370,6 @@ export function EventCatalogue({ events }: { events: EventCard[] }) {
     });
   }, [events, selectedCategory, division, discipline, format, query]);
 
-  // Featured Marquee events for the home spotlight
-  const featuredEvents = useMemo(() => {
-    const featuredSlugs = ["football-boys-7v7", "box-cricket-girls", "relay-4x100m-boys", "tug-of-war-girls"];
-    return events.filter((e) => featuredSlugs.includes(e.slug));
-  }, [events]);
-
   function resetAll() {
     setQuery("");
     setDivision("all");
@@ -576,25 +570,8 @@ export function EventCatalogue({ events }: { events: EventCard[] }) {
           )}
         </section>
       ) : isSportsCategory ? (
-        /* CURATED DISCOVERY HOME-STYLE SECTIONS (Clean, Organized, Not Cluttered) */
+        /* CURATED DISCOVERY DISCIPLINE SECTIONS (Each event listed once under its discipline) */
         <div className="discovery-curated-home">
-          {/* Spotlight Strip (When in All or Specific Division) */}
-          <section className="home-spotlight-section">
-            <div className="section-title-wrap">
-              <span className="section-badge">FESTIVAL SPOTLIGHT</span>
-              <h2>Flagship Showdowns</h2>
-              <p>The marquee inter-batch tournaments drawing the loudest cheers across campus.</p>
-            </div>
-            <div className="event-grid spotlight-grid">
-              {featuredEvents
-                .filter((e) => division === "all" || getDivision(e) === division)
-                .map((event) => (
-                  <EventCardItem key={event.id} event={event} now={now} />
-                ))}
-            </div>
-          </section>
-
-          {/* Curated Discipline Sections */}
           {SECTIONS.map((sec) => {
             const sectionEvents = events.filter((e) => {
               if (getSubCategory(e) !== sec.key) return false;
