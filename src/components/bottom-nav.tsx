@@ -13,11 +13,13 @@ function NavIcon({ path }: { path: string }) {
   );
 }
 
-export function BottomNav() {
+export function BottomNav({ isAuthenticated }: { isAuthenticated: boolean }) {
   const pathname = usePathname() || "";
 
-  // Hide on auth and admin routes to give clean focused space
+  // Guests only have the curated public directory. Protected destinations
+  // must never be presented as available navigation to an unauthenticated user.
   if (
+    !isAuthenticated ||
     pathname === "/" ||
     pathname.startsWith("/account") ||
     pathname.startsWith("/admin") ||

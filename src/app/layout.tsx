@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PwaRegistration } from "@/components/pwa-registration";
 import { BottomNav } from "@/components/bottom-nav";
+import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { createRequestClient } from "@/server/supabase/server";
 import "./globals.css";
 import "./app-ui.css";
 
@@ -32,14 +34,28 @@ export const viewport: Viewport = {
   themeColor: "#f6f5f1",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+async function hasAuthenticatedSession() {
+  if (!hasPublicSupabaseConfiguration()) return false;
+
+  try {
+    const client = await createRequestClient();
+    const { data } = await client.auth.getUser();
+    return Boolean(data.user);
+  } catch {
+    return false;
+  }
+}
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const isAuthenticated = await hasAuthenticatedSession();
+
   return (
     <html lang="en-IN">
       <body>
         <PwaRegistration />
         <PwaInstallPrompt />
         {children}
-        <BottomNav />
+        <BottomNav isAuthenticated={isAuthenticated} />
       </body>
     </html>
   );
