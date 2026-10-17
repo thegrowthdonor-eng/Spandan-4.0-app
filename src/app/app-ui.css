@@ -1,0 +1,98 @@
+/* Shared app surfaces and controls. Feature-specific state colours stay local. */
+:root {
+  --ui-page: #f6f5f1;
+  --ui-surface: #fffefb;
+  --ui-ink: #26382f;
+  --ui-muted: #657268;
+  --ui-line: #dce2d7;
+  --ui-accent: #345e50;
+  --ui-peach: #f5e9e0;
+}
+body { background: var(--ui-page); }
+body:has([data-admin-dashboard]), body:has(.review-page), body:has(.fixtures-page), body:has(.activation-page), body:has(.results-page), body:has(.help-page), body:has(.groups-page), body:has(.admin-home), body:has(.admin-notices), body:has(.event-editor-page), body:has(.account-page), body:has(.guest-page) { padding-bottom: 0; }
+body:has(.guest-page) { background: #011417; color: #f5f0e8; }
+body :is(.public-page,.events-page,.event-detail,.student-home-page) { background: var(--ui-page); color: var(--ui-ink); }
+body .fest-header { min-height: 64px; background: #fcfcf9; border-color: var(--ui-line); backdrop-filter: none; }
+body :is(.fest-header,.student-home-header,.my-fest-header) .spandan-brand-container .brand-name { color: var(--ui-ink) !important; text-shadow: none; }
+body :is(.fest-header,.student-home-header,.my-fest-header) .spandan-brand-container .brand-edition { color: #98513d !important; background: #f5e9e0; border-color: #e8d5c8; }
+body :is(.fest-header,.student-home-header,.my-fest-header) .spandan-brand-container .brand-sub { color: var(--ui-muted) !important; }
+body :is(.fest-header,.student-home-header,.my-fest-header) .brand-official-logo { box-shadow: none; border-color: var(--ui-line); }
+body .fest-nav .nav-link { color: var(--ui-muted); font-size: 12px; text-transform: none; letter-spacing: 0; min-height: 44px; display: inline-flex; align-items: center; }
+body .fest-nav .nav-link.active, body .fest-nav .nav-link:hover { color: var(--ui-accent); border-color: var(--ui-accent); }
+body .mobile-bottom-nav { background: #fcfcf9; border-color: var(--ui-line); backdrop-filter: none; height: calc(64px + env(safe-area-inset-bottom, 0px)); }
+body .bnav-item { color: var(--ui-muted); }
+body .bnav-item.active, body .bnav-item.active .bnav-label { color: var(--ui-accent); }
+body .bnav-icon svg { width: 21px; height: 21px; display: block; }
+body .bnav-label { font-size: 11px; }
+body .bnav-feed .bnav-icon { position: relative; padding: 4px 13px; margin: -4px 0; border-radius: 12px; background: #edf1e8; color: #345e50; }
+body .bnav-feed.active .bnav-icon { background: #e1eade; box-shadow: 0 2px 10px rgba(52,94,80,.10); }
+body .bnav-feed.active .bnav-label { text-shadow: 0 0 12px rgba(52,94,80,.22); }
+body :is(.public-hero,.events-hero,.event-detail-hero) { padding: 26px max(20px,6vw); background: var(--ui-peach); color: var(--ui-ink); border-bottom: 1px solid #ead8ca; }
+body :is(.public-hero,.events-hero,.event-detail-hero) h1 { font: 600 clamp(25px,3.5vw,38px)/1.18 "DM Sans",sans-serif; color: var(--ui-ink); letter-spacing: -.035em; margin: 8px 0 10px; }
+body :is(.public-hero,.events-hero,.event-detail-hero) h1 em { color: #98513d; font-style: normal; }
+body .public-hero > p:not(.eyebrow):not(.college-affil-pill),
+body .events-hero p:not(.eyebrow):not(.college-affil-pill) { color: #6d635a; font-size: 13px; line-height: 1.55; }
+body :is(.public-hero,.events-hero,.event-detail-hero) .eyebrow { color: #786c5e; font-size: 10px; }
+body .fest-hero-badge { background: #fff5e9; color: #86643c; border-color: #e6d6bd; font-size: 9px; }
+body .event-detail-hero .back { color: var(--ui-accent); min-height: 36px; margin-bottom: 10px; }
+body .event-facts { background: transparent; gap: 10px; }
+body .event-facts div { border: 1px solid #e6d8cb; background: #fff9f1; border-radius: 8px; padding: 14px; }
+body .event-facts dt { color: #786c5e; }
+body .event-facts dd { color: var(--ui-ink); }
+body .event-rules { padding-top: 28px; padding-bottom: 40px; }
+body .event-rules h2, body .public-section-heading h2 { font: 600 23px/1.25 "DM Sans",sans-serif; letter-spacing: -.025em; margin-bottom: 16px; }
+body :is(.fixture-row,.notice-row,.standing-row,.event-card,.sponsor-card,.faq-item,.reveal-card,.committee-card,.account-panel) { border-color: var(--ui-line); border-radius: 12px; background: var(--ui-surface); box-shadow: none; }
+body :is(.fixture-main h2,.notice-row h2,.standing-row strong,.faq-question,.reveal-details h3) { font-family: "DM Sans",sans-serif; font-size: 18px; line-height: 1.3; letter-spacing: -.02em; }
+body .filter-chip { min-height: 44px; border-radius: 8px; text-transform: none; letter-spacing: 0; font-size: 12px; }
+body .events-page .filter-chip.active { background: var(--ui-accent); border-color: var(--ui-accent); color: #fff; }
+body .public-footer { background: #eaf0e4; color: var(--ui-muted); border-top: 1px solid var(--ui-line); }
+body .account-grid { padding-top: 28px; }
+body .account-logo { width: 58px; height: 58px; box-shadow: none; }
+body .account-panel button:not(.retry-button) { background: var(--ui-accent); color: white; }
+body .account-panel button:not(.retry-button):hover:not(:disabled) { background: #274c3e; }
+body .student-home-intro h1 { color: var(--ui-ink); }
+body .student-home-intro p:not(.eyebrow) { color: var(--ui-muted); }
+body .student-home-header { min-height: 64px; padding: 0 max(20px,6vw); display: flex; align-items: center; justify-content: space-between; gap: 18px; background: rgba(252,252,249,.96); border-bottom: 1px solid var(--ui-line); }
+body .student-home-header .header-home-btn { color: var(--ui-accent) !important; background: #f7f8f4; border-color: #c7d3c2 !important; }
+body .student-home-card { background: #fffefb; color: var(--ui-ink); border-color: var(--ui-line); }
+body .student-home-card.primary { background: #e7efdf; border-color: #d5e0cd; }
+body .student-home-card.results { background: #f7eddd; border-color: #e9dcc5; }
+body .student-home-card:hover { background: #edf2e7; border-color: #9daf99; }
+body .student-home-card small, body .student-home-links small { color: var(--ui-muted); }
+body .student-home-card > span, body .student-home-card b, body .student-home-links span { color: var(--ui-accent); }
+body .student-home-links, body .student-home-links a { border-color: var(--ui-line); color: var(--ui-ink); }
+body .student-home-header .text-button { color: var(--ui-accent); min-height: 44px; border-color: #bdcbbb; }
+body :is(.public-page,.events-page,.event-detail,.my-fest-page,.student-home-page) :is(a,button,input,select,textarea):focus-visible { outline: 2px solid #47795d; outline-offset: 3px; }
+body .offline-page { background: var(--ui-page); color: var(--ui-ink); padding-top: 64px; }
+body .offline-page h1 { font: 600 30px/1.2 "DM Sans",sans-serif; letter-spacing: -.035em; }
+body .offline-page p:not(.eyebrow) { color: var(--ui-muted); }
+body .offline-page a { color: var(--ui-accent); border-color: var(--ui-accent); }
+body .setup-page { background: var(--ui-page); color: var(--ui-ink); padding-top: 32px; }
+body .setup-page h1 { font: 600 30px/1.2 "DM Sans",sans-serif; letter-spacing: -.035em; }
+body .setup-page h1 em { color: #98513d; }
+body .setup-page > section > p:last-of-type { color: var(--ui-muted); }
+body .setup-form input { background: #fff; border-color: #cbd7c5; color: var(--ui-ink); border-radius: 8px; }
+body .setup-form button { background: var(--ui-accent); color: white; border-radius: 8px; }
+body .setup-form [role="status"] { color: #98513d; }
+@media (max-width: 820px) {
+  body :is(.public-hero,.events-hero,.event-detail-hero,.account-hero) { padding: 20px 16px; }
+  body :is(.public-hero,.events-hero,.event-detail-hero,.account-hero) h1 { font-size: 25px; }
+  body .fest-header { padding: 0 16px; min-height: 60px; }
+  body .student-home-header { min-height: 60px; padding: 0 16px; }
+  body :is(.public-content,.events-filters,.event-rules) { padding-inline: 16px; }
+  body .events-filters { padding-top: 18px; gap: 12px; }
+  body .event-grid { padding: 18px 16px 32px; grid-template-columns: minmax(0,1fr); gap: 14px; }
+  body .account-grid { padding: 20px 16px 32px; gap: 18px; }
+  body .account-panel { padding: 20px; }
+  body .public-section-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+  body .my-fest-page { padding: 18px 16px 32px; }
+  body .my-fest-header-actions { gap: 12px; }
+  body .my-fest-page .section-heading { flex-wrap: wrap; gap: 8px; }
+  body .my-fest-page .section-heading h2 { font-size: 21px; }
+  body .my-fest-page .fest-pass-card { margin: 22px 0 28px; padding: 20px; }
+  body .student-home-page { padding: 18px 16px 32px; }
+  body .student-home-page:not(.explore-page) .student-home-intro { margin: 24px 0 20px; }
+  body .student-home-page:not(.explore-page) .student-home-intro h1 { font-size: 28px; }
+  body .public-footer { padding: 20px 16px; flex-wrap: wrap; gap: 12px; }
+}
+

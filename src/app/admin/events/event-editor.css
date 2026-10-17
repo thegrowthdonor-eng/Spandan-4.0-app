@@ -1,0 +1,87 @@
+/* Event Editor — full-featured tabbed interface */
+
+.editor-hero { padding: 10vh 7vw 7vh; background: #261923; color: #f5f0e8; }
+.editor-hero h1 { margin: 16px 0; font: 500 clamp(52px, 9vw, 110px)/.9 "Playfair Display", serif; letter-spacing: -.07em; }
+.editor-hero em { color: #e88979; }
+.editor-hero > p:not(.eyebrow) { max-width: 580px; color: #d5cac0; line-height: 1.7; }
+
+.event-editor { max-width: 860px; }
+
+.editor-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 28px; flex-wrap: wrap; }
+.editor-header h1 { margin: 12px 0 8px; font: 500 clamp(28px, 4vw, 44px)/.95 "Playfair Display", serif; letter-spacing: -.05em; }
+.editor-state-badge { display: inline-block; padding: 4px 12px; border-radius: 3px; color: #fff; font: 700 10px/1 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .08em; }
+.editor-event-select { display: grid; gap: 6px; font: 600 11px/1.2 "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .06em; min-width: 260px; }
+.editor-event-select select { min-height: 48px; border: 1px solid #bdaea5; background: #fffdf9; padding: 0 12px; color: #261923; font: 14px "DM Sans", sans-serif; }
+
+.editor-tabs { display: flex; gap: 2px; margin-bottom: 22px; background: #d5c8c0; }
+.editor-tab { flex: 1; min-height: 44px; border: none; background: #fffdf9; color: #705c5a; cursor: pointer; font: 600 11px/1 "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .06em; transition: background .15s, color .15s; }
+.editor-tab:hover { background: #f0e3d9; color: #261923; }
+.editor-tab.active { background: #261923; color: #f5f0e8; }
+
+.editor-section { display: grid; gap: 18px; }
+
+.editor-hint { padding: 14px 18px; background: #f0e3d9; border-left: 3px solid #bc6256; }
+.editor-hint p { margin: 0; color: #705c5a; font-size: 13px; line-height: 1.55; }
+
+.editor-empty { padding: 32px; }
+.editor-empty h1 { margin: 10px 0; font: 500 36px/.95 "Playfair Display", serif; }
+
+/* Common form styles (extends admin.css committee-form) */
+.event-editor label { display: grid; gap: 7px; font: 600 11px/1.2 "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+.event-editor input:not([type=checkbox]),
+.event-editor select,
+.event-editor textarea { width: 100%; min-height: 48px; border: 1px solid #bdaea5; background: #fffdf9; padding: 12px; color: #261923; font: 14px "DM Sans", sans-serif; }
+.event-editor textarea { min-height: 92px; resize: vertical; }
+.event-editor small { color: #80524d; font: 12px/1.5 "DM Sans", sans-serif; text-transform: none; letter-spacing: 0; margin-top: -6px; }
+
+.char-count { font: 400 10px/1 "DM Mono", monospace; color: #80524d; text-transform: none; letter-spacing: 0; }
+
+.poster-field-group { display: grid; gap: 10px; }
+.poster-preview-card { display: flex; align-items: center; gap: 16px; padding: 12px; background: #fffdf9; border: 1px solid #bdaea5; border-radius: 4px; }
+.poster-preview-thumb { width: 120px; height: 68px; border-radius: 3px; overflow: hidden; background: #1d131b; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.poster-preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.poster-preview-info { display: flex; flex-direction: column; gap: 4px; font: 500 13px "DM Sans", sans-serif; }
+.poster-preview-info span { color: #16a34a; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.poster-preview-info button { background: none; border: none; padding: 0; color: #bc6256; cursor: pointer; font: 600 12px "DM Sans", sans-serif; text-decoration: underline; text-align: left; }
+
+.checkbox-label { flex-direction: row; align-items: center; gap: 10px; cursor: pointer; text-transform: none; letter-spacing: 0; font-size: 13px; }
+.checkbox-label input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; }
+
+.readonly-field { min-height: 48px; border: 1px solid #e0d8d2; background: #f5f0e8; padding: 12px; color: #80524d; font: 14px "DM Sans", sans-serif; display: flex; align-items: center; }
+
+.group-rules { border: 1px solid #d5c8c0; padding: 18px; display: grid; gap: 14px; }
+.group-rules legend { font: 600 11px/1 "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 0 6px; color: #705c5a; }
+
+/* Question management */
+.question-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 1px; background: #d5c8c0; }
+.question-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fffdf9; padding: 14px 16px; }
+.question-row div { display: grid; gap: 3px; }
+.question-row strong { font: 600 14px/1.3 "DM Sans", sans-serif; }
+.question-row span { color: #705c5a; font: 12px "DM Mono", monospace; }
+
+.new-question-form { border: 1px solid #d5c8c0; padding: 18px; display: grid; gap: 14px; }
+.new-question-form legend { font: 600 11px/1 "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 0 6px; color: #705c5a; }
+
+/* Lifecycle tab */
+.lifecycle-state p { margin: 4px 0; font-size: 14px; }
+.lifecycle-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.lifecycle-btn { min-height: 52px; padding: 0 24px !important; }
+
+.readiness-check { padding: 22px; background: #fffdf9; border: 1px solid #d5c8c0; }
+.readiness-check p { margin: 0 0 12px; }
+.readiness-check ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 7px; }
+.readiness-check li { font: 13px/1.4 "DM Sans", sans-serif; padding-left: 4px; }
+.check-pass { color: #16a34a; }
+.check-fail { color: #dc2626; font-weight: 600; }
+.check-warn { color: #d97706; }
+
+.control-message.error-message { color: #8f3029; }
+
+@media (max-width: 700px) {
+  .editor-hero { padding: 80px 6vw 52px; }
+  .editor-header { flex-direction: column; }
+  .editor-event-select { min-width: 100%; }
+  .editor-tabs { flex-direction: column; }
+  .editor-tab { min-height: 44px; text-align: left; padding: 0 14px; }
+  .field-pair { grid-template-columns: 1fr; }
+}

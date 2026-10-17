@@ -1,1 +1,2 @@
 .offline-page { min-height:100vh;padding:18vh 8vw;background:#261923;color:#f5f0e8; }.offline-page h1 { font:500 clamp(52px,8vw,96px)/.9 "Playfair Display",serif;letter-spacing:-.06em;margin:30px 0 18px; }.offline-page p:not(.eyebrow) { max-width:420px;line-height:1.7;color:#d5cac0; }.offline-page a { display:inline-block;margin-top:20px;border-bottom:1px solid #f5f0e8;padding-bottom:4px;font-size:13px; }
+@media(max-width:600px) { .offline-page { min-height:100dvh; padding:72px 20px 40px; }.offline-page h1 { margin:18px 0 12px; font-size:38px; line-height:1.05; } }

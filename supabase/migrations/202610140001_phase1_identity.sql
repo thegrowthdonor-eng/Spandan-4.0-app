@@ -31,7 +31,7 @@ create table public.profiles (
   full_name text not null check (char_length(btrim(full_name)) between 1 and 100),
   batch_id uuid not null references public.batches(id),
   roll_canonical text not null check (char_length(roll_canonical) between 1 and 80),
-  phone_e164 text not null check (phone_e164 ~ '^\\+[1-9][0-9]{7,14}$'),
+  phone_e164 text not null check (phone_e164 ~ E'^\\+[1-9][0-9]{7,14}$'),
   fest_id text not null unique check (fest_id ~ '^SPD-[A-Z0-9]{6,16}$'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -72,14 +72,15 @@ create unique index active_event_head_assignment on public.staff_assignments(pro
 -- The identity mapping is deliberately private. Its identifier value must be produced by server code.
 create table private.auth_identity_map (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
-  auth_phone_e164 text not null unique check (auth_phone_e164 ~ '^\\+[1-9][0-9]{7,14}$'),
+  auth_phone_e164 text not null unique check (auth_phone_e164 ~ E'^\\+[1-9][0-9]{7,14}$'),
   created_at timestamptz not null default now()
 );
 revoke all on table private.auth_identity_map from anon, authenticated;
+alter table private.auth_identity_map enable row level security;
 
 create table public.audit_log (
   id uuid primary key default gen_random_uuid(),
-  actor_id uuid references public.profiles(id),
+  actor_id uuid references public.profiles(id) on delete set null,
   action text not null check (char_length(action) between 1 and 120),
   object_type text not null check (char_length(object_type) between 1 and 80),
   object_id uuid,
@@ -102,6 +103,6 @@ create policy profiles_read_own on public.profiles for select to authenticated u
 create policy access_read_own on public.access_records for select to authenticated using (profile_id = auth.uid());
 
 create or replace function public.touch_updated_at()
-returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end; $$;
+returns trigger language plpgsql set search_path = public as $$ begin new.updated_at = now(); return new; end; $$;
 create trigger profiles_touch_updated_at before update on public.profiles for each row execute function public.touch_updated_at();
 create trigger access_records_touch_updated_at before update on public.access_records for each row execute function public.touch_updated_at();

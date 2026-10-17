@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { normaliseIndianPhone, signUpSchema } from "@/server/auth/contracts";
-import { hashRateLimitKey, toPrivateAuthPhone } from "@/server/auth/identity";
+import { hashRateLimitKey, toPrivateAuthEmail } from "@/server/auth/identity";
 import { hasSupabaseConfiguration, requiredServerEnv } from "@/server/env";
 import { createAdminClient } from "@/server/supabase/admin";
 
@@ -26,8 +26,8 @@ export async function POST(request: Request) {
 
   const { data: batch, error: batchError } = await admin.from("batches").select("id, edition_id, label, eligible").eq("id", parsed.data.batchId).maybeSingle();
   if (batchError || !batch?.eligible) return NextResponse.json({ error: "Check your profile details and try again." }, { status: 400, headers: noStore });
-  const authPhone = toPrivateAuthPhone({ batch: batch.label, rollNumber: parsed.data.rollNumber }, pepper);
-  const { data: auth, error: authError } = await admin.auth.admin.createUser({ phone: authPhone, password: parsed.data.password, phone_confirm: true });
+  const authEmail = toPrivateAuthEmail({ batch: batch.label, rollNumber: parsed.data.rollNumber }, pepper);
+  const { data: auth, error: authError } = await admin.auth.admin.createUser({ email: authEmail, password: parsed.data.password, email_confirm: true });
   if (authError || !auth.user) return NextResponse.json({ error: "Unable to create this account. If you already registered, use account help." }, { status: 409, headers: noStore });
   const festId = `SPD-${randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase()}`;
   const { error: profileError } = await admin.rpc("provision_student_profile", {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     p_roll_canonical: parsed.data.rollNumber.trim().normalize("NFKC").replace(/\s+/g, " ").toLocaleUpperCase("en-IN"),
     p_phone_e164: phone,
     p_fest_id: festId,
-    p_auth_phone_e164: authPhone,
+    p_auth_email: authEmail,
   });
   if (profileError) {
     await admin.auth.admin.deleteUser(auth.user.id);

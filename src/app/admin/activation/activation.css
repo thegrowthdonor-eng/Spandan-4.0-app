@@ -1,1 +1,194 @@
-.activation-page { min-height:100vh;background:#f5f0e8;color:#261923;padding:38px 7vw 100px; }.activation-header { display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #c9bdb4;padding-bottom:20px; }.activation-header .wordmark span { color:#bc6256; }.activation-header a { font:500 11px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid;padding-bottom:4px; }.activation-intro { margin:80px 0 44px; }.activation-intro h1 { max-width:800px;margin:18px 0;font:500 clamp(48px,8vw,96px)/.9 "Playfair Display",serif;letter-spacing:-.07em; }.activation-intro p:not(.eyebrow) { max-width:650px;line-height:1.7; }.activation-queue { border-top:1px solid #b8aaa3; }.activation-row { padding:25px 0;border-bottom:1px solid #b8aaa3;display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(280px,1.4fr);gap:24px; }.activation-row h2 { margin:7px 0;font:500 28px/1 "Playfair Display",serif;letter-spacing:-.04em; }.activation-row p { margin:0;color:#80524d;font-size:13px;line-height:1.55; }.activation-state { font:500 10px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.1em;color:#80524d; }.activation-actions { display:grid;gap:10px; }.activation-actions label { display:grid;gap:5px;font:500 10px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:#80524d; }.activation-actions input { width:100%;border:1px solid #c9bdb4;background:#fffaf2;padding:10px;color:#261923;font:400 14px/1 "DM Sans",sans-serif; }.activation-actions div { display:flex;gap:8px; }.activation-actions button { border:0;background:#261923;color:#f5f0e8;padding:10px 13px;font:600 11px/1 "DM Sans",sans-serif;text-transform:uppercase;letter-spacing:.08em;cursor:pointer; }.activation-actions button.reject { background:#9e4b42; }.activation-actions button:disabled { opacity:.6;cursor:wait; }.activation-actions p { color:#80524d; }.admin-denied { max-width:650px;margin:16vh auto; }.admin-denied h1 { font:500 clamp(48px,8vw,90px)/.9 "Playfair Display",serif;letter-spacing:-.06em; }.admin-empty { padding:45px 0;border-top:1px solid #b8aaa3;border-bottom:1px solid #b8aaa3;line-height:1.7; } @media(max-width:850px) { .activation-page { padding:28px 6vw 72px; }.activation-intro { margin:60px 0 35px; }.activation-row { grid-template-columns:1fr;gap:15px; } }
+/* Spandan 4.0 — Activation & Access Workspace */
+
+.activation-page {
+  min-height: 100vh;
+  background: var(--paper, #f5f0e8);
+  color: var(--ink, #261923);
+  padding: 38px 7vw 100px;
+}
+
+.activation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #c9bdb4;
+  padding-bottom: 20px;
+}
+
+.activation-header .wordmark span {
+  color: #bc6256;
+}
+
+.activation-header a {
+  font: 500 11px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid;
+  padding-bottom: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.activation-intro {
+  margin: 60px 0 32px;
+}
+
+.activation-intro h1 {
+  margin: 16px 0;
+  font: 500 clamp(44px, 7vw, 84px) / 0.95 "Playfair Display", serif;
+  letter-spacing: -0.06em;
+}
+
+.activation-intro p:not(.eyebrow) {
+  max-width: 680px;
+  line-height: 1.7;
+  color: #55444e;
+  font-size: 15px;
+}
+
+.activation-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.activation-card {
+  background: #fffaf2;
+  border: 1px solid #c9bdb4;
+  border-left: 5px solid #d97706;
+  padding: 22px;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  transition: box-shadow 0.15s ease;
+}
+
+.activation-card:hover {
+  box-shadow: 0 4px 16px rgba(38, 25, 35, 0.06);
+}
+
+.activation-card.state-pending {
+  border-left-color: #d97706;
+}
+
+.activation-card.state-active {
+  border-left-color: #16a34a;
+}
+
+.activation-card.state-rejected {
+  border-left-color: #dc2626;
+}
+
+.activation-card.state-suspended {
+  border-left-color: #9333ea;
+}
+
+.status-badge.access-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.access-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.access-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge.access-suspended {
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.fest-id-badge {
+  font: 700 11px/1 "DM Mono", monospace;
+  background: #261923;
+  color: #f5f0e8;
+  padding: 3px 6px;
+  border-radius: 2px;
+}
+
+.sub-actions-row {
+  margin-top: 10px;
+}
+
+.recovery-link-btn {
+  background: transparent;
+  border: 0;
+  font: 600 11px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #bc6256;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.recovery-link-btn:hover {
+  text-decoration: underline;
+}
+
+.activation-action-controls {
+  display: grid;
+  gap: 10px;
+}
+
+/* Recovery Modal */
+.recovery-notice {
+  background: #fff3cd;
+  border-left: 3px solid #ffc107;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #856404;
+  line-height: 1.4;
+  margin: 10px 0 16px;
+}
+
+.issued-token-box {
+  background: #f5f0e8;
+  border: 1px solid #d7c8b4;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.token-instructions {
+  font-size: 13px;
+  color: #261923;
+  margin: 0;
+}
+
+.token-code-display {
+  font: 700 18px/1.2 "DM Mono", monospace;
+  background: #261923;
+  color: #4ade80;
+  padding: 14px 18px;
+  border-radius: 4px;
+  word-break: break-all;
+  user-select: all;
+  letter-spacing: 0.06em;
+}
+
+.token-expiry {
+  font-size: 12px;
+  color: #80524d;
+  margin: 0;
+}
+
+.admin-denied {
+  padding: 45px 0;
+  border-top: 1px solid #b8aaa3;
+  border-bottom: 1px solid #b8aaa3;
+  line-height: 1.7;
+}
+
+@media (max-width: 950px) {
+  .activation-page {
+    padding: 28px 5vw 72px;
+  }
+  .activation-card {
+    grid-template-columns: 1fr;
+  }
+}

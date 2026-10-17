@@ -1,6 +1,6 @@
 import "server-only";
 
-export function requiredServerEnv(name: "SUPABASE_SERVICE_ROLE_KEY" | "AUTH_IDENTITY_PEPPER") {
+export function requiredServerEnv(name: "SUPABASE_SERVICE_ROLE_KEY" | "AUTH_IDENTITY_PEPPER" | "INITIAL_SETUP_CODE") {
   const value = process.env[name];
   if (!value) {
     throw new Error(`${name} is not configured.`);

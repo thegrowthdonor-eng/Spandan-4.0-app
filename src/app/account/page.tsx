@@ -1,14 +1,69 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { hasSupabaseConfiguration } from "@/server/env";
+import { createRequestClient } from "@/server/supabase/server";
+import { SpandanLogo } from "@/components/spandan-branding";
+import { AuthPortalClient } from "./auth-portal-client";
 import "./account.css";
-import { SignInForm } from "./sign-in-form";
-import { SignUpForm } from "./sign-up-form";
 
-export default function AccountPage() {
+export const metadata = {
+  title: "Account Access — Spandan 4.0 | ASMC Firozabad",
+  description: "Sign in or register your official student profile for Spandan 4.0 festival access.",
+};
+
+export const dynamic = "force-dynamic";
+
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; mode?: string }>;
+}) {
+  // If user is already authenticated, redirect to their student dashboard
+  if (hasSupabaseConfiguration()) {
+    try {
+      const client = await createRequestClient();
+      const { data: auth } = await client.auth.getUser();
+      if (auth.user) {
+        redirect("/home");
+      }
+    } catch {
+      // Unauthenticated, continue to render sign-in form
+    }
+  }
+
   const configured = hasSupabaseConfiguration();
-  return <main className="account-page">
-    <header className="account-header"><Link className="wordmark" href="/">Spandan <span>4.0</span></Link><Link href="/" className="back-link">← Back to the fest</Link></header>
-    <section className="account-hero" aria-labelledby="account-title"><p className="eyebrow ink">Student account</p><h1 id="account-title">Your fest,<br /><em>in one place.</em></h1><p>Use your batch, roll number and password. Student email and SMS OTP are not required.</p></section>
-    <section className="account-grid"><div className="auth-stack"><SignInForm configured={configured} /><SignUpForm configured={configured} /></div><aside><p className="eyebrow ink">How access works</p><ol className="access-steps"><li><span>01</span><div><strong>Create your profile</strong><p>Name, batch, roll number and phone are collected once.</p></div></li><li><span>02</span><div><strong>Wait for verification</strong><p>The treasurer verifies college identity and the offline contribution.</p></div></li><li><span>03</span><div><strong>Apply to events</strong><p>Activation enables applications; it does not guarantee approval or final selection.</p></div></li></ol><div id="recovery" className="recovery"><strong>Account recovery</strong><p>Contact the authorised fest help desk with your college ID. Staff never need your existing password.</p></div></aside></section>
-  </main>;
+  const { next, mode } = await searchParams;
+  const returnTo = next && next.startsWith("/") && !next.startsWith("//") ? next : "/home";
+  const initialView = mode === "signup" || mode === "register" ? "signup" : "signin";
+
+  return (
+    <main className="account-page">
+      {/* Top Header */}
+      <header className="account-header">
+        <SpandanLogo size="medium" variant="light" />
+        <Link href="/" className="header-back-link">
+          ← Festival Options
+        </Link>
+      </header>
+
+      {/* Main Container: Direct Focused Sign In / Sign Up Form */}
+      <section className="account-content" style={{ paddingTop: "28px" }}>
+        <AuthPortalClient
+          configured={configured}
+          returnTo={returnTo}
+          initialView={initialView}
+        />
+      </section>
+
+      {/* Minimal Footer */}
+      <footer className="account-footer">
+        <span>ASMC Firozabad · SPANDAN 4.0</span>
+        <div className="footer-links">
+          <Link href="/">Home</Link>
+          <Link href="/events">Events</Link>
+          <Link href="/guest">Guest Hub</Link>
+        </div>
+      </footer>
+    </main>
+  );
 }

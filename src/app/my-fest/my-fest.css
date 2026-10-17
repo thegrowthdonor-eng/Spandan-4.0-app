@@ -1,1 +1,882 @@
-.my-fest-page { min-height:100vh;padding:42px 8vw 12vh;background:#261923;color:#f5f0e8; }.my-fest-header { display:flex;justify-content:space-between;align-items:center; }.my-fest-header .wordmark { font:600 22px/1 "DM Sans",sans-serif;text-transform:uppercase;letter-spacing:.06em; }.my-fest-header .wordmark span { color:#f5a623; }.text-button { border:0;border-bottom:1px solid #a99ca2;background:transparent;color:#f5f0e8;padding:4px 0;cursor:pointer;font:600 12px/1 "DM Sans",sans-serif;text-transform:uppercase;letter-spacing:.11em; }.my-fest-intro { margin:13vh 0 56px; }.my-fest-page h1 { max-width:740px;font:500 clamp(52px,8vw,96px)/.9 "Playfair Display",serif;letter-spacing:-.06em;margin:22px 0 18px; }.my-fest-page p:not(.eyebrow) { max-width:620px;line-height:1.7;color:#d5cac0; }.my-fest-page a { display:inline-block;margin-top:20px;border-bottom:1px solid #f5f0e8;padding-bottom:4px;font-size:13px; }.fest-status { display:grid;grid-template-columns:minmax(180px,.8fr) 2fr;gap:30px;max-width:900px;padding:28px 0;border-top:1px solid #644958;border-bottom:1px solid #644958; }.fest-status strong { display:block;margin-top:9px;font:600 24px/1 "DM Sans",sans-serif;text-transform:capitalize; }.status-active { color:#8de0be; }.status-pending { color:#f6c667; }.status-suspended,.status-rejected { color:#ff9292; }.applications-section { max-width:900px;margin-top:70px; }.section-heading { display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:20px; }.section-heading h2 { margin:0;font:500 clamp(30px,4vw,48px)/1 "Playfair Display",serif;letter-spacing:-.04em; }.application-list { list-style:none;padding:0;margin:0;border-top:1px solid #644958; }.application-list li { display:flex;justify-content:space-between;gap:28px;padding:22px 0;border-bottom:1px solid #644958; }.application-list strong { font:600 18px/1.2 "DM Sans",sans-serif; }.application-list p { margin:7px 0 0;font-size:14px; }.application-state { display:grid;gap:6px;text-align:right;font:600 11px/1.3 "DM Sans",sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#e9c3a7; }.load-message { padding:25px 0;border-top:1px solid #644958;border-bottom:1px solid #644958; } @media (max-width:640px) { .my-fest-page { padding:28px 6vw 72px; }.my-fest-intro { margin:90px 0 42px; }.fest-status { grid-template-columns:1fr;gap:15px; }.application-list li { display:block; }.application-state { margin-top:16px;text-align:left; } }
+/* ==========================================================================
+   SPANDAN 4.0 — MY FEST STUDENT PASS & CREDENTIALS
+   Luxury Festival Aesthetic: Obsidian Cherry, Warm Cream, Metallic Gold
+   ========================================================================== */
+
+.my-fest-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f6f5f1 !important;
+  color: #26382f;
+  padding: 0 0 calc(90px + env(safe-area-inset-bottom, 0px));
+}
+
+/* --------------------------------------------------------------------------
+   STICKY LUXURY TOP HEADER
+   -------------------------------------------------------------------------- */
+.my-fest-header {
+  position: sticky;
+  top: 0;
+  z-index: 800;
+  background: rgba(252, 252, 249, 0.96) !important;
+  border-bottom: 1px solid #dce2d7 !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  min-height: 64px;
+  padding: 0 max(20px, 6vw);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-shadow: none;
+}
+
+.my-fest-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-home-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  white-space: nowrap;
+  font: 600 12px/1 "DM Sans", sans-serif;
+  letter-spacing: 0;
+  color: #345e50 !important;
+  background: #f7f8f4;
+  border: 1px solid #c7d3c2 !important;
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+
+.header-home-btn:hover {
+  background: #eaf0e5;
+  border-color: #9daf99 !important;
+  color: #274c3e !important;
+}
+
+.header-signout-btn {
+  min-height: 38px;
+  white-space: nowrap;
+  font: 600 11.5px/1 "DM Sans", sans-serif;
+  letter-spacing: 0;
+  color: #9d433b;
+  background: #fff8f5;
+  border: 1px solid #e8c9c2;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-signout-btn:hover {
+  background: #f8e5df;
+  border-color: #d6a79e;
+  color: #7f302a;
+}
+
+/* --------------------------------------------------------------------------
+   LUXURY FESTIVAL HERO (MATCHING /events HERO)
+   -------------------------------------------------------------------------- */
+body .my-fest-page .my-fest-hero {
+  padding: 24px 6vw 22px !important;
+  background: linear-gradient(135deg, #f5e9e0 0%, #f8efe7 58%, #eef2e9 100%) !important;
+  color: #26382f !important;
+  border-bottom: 1px solid #ead8ca !important;
+  box-shadow: none;
+}
+
+.my-fest-hero-content {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hero-eyebrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+body .my-fest-page .college-affil-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 254, 251, 0.72) !important;
+  border: 1px solid #e6d6bd !important;
+  color: #86643c !important;
+  font: 700 10.5px/1 "DM Mono", monospace !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 11px;
+  border-radius: 999px;
+}
+
+.hero-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font: 700 10px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.hero-status-pill.active {
+  background: #eaf0e5;
+  border: 1px solid #cedbc7;
+  color: #345e50;
+}
+
+.hero-status-pill.pending {
+  background: #fff5e9;
+  border: 1px solid #e6d6bd;
+  color: #86643c;
+}
+
+body .my-fest-page .my-fest-hero h1 {
+  margin: 4px 0 6px !important;
+  font: 700 clamp(24px, 4.2vw, 38px)/1.15 "Playfair Display", Georgia, serif !important;
+  letter-spacing: -0.025em !important;
+  color: #26382f !important;
+}
+
+body .my-fest-page .my-fest-hero h1 .gold-accent {
+  background: none;
+  color: #98513d;
+  -webkit-text-fill-color: currentColor;
+}
+
+body .my-fest-page .my-fest-hero p {
+  margin: 0 !important;
+  max-width: 680px;
+  color: #657268 !important;
+  line-height: 1.45 !important;
+  font-size: 13.5px !important;
+}
+
+.hero-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.hero-stat-badge {
+  font: 600 11px/1.2 "DM Sans", sans-serif;
+  color: #59675e;
+  background: rgba(255, 254, 251, 0.68);
+  border: 1px solid #dce2d7;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.hero-stat-badge b {
+  color: #345e50;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   PAGE CONTENT CONTAINER
+   -------------------------------------------------------------------------- */
+.my-fest-content {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 26px 20px 48px;
+}
+
+/* --------------------------------------------------------------------------
+   OFFICIAL STUDENT FEST PASS (PHYSICAL ID BADGE STYLE)
+   -------------------------------------------------------------------------- */
+.student-id-card {
+  background: #ffffff;
+  border: 2px solid #e5a93c;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(24, 11, 26, 0.12), 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 34px;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.student-id-card:hover {
+  box-shadow: 0 20px 48px rgba(24, 11, 26, 0.16), 0 4px 12px rgba(229, 169, 60, 0.18);
+}
+
+/* Physical Lanyard Punch Hole Slot */
+.card-lanyard-slot {
+  height: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #190c1b;
+  border-bottom: 1px solid rgba(229, 169, 60, 0.28);
+}
+
+.lanyard-hole {
+  width: 58px;
+  height: 10px;
+  border-radius: 999px;
+  background: #0d050e;
+  border: 1.5px solid #d49c39;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+/* Pass Card Banner */
+.card-banner {
+  padding: 16px 22px;
+  background: linear-gradient(135deg, #241225 0%, #140916 100%);
+  border-bottom: 1px solid rgba(229, 169, 60, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.card-banner-org {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.card-crest {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid #e5a93c;
+  box-shadow: 0 0 12px rgba(229, 169, 60, 0.35);
+  flex-shrink: 0;
+}
+
+.card-org-names {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+.card-college-name {
+  font: 700 11px/1.2 "DM Mono", monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f6c667;
+  display: block;
+}
+
+.card-fest-title {
+  font: 700 15px/1.3 "DM Sans", sans-serif;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+  display: block;
+}
+
+.card-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font: 700 10.5px/1 "DM Mono", monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.card-status-badge.active {
+  background: rgba(34, 197, 94, 0.16);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+}
+
+.card-status-badge.pending {
+  background: rgba(234, 179, 8, 0.16);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.5);
+}
+
+/* --------------------------------------------------------------------------
+   STUDENT PROFILE HEADER: FACEBOOK-STYLE AVATAR + DETAILS + FEST ID
+   -------------------------------------------------------------------------- */
+.student-profile-header-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 24px;
+  border-bottom: 1px solid #ebd9c8;
+  background: linear-gradient(180deg, #fffcf7 0%, #ffffff 100%);
+}
+
+/* Facebook-Style Profile Photo Frame */
+.student-avatar-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.student-avatar-canvas {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  position: relative;
+  border: 3px solid #e5a93c;
+  box-shadow: 0 0 0 2px #ffffff, 0 6px 18px rgba(36, 18, 37, 0.22);
+  background: #241225;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.fb-silhouette-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+}
+
+.student-initials-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 24px/1 "DM Sans", sans-serif;
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+.avatar-verified-tick {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 2.5px solid #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.avatar-verified-tick svg {
+  width: 13px;
+  height: 13px;
+}
+
+.avatar-role-label {
+  font: 700 9px/1 "DM Mono", monospace;
+  color: #9c6c21;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Student Primary Details */
+.student-primary-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.student-name-meta h2 {
+  font: 700 clamp(22px, 3.5vw, 28px)/1.2 "Playfair Display", Georgia, serif;
+  color: #1e0d20;
+  margin: 0 0 6px;
+}
+
+.student-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.student-course-pill {
+  font: 600 12px/1 "DM Sans", sans-serif;
+  color: #a9533e;
+  background: #faede8;
+  border: 1px solid #ebd0c7;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.student-role-pill {
+  font: 700 10px/1 "DM Mono", monospace;
+  color: #166534;
+  background: #eef7ed;
+  border: 1px solid #bbf7d0;
+  padding: 4px 9px;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+/* Holographic Gold Fest ID Chip */
+.student-fest-id-chip {
+  background: linear-gradient(135deg, #fdf8ee 0%, #f6e8cc 100%);
+  border: 1.5px solid #d49c39;
+  border-radius: 12px;
+  padding: 8px 14px;
+  box-shadow: 0 4px 12px rgba(212, 156, 57, 0.15);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.fest-id-label {
+  display: block;
+  font: 700 9px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9c6c21;
+  margin-bottom: 3px;
+}
+
+.fest-id-value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-end;
+}
+
+.fest-id-chip-icon {
+  color: #d49c39;
+  font-size: 14px;
+}
+
+.fest-id-value {
+  font: 700 18px/1 "DM Mono", monospace;
+  color: #1e0d20;
+  letter-spacing: 0.06em;
+}
+
+/* --------------------------------------------------------------------------
+   CREDENTIALS METRIC GRID
+   -------------------------------------------------------------------------- */
+.profile-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding: 20px 24px;
+}
+
+.meta-item {
+  background: #faf6f0;
+  border: 1px solid #eadfd2;
+  border-radius: 12px;
+  padding: 13px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.meta-label {
+  font: 700 10px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #887869;
+}
+
+.meta-val {
+  font: 600 14px/1.3 "DM Sans", sans-serif;
+  color: #1e0d20;
+  word-break: break-word;
+}
+
+/* Verification Note */
+.card-verification-note {
+  margin: 0 24px 18px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.card-verification-note.verified {
+  background: #f0f8ee;
+  border: 1px solid #b7dfb0;
+  color: #235421;
+}
+
+.card-verification-note.pending {
+  background: #fdf6ec;
+  border: 1px solid #f2dbb3;
+  color: #855312;
+}
+
+.card-verification-note strong {
+  color: #1e0d20;
+}
+
+/* Barcode Strip */
+.card-barcode-strip {
+  margin: 0 24px 20px;
+  padding-top: 16px;
+  border-top: 1px dashed #ded4c8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.barcode-svg {
+  width: 220px;
+  height: 22px;
+  color: #1e0d20;
+  opacity: 0.82;
+}
+
+.barcode-serial {
+  font: 600 9.5px/1 "DM Mono", monospace;
+  letter-spacing: 0.12em;
+  color: #8a7a6b;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   MY EVENT REGISTRATIONS SECTION
+   -------------------------------------------------------------------------- */
+.section-block {
+  margin-bottom: 34px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.section-head h2 {
+  font: 700 22px/1.2 "Playfair Display", Georgia, serif;
+  color: #1e0d20;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.section-link {
+  font: 600 12.5px/1 "DM Sans", sans-serif;
+  color: #bc6256;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.section-link:hover {
+  color: #a2382c;
+  text-decoration: underline;
+}
+
+.applications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-card {
+  background: #ffffff;
+  border: 1px solid #e2dad1;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(30, 13, 32, 0.04);
+}
+
+.app-card:hover {
+  border-color: #e5a93c;
+  box-shadow: 0 6px 18px rgba(229, 169, 60, 0.14);
+  transform: translateY(-1px);
+}
+
+.app-info h3 {
+  margin: 0 0 4px;
+  font: 600 16px/1.25 "DM Sans", sans-serif;
+  color: #1e0d20;
+}
+
+.app-info p {
+  margin: 0;
+  font-size: 13px;
+  color: #72685d;
+}
+
+.app-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.status-chip {
+  font: 700 10.5px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 5px 11px;
+  border-radius: 6px;
+}
+
+.status-chip.approved {
+  background: #eef7ed;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.status-chip.pending {
+  background: #fdf6e9;
+  color: #8c5b13;
+  border: 1px solid #edd9b5;
+}
+
+/* Empty State */
+.empty-state-box {
+  background: #ffffff;
+  border: 2px dashed #ded4c8;
+  border-radius: 16px;
+  padding: 36px 24px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.empty-state-box h3 {
+  font: 700 18px/1.2 "Playfair Display", Georgia, serif;
+  color: #1e0d20;
+  margin: 0 0 6px;
+}
+
+.empty-state-box p {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  color: #72685d;
+  max-width: 440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.browse-events-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 13px/1 "DM Sans", sans-serif;
+  color: #ffffff;
+  background: linear-gradient(135deg, #bc6256 0%, #a2382c 100%);
+  padding: 11px 22px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(188, 98, 86, 0.3);
+  transition: all 0.2s ease;
+}
+
+.browse-events-btn:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(188, 98, 86, 0.4);
+}
+
+/* --------------------------------------------------------------------------
+   QUICK ACCESS NAVIGATION GRID
+   -------------------------------------------------------------------------- */
+.quick-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.quick-nav-card {
+  background: #ffffff;
+  border: 1px solid #e2dad1;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 10px rgba(30, 13, 32, 0.04);
+}
+
+.quick-nav-card:hover {
+  border-color: #e5a93c;
+  box-shadow: 0 6px 18px rgba(229, 169, 60, 0.15);
+  transform: translateY(-2px);
+}
+
+.quick-nav-icon {
+  font-size: 22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #faf5ec;
+  border: 1px solid #eddcc6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quick-nav-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-nav-info h3 {
+  font: 600 14.5px/1.25 "DM Sans", sans-serif;
+  color: #1e0d20;
+  margin: 0 0 3px;
+}
+
+.quick-nav-info p {
+  font-size: 12px;
+  color: #72685d;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.quick-nav-arrow {
+  font-size: 17px;
+  color: #bc6256;
+  font-weight: 700;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.quick-nav-card:hover .quick-nav-arrow {
+  transform: translateX(4px);
+  color: #e5a93c;
+}
+
+.quick-nav-card.admin-highlight {
+  border-left: 4px solid #bc6256;
+}
+
+.quick-nav-card.admin-highlight h3 {
+  color: #a2382c;
+}
+
+/* --------------------------------------------------------------------------
+   ACCOUNT SESSION FOOTER
+   -------------------------------------------------------------------------- */
+.my-fest-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 32px;
+  padding: 20px 24px;
+  background: #ffffff;
+  border: 1px solid #e2dad1;
+  border-radius: 14px;
+}
+
+.session-info h2 {
+  font: 700 15px/1.2 "DM Sans", sans-serif;
+  color: #1e0d20;
+  margin: 0 0 4px;
+}
+
+.session-info p {
+  margin: 0;
+  font-size: 13px;
+  color: #72685d;
+}
+
+.session-info strong {
+  color: #1e0d20;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN (MOBILE & TABLET)
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .student-profile-header-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    flex-wrap: wrap;
+  }
+
+  .student-avatar-canvas {
+    width: 66px !important;
+    height: 66px !important;
+  }
+
+  .student-avatar-canvas .fb-silhouette-icon {
+    width: 66px !important;
+    height: 66px !important;
+  }
+
+  .student-primary-details {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .student-fest-id-chip {
+    text-align: left;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .fest-id-value-wrap {
+    justify-content: flex-start;
+  }
+
+  .profile-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 16px 20px;
+  }
+
+  .card-banner {
+    padding: 14px 18px;
+  }
+
+  .card-verification-note {
+    margin: 0 18px 16px;
+  }
+
+  .card-barcode-strip {
+    margin: 0 18px 18px;
+  }
+
+  .quick-nav-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .my-fest-content {
+    padding: 20px 16px 40px;
+  }
+}

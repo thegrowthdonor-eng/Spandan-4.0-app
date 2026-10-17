@@ -1,0 +1,281 @@
+.public-page { min-height:100vh;background:#f5f0e8;color:#261923; }
+.public-header { min-height:74px;padding:0 7vw;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d5c8c0; }
+.public-header .wordmark { font-size:25px; }
+.public-header .wordmark span { color:#bc6256; }
+.public-header nav { display:flex;gap:20px;font:600 11px/1 "DM Sans",sans-serif;text-transform:uppercase;letter-spacing:.09em; }
+.public-header nav a { border-bottom:1px solid transparent;padding:5px 0; }
+.public-header nav a:hover,.public-header nav a[aria-current="page"] { border-color:currentColor; }
+.public-hero {
+  padding: 24px 6vw 20px;
+  background: linear-gradient(135deg, #f5e9e0 0%, #f8efe7 58%, #eef2e9 100%);
+  color: #26382f;
+  border-bottom: 1px solid #ead8ca;
+}
+@media (max-width: 600px) {
+  .public-hero {
+    padding: 16px 5vw 14px;
+  }
+}
+.public-hero h1 {
+  max-width: 850px;
+  margin: 4px 0 4px;
+  font: 700 clamp(24px, 5vw, 40px)/1.1 "Playfair Display", serif;
+  letter-spacing: -0.03em;
+  color: #26382f;
+}
+.public-hero h1 em { color: #98513d; }
+.fest-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 254, 251, 0.72);
+  border: 1px solid #e6d6bd;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: 700 10px/1.2 "DM Mono", monospace;
+  color: #86643c;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.public-hero > p:not(.eyebrow):not(.college-affil-pill) {
+  max-width: 600px;
+  line-height: 1.4;
+  color: #657268;
+  margin: 0;
+  font-size: 13px;
+}
+.public-content { padding: 20px 6vw 60px; }
+@media (max-width: 600px) {
+  .public-content { padding: 14px 4vw 60px; }
+}
+.public-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 18px; }
+.public-section-heading h2 { margin: 0; font: 600 clamp(28px, 4vw, 44px)/1 "Playfair Display", serif; letter-spacing: -0.04em; color: #191018; }
+.public-section-heading > p { margin: 0; max-width: 460px; line-height: 1.55; color: #55444e; font-size: 14px; }
+.empty-public { max-width: 700px; padding: 44px 0; border-top: 1px dashed #c9bdb4; border-bottom: 1px dashed #c9bdb4; }
+.empty-public h2 { margin: 12px 0; font: 500 clamp(30px, 4vw, 48px)/1 "Playfair Display", serif; letter-spacing: -0.04em; }
+.empty-public p:not(.eyebrow) { max-width: 540px; line-height: 1.6; color: #55444e; }
+.fixture-list, .notice-list, .standing-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; border-top: none; }
+
+.fixture-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr) minmax(140px, .65fr);
+  gap: 24px;
+  align-items: center;
+  padding: 20px 22px;
+  background: #fffdfa;
+  border: 1px solid #d5c8c0;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(38,25,35,0.04);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.fixture-row:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(38,25,35,0.08); }
+.fixture-when { font: 600 11px/1.5 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .06em; color: #80524d; }
+.fixture-main h2, .notice-row h2 { margin: 0; font: 600 clamp(20px, 2.5vw, 26px)/1.15 "Playfair Display", serif; letter-spacing: -0.03em; color: #191018; }
+.fixture-main p { margin: 6px 0 0; color: #55444e; line-height: 1.5; font-size: 13.5px; }
+.fixture-meta { display: grid; align-content: start; gap: 6px; font: 600 11px/1.45 "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: #80524d; }
+.notice-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 24px;
+  padding: 22px;
+  background: #fffdfa;
+  border: 1px solid #d5c8c0;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(38,25,35,0.04);
+  transition: transform .15s ease;
+}
+.notice-row:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(38,25,35,0.08); }
+.notice-tag { align-self: start; font: 700 10px/1.4 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .08em; color: #80524d; }
+.notice-tag.urgent { color: #b13f37; }
+.notice-tag.important { color: #a56b00; }
+.notice-row p { max-width: 720px; margin: 10px 0 0; white-space: pre-wrap; line-height: 1.65; color: #55444e; font-size: 14px; }
+.standing-list { counter-reset: standing; max-width: 900px; display: grid; gap: 12px; }
+.standing-row {
+  counter-increment: standing;
+  display: grid;
+  grid-template-columns: 70px 1fr auto;
+  gap: 20px;
+  align-items: center;
+  padding: 18px 22px;
+  background: #fffdfa;
+  border: 1px solid #d5c8c0;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(38,25,35,0.04);
+  transition: transform .15s ease;
+}
+.standing-row:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(38,25,35,0.08); }
+.standing-row::before { content: counter(standing, decimal-leading-zero); font: 700 16px/1 "DM Mono", monospace; color: #bc6256; }
+.standing-row strong { font: 600 24px/1 "Playfair Display", serif; letter-spacing: -0.02em; color: #191018; }
+.standing-row span { font: 600 12px/1 "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .08em; color: #55444e; }
+.public-footer { padding: 26px 7vw; background: #eaf0e4; color: #657268; border-top: 1px solid #dce2d7; display: flex; justify-content: space-between; gap: 20px; font-size: 12px; }
+@media (max-width: 720px) {
+  .public-header { padding: 0 6vw; }
+  .public-header nav { gap: 13px; font-size: 10px; }
+  .public-hero, .public-content { padding-left: 6vw; padding-right: 6vw; }
+  .public-hero { padding-top: 36px; padding-bottom: 28px; }
+  .public-section-heading { display: block; }
+  .public-section-heading > p { margin-top: 10px; }
+  .fixture-row, .notice-row { grid-template-columns: 1fr; gap: 10px; }
+  .fixture-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .public-footer { padding: 24px 6vw; flex-direction: column; }
+  .standing-row { grid-template-columns: 50px 1fr auto; gap: 10px; padding: 14px 16px; }
+  .standing-row strong { font-size: 20px; }
+}
+
+/* Sponsors & Partners Showcase */
+.sponsors-tier-container { display:grid;gap:48px; }
+.sponsor-tier-group { display:grid;gap:20px; }
+.tier-heading { font:600 13px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.1em;color:#80524d;margin:0;border-bottom:1px solid #d5c8c0;padding-bottom:8px; }
+.sponsors-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px; }
+.sponsor-card { background:#fffaf2;border:1px solid #c9bdb4;padding:24px;display:flex;flex-direction:column;gap:8px;box-shadow:0 4px 14px rgba(38,25,35,0.04);transition:transform .15s ease,box-shadow .15s ease; }
+.sponsor-card:hover { transform:translateY(-2px);box-shadow:0 8px 24px rgba(38,25,35,0.08); }
+.patron-badge { font:600 11px/1 "DM Mono",monospace;color:#bc6256;text-transform:uppercase;margin-bottom:4px; }
+.sponsor-logo-box { height:80px;display:flex;align-items:center;justify-content:center;background:#f5f0e8;border:1px solid #e0d5c8;padding:12px;margin-bottom:8px; }
+.sponsor-logo-box img { max-height:100%;max-width:100%;object-fit:contain; }
+.sponsor-card h4 { margin:0;font:600 20px/1.2 "Playfair Display",serif;color:#261923; }
+.sponsor-tier-label { font:600 10px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:#1e3a8a; }
+.sponsor-card p { margin:6px 0 0;font-size:13px;line-height:1.5;color:#55444e;flex:1; }
+.sponsor-link { font:600 11px/1 "DM Mono",monospace;text-transform:uppercase;color:#bc6256;text-decoration:none;margin-top:8px;display:inline-block; }
+.sponsor-link:hover { text-decoration:underline; }
+
+.institutional-patrons-showcase { display:grid;gap:40px; }
+.partnership-cta-card { background:#ebdcd0;border:1px solid #c9bdb4;padding:32px;display:grid;gap:12px;max-width:800px; }
+.partnership-cta-card h3 { margin:0;font:600 24px/1.2 "Playfair Display",serif;color:#261923; }
+.partnership-cta-card p { margin:0;font-size:14px;line-height:1.6;color:#55444e; }
+.cta-link-btn { justify-self:start;background:#261923;color:#f5f0e8;padding:10px 18px;font:600 11px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em;text-decoration:none;transition:background .15s ease;margin-top:6px; }
+.cta-link-btn:hover { background:#bc6256; }
+
+/* FAQs Accordion */
+.faqs-container { display:grid;gap:40px;max-width:850px; }
+.faq-section-block { display:grid;gap:16px; }
+.faq-section-title { font:600 22px/1.2 "Playfair Display",serif;margin:0;color:#261923;border-bottom:1px solid #c9bdb4;padding-bottom:8px; }
+.faq-accordion-list { display:grid;gap:12px; }
+.faq-item { background:#fffaf2;border:1px solid #c9bdb4;padding:16px 20px;transition:background .15s ease; }
+.faq-item[open] { background:#fdfaf6;border-color:#261923; }
+.faq-question { font:600 16px/1.4 "Playfair Display",serif;color:#261923;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px; }
+.faq-question::-webkit-details-marker { display:none; }
+.faq-chevron { font:700 18px/1 "DM Mono",monospace;color:#bc6256;transition:transform .2s ease; }
+.faq-item[open] .faq-chevron { transform:rotate(45deg); }
+.faq-answer { margin-top:12px;padding-top:12px;border-top:1px dashed #d7c8b4;font-size:14px;line-height:1.65;color:#55444e; }
+.faq-answer p { margin:0; }
+.faq-help-box { background:#261923;color:#f5f0e8;padding:32px;display:grid;gap:12px;border-radius:2px;margin-top:16px; }
+.faq-help-box h3 { margin:0;font:600 24px/1.2 "Playfair Display",serif;color:#f5f0e8; }
+.faq-help-box p { margin:0;font-size:14px;line-height:1.6;color:#d5cac0; }
+.faq-help-box .cta-link-btn { background:#bc6256;color:#fff; }
+.faq-help-box .cta-link-btn:hover { background:#d97706; }
+
+/* Gallery & Media */
+.reveals-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:24px; }
+.reveal-card { background:#fffaf2;border:1px solid #c9bdb4;overflow:hidden;box-shadow:0 4px 16px rgba(38,25,35,0.05); }
+.reveal-image-wrapper { height:220px;width:100%;background:#261923;overflow:hidden; }
+.reveal-image-wrapper img { width:100%;height:100%;object-fit:cover;transition:transform .3s ease; }
+.reveal-image-placeholder { position:relative; }
+.reveal-image-placeholder span { position:absolute;left:12px;bottom:12px;padding:6px 9px;border-radius:5px;background:rgba(20,27,23,.8);color:#fff;font:700 9px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em;backdrop-filter:blur(8px); }
+.reveal-card:hover .reveal-image-wrapper img { transform:scale(1.03); }
+.reveal-placeholder-banner { height:180px;background:#261923;color:#f5f0e8;display:flex;align-items:center;justify-content:center;font:700 14px/1 "DM Mono",monospace;letter-spacing:.1em; }
+.reveal-details { padding:20px;display:grid;gap:8px; }
+.reveal-details h3 { margin:0;font:600 22px/1.2 "Playfair Display",serif;color:#261923; }
+.reveal-details p { margin:0;font-size:13px;line-height:1.5;color:#55444e; }
+.reveal-date { font:600 11px/1 "DM Mono",monospace;color:#1e3a8a;margin-top:4px; }
+
+.reveal-announcement-card { background:#fffaf2;border:1px solid #dce2d7;max-width:760px;display:grid;grid-template-columns:minmax(0,1.35fr) minmax(220px,.9fr);overflow:hidden;border-radius:14px; }
+.reveal-announcement-image { min-height:260px;background:#1d2a22; }
+.reveal-announcement-image img { width:100%;height:100%;display:block;object-fit:cover; }
+.reveal-announcement-copy { padding:28px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;text-align:left; }
+.reveal-stage-icon { font-size:42px;margin-bottom:12px; }
+.reveal-announcement-card h3 { margin:0 0 10px;font:600 24px/1.2 "Playfair Display",serif;color:#261923; }
+.reveal-announcement-card p { margin:0;color:#55444e;font-size:14px;line-height:1.6; }
+
+.media-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px; }
+.media-card { background:#fffaf2;border:1px solid #c9bdb4;padding:22px;display:flex;flex-direction:column;gap:10px; }
+.media-card-thumbnail { height:180px;margin:-22px -22px 8px;overflow:hidden;background:#eaf0e5; }
+.media-card-thumbnail img { width:100%;height:100%;display:block;object-fit:cover;transition:transform .25s ease; }
+.media-card:hover .media-card-thumbnail img { transform:scale(1.025); }
+.media-type-pill { font:700 10px/1 "DM Mono",monospace;background:#261923;color:#f5f0e8;padding:4px 8px;border-radius:2px;align-self:start; }
+.media-card h3 { margin:0;font:600 18px/1.3 "Playfair Display",serif;color:#261923; }
+.media-card p { margin:0;font-size:13px;line-height:1.5;color:#55444e;flex:1; }
+.media-watch-btn { font:600 11px/1 "DM Mono",monospace;color:#bc6256;text-decoration:none; }
+.media-watch-btn:hover { text-decoration:underline; }
+.rights-tag { font:400 10px/1 "DM Mono",monospace;color:#80524d; }
+
+.curated-media-showcase { max-width:800px; }
+.media-feature-card { background:#fffaf2;border:1px solid #c9bdb4;padding:28px;display:flex;gap:24px;align-items:flex-start; }
+.feature-icon { width:42px;height:42px;display:grid;place-items:center;flex:0 0 auto;border-radius:10px;background:#eaf0e5;color:#345e50; }
+.feature-icon svg { width:23px;height:23px; }
+.media-feature-card h3 { margin:6px 0 8px;font:600 22px/1.2 "Playfair Display",serif;color:#261923; }
+.media-feature-card p { margin:0 0 10px;font-size:14px;line-height:1.6;color:#55444e; }
+.curation-guideline { font-size:12px;color:#80524d;font-style:italic;margin-top:12px;border-top:1px dashed #d7c8b4;padding-top:10px; }
+@media (max-width: 680px) {
+  .reveal-announcement-card { grid-template-columns:1fr; }
+  .reveal-announcement-image { min-height:190px;aspect-ratio:16/9; }
+  .reveal-announcement-copy { padding:22px; }
+  .media-feature-card { padding:20px;gap:14px; }
+}
+
+@media (max-width: 600px) {
+  .sponsors-grid, .reveals-grid, .media-grid, .merch-grid, .committee-grid, .podium-showcase-grid { grid-template-columns:minmax(0,1fr); gap:14px; }
+}
+
+/* Merchandise Showcase */
+.merch-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;margin-bottom:48px; }
+.merch-card { background:#fffaf2;border:1px solid #c9bdb4;padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px rgba(38,25,35,0.04);transition:transform .15s ease,box-shadow .15s ease; }
+.merch-card:hover { transform:translateY(-2px);box-shadow:0 8px 24px rgba(38,25,35,0.08); }
+.merch-img-box { height:200px;background:#261923;color:#f5f0e8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border-radius:4px;overflow:hidden;position:relative;padding:16px;text-align:center; }
+.merch-tag { position:absolute;top:12px;left:12px;background:#bc6256;color:#fff;font:700 9px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.1em;padding:4px 8px;border-radius:2px; }
+.merch-icon { font-size:44px; }
+.merch-img-label { font:600 13px/1.3 "DM Sans",sans-serif;color:#f5f0e8; }
+.merch-edition-sub { font:400 11px/1 "DM Mono",monospace;color:#e9c3a7; }
+.merch-title { margin:0;font:600 20px/1.2 "Playfair Display",serif;color:#261923; }
+.merch-desc { margin:0;font-size:13px;line-height:1.55;color:#55444e;flex:1; }
+.merch-meta-row { display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e0d5c8;padding-top:10px;margin-top:6px; }
+.merch-sizes { font:600 11px/1 "DM Mono",monospace;color:#80524d; }
+.merch-availability { font:700 10px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:#1e3a8a;background:rgba(30,58,138,0.08);padding:4px 8px;border-radius:2px; }
+.merch-pickup-note { font:500 11px/1.4 "DM Sans",sans-serif;color:#80524d;margin:0; }
+
+.offline-desk-banner { background:#261923;color:#f5f0e8;padding:32px;display:grid;gap:14px;border-radius:4px;max-width:850px;margin-bottom:48px; }
+.offline-desk-banner h3 { margin:0;font:600 24px/1.2 "Playfair Display",serif;color:#f5f0e8; }
+.offline-desk-banner p { margin:0;font-size:14px;line-height:1.6;color:#d5cac0; }
+.desk-details-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;border-top:1px solid #4a3543;padding-top:16px;margin-top:8px; }
+.desk-detail-item strong { display:block;font:600 11px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.1em;color:#e88979;margin-bottom:6px; }
+.desk-detail-item span { font:500 14px/1.4 "DM Sans",sans-serif;color:#f5f0e8; }
+
+.size-guide-card { background:#fffaf2;border:1px solid #c9bdb4;padding:28px;max-width:850px;overflow-x:auto;-webkit-overflow-scrolling:touch; }
+.size-guide-card h3 { margin:0 0 8px;font:600 22px/1.2 "Playfair Display",serif;color:#261923; }
+.size-guide-card p { margin:0 0 16px;font-size:13px;color:#55444e; }
+.size-table { width:100%;min-width:440px;border-collapse:collapse;font-size:13px;text-align:left; }
+.size-table th { background:#f5f0e8;padding:10px 14px;font:600 11px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em;color:#261923;border-bottom:2px solid #c9bdb4; }
+.size-table td { padding:10px 14px;border-bottom:1px solid #e0d5c8;color:#55444e; }
+
+/* Committee & Leadership */
+.committee-section-group { display:grid;gap:24px;margin-bottom:48px; }
+.committee-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px; }
+.committee-card { background:#fffaf2;border:1px solid #c9bdb4;padding:24px;display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 14px rgba(38,25,35,0.04); }
+.committee-role-badge { font:700 10px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.1em;color:#bc6256;background:rgba(188,98,86,0.1);padding:4px 8px;border-radius:2px;align-self:start; }
+.committee-avatar { width:64px;height:64px;border-radius:50%;background:#261923;color:#f5f0e8;display:flex;align-items:center;justify-content:center;font:600 20px/1 "Playfair Display",serif;margin-bottom:4px; }
+.committee-name { margin:0;font:600 20px/1.2 "Playfair Display",serif;color:#261923; }
+.committee-title { margin:0;font:600 12px/1.3 "DM Sans",sans-serif;color:#80524d;text-transform:uppercase;letter-spacing:.05em; }
+.committee-desc { margin:4px 0 0;font-size:13px;line-height:1.55;color:#55444e; }
+.committee-contact-tag { font:500 11px/1 "DM Mono",monospace;color:#1e3a8a;margin-top:6px; }
+
+/* Standings Page - Podium & Winner Celebration Showcase */
+.podium-showcase-section { margin-top:64px;padding-top:48px;border-top:1px solid #c9bdb4;display:grid;gap:28px; }
+.podium-showcase-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:28px; }
+.podium-card { background:#fffaf2;border:1px solid #c9bdb4;overflow:hidden;box-shadow:0 4px 18px rgba(38,25,35,0.05);display:flex;flex-direction:column;transition:transform .15s ease,box-shadow .15s ease; }
+.podium-card:hover { transform:translateY(-2px);box-shadow:0 8px 24px rgba(38,25,35,0.08); }
+.podium-card-image-box { width:100%;height:200px;background:#1d131b;overflow:hidden;position:relative; }
+.podium-card-image-box img { width:100%;height:100%;object-fit:cover; }
+.podium-card-placeholder { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:#eaf0e5;color:#345e50;font:700 9px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em; }
+.podium-card-placeholder svg { width:92px;height:92px; }
+.podium-card-category { position:absolute;top:12px;left:12px;font:700 9px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.08em;background:#261923;color:#f5f0e8;padding:4px 8px;border-radius:2px; }
+.podium-card-body { padding:22px;display:grid;gap:12px;flex:1; }
+.podium-card-title { margin:0;font:600 22px/1.2 "Playfair Display",serif;color:#261923; }
+.podium-card-caption { margin:0;font-size:13px;line-height:1.55;color:#55444e;font-style:italic;border-left:2px solid #bc6256;padding-left:10px; }
+.podium-card-placings { display:flex;flex-direction:column;gap:6px;margin-top:6px;padding-top:10px;border-top:1px dashed #d7c8b4; }
+.podium-row-item { display:flex;justify-content:space-between;align-items:center;font-size:13px; }
+.podium-row-item .rank-label { font:600 11px/1 "DM Mono",monospace;color:#bc6256; }
+.podium-row-item .batch-name { font-weight:600;color:#261923; }
+.podium-view-event { margin-top:8px;font:600 11px/1 "DM Mono",monospace;text-transform:uppercase;color:#bc6256;text-decoration:none;align-self:start; }
+.podium-view-event:hover { text-decoration:underline; }
+
+

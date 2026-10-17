@@ -61,11 +61,11 @@ create table public.score_snapshots (
 create table public.point_rules (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events(id) on delete cascade,
-  placing integer not null check (placing > 0),
+  "placing" integer not null check ("placing" > 0),
   points integer not null check (points >= 0),
   configured_by uuid not null references public.profiles(id),
   configured_at timestamptz not null default now(),
-  unique (event_id, placing)
+  unique (event_id, "placing")
 );
 
 create table public.result_publications (
@@ -88,10 +88,10 @@ create unique index one_published_result_per_event on public.result_publications
 create table public.result_positions (
   id uuid primary key default gen_random_uuid(),
   publication_id uuid not null references public.result_publications(id) on delete cascade,
-  placing integer not null check (placing > 0),
+  "placing" integer not null check ("placing" > 0),
   batch_id uuid not null references public.batches(id),
   note text check (char_length(note) <= 500),
-  unique (publication_id, placing),
+  unique (publication_id, "placing"),
   unique (publication_id, batch_id)
 );
 
@@ -184,9 +184,9 @@ begin
     target_batch := (position ->> 'batch_id')::uuid;
     if target_place is null or target_place < 1 or target_batch is null then raise exception 'Invalid final position' using errcode = '22023'; end if;
     if not exists (select 1 from public.batches where id = target_batch and edition_id = locked_event.edition_id) then raise exception 'Result batch is not eligible for this edition' using errcode = '22023'; end if;
-    select points into configured_points from public.point_rules where event_id = p_event_id and placing = target_place;
+    select points into configured_points from public.point_rules where event_id = p_event_id and "placing" = target_place;
     if not found then raise exception 'Points are not configured for placing %', target_place using errcode = '22023'; end if;
-    insert into public.result_positions (publication_id, placing, batch_id, note) values (publication.id, target_place, target_batch, nullif(position ->> 'note', ''));
+    insert into public.result_positions (publication_id, "placing", batch_id, note) values (publication.id, target_place, target_batch, nullif(position ->> 'note', ''));
     insert into public.points_ledger (publication_id, batch_id, points) values (publication.id, target_batch, configured_points);
   end loop;
   if had_prior then update public.result_publications set state = 'superseded', superseded_at = now() where id = prior_publication.id; end if;

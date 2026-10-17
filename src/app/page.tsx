@@ -1,49 +1,118 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasSupabaseConfiguration } from "@/server/env";
+import { createRequestClient } from "@/server/supabase/server";
+import { SpandanLogo } from "@/components/spandan-branding";
+import { AuthPortalClient } from "./account/auth-portal-client";
+import homeStyles from "./homepage.module.css";
+import "./account/account.css";
 
-const pillars = [
-  ["01", "Explore", "Published event information stays open to everyone."],
-  ["02", "Participate", "A verified contribution unlocks individual applications."],
-  ["03", "Follow", "Fixtures, scores and final batch standings in one place."],
-];
+export const metadata = {
+  title: "Spandan 4.0 — ASMC Firozabad Official Festival Gateway",
+  description: "Official student gateway and authentication portal for Spandan 4.0, ASMC Firozabad.",
+};
 
-const categories = ["Sports", "Performing arts", "Literary", "Creative"];
+export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default async function RootGatewayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; mode?: string }>;
+}) {
+  // If user is already authenticated, redirect straight to the festival Home page
+  if (hasSupabaseConfiguration()) {
+    try {
+      const client = await createRequestClient();
+      const { data: auth } = await client.auth.getUser();
+      if (auth?.user) {
+        redirect("/home");
+      }
+    } catch {
+      // Unauthenticated, continue to render the auth portal
+    }
+  }
+
+  const configured = hasSupabaseConfiguration();
+  const { next, mode } = await searchParams;
+  const returnTo = next && next.startsWith("/") && !next.startsWith("//") ? next : "/home";
+  const initialView = mode === "signup" || mode === "register"
+    ? "signup"
+    : mode === "signin" || mode === "login"
+    ? "signin"
+    : "hub";
+
   return (
-    <main>
-      <nav className="nav" aria-label="Primary navigation">
-        <a className="wordmark" href="#top" aria-label="SPANDAN 4.0 home">Spandan <span>4.0</span></a>
-        <div className="nav-links"><Link href="/events">Events</Link><a href="#notice">Notice</a><a href="#account">My Fest</a></div>
-        <a className="nav-cta" href="/account">Sign in <span aria-hidden>↗</span></a>
-      </nav>
+    <main className={homeStyles.page} style={{ display: "flex", flexDirection: "column", minHeight: "100dvh" }}>
+      {/* Top Header matching Home page branding */}
+      <header className={homeStyles.header}>
+        <SpandanLogo variant="light" />
+        <nav aria-label="Festival options">
+          <Link href="/guest" className={homeStyles.headerCta}>
+            Guest Preview →
+          </Link>
+        </nav>
+      </header>
 
-      <section id="top" className="hero" aria-labelledby="hero-title">
-        <div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" />
-        <p className="eyebrow">GMC Firozabad · Festival edition</p>
-        <h1 id="hero-title">A pulse of<br /><em>possibility.</em></h1>
-        <p className="hero-copy">SPANDAN brings sports, culture and campus spirit together. Explore what is confirmed, then make your mark when registrations open.</p>
-        <div className="hero-actions"><Link className="button button-light" href="/events">Explore the events <span>→</span></Link><a className="text-link" href="#notice">Read the latest notice <span>→</span></a></div>
-        <div className="hero-meta"><span>Official programme dates<br /><strong>To be confirmed</strong></span><span>Built for<br /><strong>GMC Firozabad</strong></span></div>
-      </section>
+      {/* Main Container */}
+      <div style={{ flex: 1, maxWidth: "1040px", width: "100%", margin: "0 auto", padding: "0 24px" }}>
+        {/* Hero Section matching Home Page Typography */}
+        <section style={{ textAlign: "center", padding: "40px 16px 28px" }}>
+          <p className={homeStyles.eyebrow} style={{ justifyContent: "center", marginBottom: "14px" }}>
+            <span className={homeStyles.edition}>EDITION 04</span> ASMC Firozabad
+          </p>
+          <h1 style={{
+            margin: "0 0 12px",
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "center",
+            gap: "8px",
+            font: "500 clamp(40px, 6vw, 58px)/1 'Playfair Display', Georgia, serif",
+            letterSpacing: "-.04em",
+            color: "#242b29"
+          }}>
+            SPANDAN<span style={{
+              font: "500 clamp(16px, 2.2vw, 22px)/1 'DM Mono', monospace",
+              color: "#a9533e",
+              letterSpacing: "-.04em",
+              position: "relative",
+              top: "-12px"
+            }}>4.0</span>
+          </h1>
+          <p style={{
+            margin: "0 auto",
+            font: "500 clamp(17px, 2.2vw, 22px)/1.35 'Playfair Display', Georgia, serif",
+            letterSpacing: "-.03em",
+            color: "#242b29",
+            maxWidth: "460px"
+          }}>
+            Out of the ordinary. <em style={{ color: "#a9533e", fontStyle: "italic", fontWeight: 500 }}>Into the fest.</em>
+          </p>
+        </section>
 
-      <section id="notice" className="notice" aria-label="Current notice"><p><span className="dot" /> Planning update</p><strong>Festival dates, event rules and registrations will be published by the organising committee.</strong><a href="#experience">What to expect →</a></section>
+        {/* 3-Option Gateway (Sign In / Create Profile / Enter as Guest) */}
+        <section style={{ paddingBottom: "48px" }}>
+          <AuthPortalClient
+            configured={configured}
+            returnTo={returnTo}
+            initialView={initialView}
+          />
+        </section>
+      </div>
 
-      <section id="experience" className="section intro">
-        <div><p className="eyebrow ink">The festival, thoughtfully organised</p><h2>One space for every <em>moment.</em></h2></div>
-        <p className="body-copy">From first discovery to final results, SPANDAN is designed to make the festival easier to follow, fairer to enter and more memorable to share.</p>
-      </section>
-
-      <section className="pillars section" aria-label="Festival features">
-        {pillars.map(([number, title, copy]) => <article className="pillar" key={number}><span>{number}</span><h3>{title}</h3><p>{copy}</p><a href="#account" aria-label={`Learn more about ${title}`}>→</a></article>)}
-      </section>
-
-      <section className="showcase">
-        <div className="section showcase-grid"><div><p className="eyebrow">A place to show up</p><h2>Find your<br /><em>stage.</em></h2><p>Browse categories, read rules and keep up with the moments that move campus.</p></div><div className="categories">{categories.map((category, index) => <button type="button" key={category}><span>0{index + 1}</span>{category}<b>↗</b></button>)}</div></div>
-      </section>
-
-      <section id="account" className="account section"><div><p className="eyebrow ink">Your SPANDAN space</p><h2>Ready when<br />you <em>are.</em></h2><p>Students sign in with batch, roll number and password. Contribution verification happens outside the app — there is no online payment or checkout.</p></div><div className="account-card"><p className="eyebrow">Account access</p><h3>Registration opens after activation.</h3><p>Already verified? Your applications, selection updates and personal schedule will live here.</p><a className="account-button" href="/account">View account access</a><small>This is a planning preview, not a live registration system.</small></div></section>
-
-      <footer><a className="wordmark" href="#top">Spandan <span>4.0</span></a><p>GMC Firozabad · A festival platform in preparation</p><a href="#notice">Back to top ↑</a></footer>
+      {/* Footer matching Home page palette */}
+      <footer className={homeStyles.footer} style={{ maxWidth: "1040px", width: "100%", margin: "auto auto 0", padding: "24px 24px 32px" }}>
+        <div className={homeStyles.footerBrand}>
+          <strong>Spandan 4.0 · ASMC Firozabad</strong>
+          <span className={homeStyles.footerDesk}>
+            Official MBBS festival gateway &amp; student authentication
+          </span>
+        </div>
+        <div className={homeStyles.footerActions}>
+          <Link href="/guest">Guest Directory</Link>
+          <Link href="/faqs">Help &amp; FAQs</Link>
+          <Link href="/admin">Organiser portal ↗</Link>
+        </div>
+      </footer>
     </main>
   );
 }

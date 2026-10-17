@@ -2,17 +2,108 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
-import { FixtureForm } from "./fixture-form";
+import { FixturesClient, FixtureItem } from "./fixtures-client";
 import "./fixtures.css";
 
 export const dynamic = "force-dynamic";
-type Event = { id: string; title: string };
-type Fixture = { fixture_id: string; stage: string; participant_a_label: string; participant_b_label: string; venue: string | null; reporting_at: string | null; starts_at: string | null; state: string; schedule_version: number; score_version: number; score_status: string | null };
-function time(value: string | null) { return value ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(value)) : "To be scheduled"; }
-export default async function FixturesPage({ searchParams }: { searchParams: Promise<{ event?: string }> }) {
-  if (!hasPublicSupabaseConfiguration()) return <main className="fixtures-page"><section className="fixture-empty">Fixture setup is not connected.</section></main>;
-  const client = await createRequestClient(); if (!(await client.auth.getUser()).data.user) redirect("/account");
-  const { data: eventData } = await client.rpc("list_managed_events"); const events = (eventData ?? []) as Event[]; if (!events.length) return <main className="fixtures-page"><section className="fixture-empty">No assigned events are available.</section></main>;
-  const wanted = (await searchParams).event; const selected = events.find((event) => event.id === wanted) ?? events[0]; const { data, error } = await client.rpc("list_event_fixtures", { p_event_id: selected.id }); const fixtures = (data ?? []) as Fixture[];
-  return <main className="fixtures-page"><header className="fixtures-header"><Link className="wordmark" href="/">Spandan <span>4.0</span></Link><Link href="/admin/review">Review queue</Link></header><section className="fixtures-intro"><p className="eyebrow">Event-head workspace</p><h1>Make the<br /><em>draw.</em></h1><p>Create fixtures only after the participant/roster decision is ready. Any later schedule change must carry a reason and correct schedule version.</p></section><nav className="fixture-picker" aria-label="Managed events">{events.map((event) => <Link aria-current={event.id === selected.id ? "page" : undefined} key={event.id} href={`/admin/fixtures?event=${event.id}`}>{event.title}</Link>)}</nav><section className="fixture-layout"><FixtureForm eventId={selected.id} /><div>{error ? <p className="fixture-empty">Fixtures are temporarily unavailable.</p> : fixtures.length ? <div className="fixture-list">{fixtures.map((fixture) => <article className="fixture-card" key={fixture.fixture_id}><p className="fixture-state">{fixture.state} · schedule v{fixture.schedule_version}{fixture.score_version ? ` · score v${fixture.score_version}` : ""}</p><h2>{fixture.participant_a_label} <em>vs</em> {fixture.participant_b_label}</h2><p>{fixture.stage} · {fixture.venue ?? "Venue to be announced"}</p><p>Reporting: {time(fixture.reporting_at)} · Starts: {time(fixture.starts_at)}{fixture.score_status ? ` · Score ${fixture.score_status}` : ""}</p></article>)}</div> : <p className="fixture-empty">No fixtures have been created for {selected.title}.</p>}</div></section></main>;
+
+type ManagedEvent = {
+  id: string;
+  title: string;
+  category: string;
+  format: string;
+  state: string;
+  score_template?: string;
+};
+
+export default async function FixturesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ event?: string }>;
+}) {
+  if (!hasPublicSupabaseConfiguration()) {
+    return (
+      <main className="fixtures-page">
+        <section className="fixture-empty">Fixture setup is not connected.</section>
+      </main>
+    );
+  }
+
+  const client = await createRequestClient();
+  if (!(await client.auth.getUser()).data.user) redirect("/account");
+
+  const { data: eventData } = await client.rpc("list_managed_events");
+  const events = (eventData ?? []) as ManagedEvent[];
+
+  if (!events.length) {
+    return (
+      <main className="fixtures-page">
+        <header className="fixtures-header">
+          <Link className="wordmark" href="/">
+            Spandan <span>4.0</span>
+          </Link>
+          <div className="header-nav-links">
+            <Link href="/admin">Organiser Hub</Link>
+          </div>
+        </header>
+        <section className="fixture-empty-state">
+          <p className="eyebrow">Fixtures & Live Scores</p>
+          <h2>No Assigned Events</h2>
+          <p>You do not currently have any events assigned to your organiser profile. As an organiser or event head, your assigned events will show up here once configured.</p>
+          <div className="empty-actions">
+            <Link href="/admin" className="empty-action-primary">← Return to Organiser Hub</Link>
+            <Link href="/admin/events" className="empty-action-secondary">Event Catalogue & Rules →</Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  const wanted = (await searchParams).event;
+  const selected = events.find((event) => event.id === wanted) ?? events[0];
+
+  const { data, error } = await client.rpc("list_event_fixtures", { p_event_id: selected.id });
+  const fixtures = (data ?? []) as FixtureItem[];
+
+  return (
+    <main className="fixtures-page">
+      <header className="fixtures-header">
+        <Link className="wordmark" href="/">
+          Spandan <span>4.0</span>
+        </Link>
+        <div className="header-nav-links">
+          <Link href="/admin">Organiser Hub</Link>
+          <Link href={`/admin/review?event=${selected.id}`}>Review Queue</Link>
+          <Link href="/my-fest">My Fest</Link>
+        </div>
+      </header>
+
+      <section className="fixtures-intro">
+        <p className="eyebrow">Competition operations</p>
+        <h1>Fixtures & scores</h1>
+        <p>
+          Create fixtures, manage live scoring with templates (Cricket, Football, Badminton, Generic), and reschedule
+          with mandatory audit reasons and version bumping. Participants receive schedule reminders automatically.
+        </p>
+      </section>
+
+      <nav className="fixture-picker" aria-label="Managed events">
+        {events.map((event) => (
+          <Link
+            aria-current={event.id === selected.id ? "page" : undefined}
+            key={event.id}
+            href={`/admin/fixtures?event=${event.id}`}
+          >
+            {event.title}
+          </Link>
+        ))}
+      </nav>
+
+      {error ? (
+        <p className="fixture-empty">Fixtures are temporarily unavailable.</p>
+      ) : (
+        <FixturesClient event={selected} fixtures={fixtures} />
+      )}
+    </main>
+  );
 }

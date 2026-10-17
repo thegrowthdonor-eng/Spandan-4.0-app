@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canonicaliseBatchRoll, createRecoveryToken, hashRateLimitKey, hashRecoveryToken, toPrivateAuthPhone } from "./identity";
+import { canonicaliseBatchRoll, createRecoveryToken, hashRateLimitKey, hashRecoveryToken, toPrivateAuthEmail } from "./identity";
 
 const pepper = "test-pepper-must-be-at-least-thirty-two-characters";
 
@@ -11,15 +11,15 @@ test("canonicalises harmless batch-roll formatting without losing meaningful cha
   });
 });
 
-test("produces stable, private phone-shaped auth identities", () => {
-  const identifier = toPrivateAuthPhone({ batch: "MBBS 2024", rollNumber: "047" }, pepper);
-  assert.match(identifier, /^\+91\d{10}$/);
-  assert.equal(identifier, toPrivateAuthPhone({ batch: " mbbs  2024 ", rollNumber: "047" }, pepper));
-  assert.notEqual(identifier, toPrivateAuthPhone({ batch: "MBBS 2024", rollNumber: "048" }, pepper));
+test("produces stable, private reserved-domain email identities", () => {
+  const identifier = toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "047" }, pepper);
+  assert.match(identifier, /^spandan\+[a-f0-9]{64}@spandan\.invalid$/);
+  assert.equal(identifier, toPrivateAuthEmail({ batch: " mbbs  2024 ", rollNumber: "047" }, pepper));
+  assert.notEqual(identifier, toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "048" }, pepper));
 });
 
 test("rejects a dangerously short identity pepper", () => {
-  assert.throws(() => toPrivateAuthPhone({ batch: "MBBS 2024", rollNumber: "047" }, "short"));
+  assert.throws(() => toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "047" }, "short"));
 });
 
 test("hashes rate-limit keys without retaining identifiers", () => {

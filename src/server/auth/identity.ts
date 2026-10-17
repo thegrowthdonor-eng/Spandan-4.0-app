@@ -23,14 +23,13 @@ export function canonicaliseBatchRoll(input: BatchRoll) {
  * The 10-digit namespace is guarded by a unique mapping table. A mapping collision must be
  * detected during provisioning and escalated, never silently pointed at another account.
  */
-export function toPrivateAuthPhone(input: BatchRoll, pepper: string) {
+export function toPrivateAuthEmail(input: BatchRoll, pepper: string) {
   if (pepper.length < 32) throw new Error("AUTH_IDENTITY_PEPPER must be at least 32 characters.");
   const canonical = canonicaliseBatchRoll(input);
   const digest = createHmac("sha256", pepper)
     .update(`${canonical.batch}\u001f${canonical.rollNumber}`, "utf8")
     .digest("hex");
-  const digits = BigInt(`0x${digest.slice(0, 16)}`) % 10_000_000_000n;
-  return `+91${digits.toString().padStart(10, "0")}`;
+  return `spandan+${digest}@spandan.invalid`;
 }
 
 export function hashRateLimitKey(value: string, pepper: string) {

@@ -152,4 +152,5 @@ end;
 $$;
 
 revoke all on function public.apply_to_event(uuid, uuid, jsonb) from public;
+revoke execute on function public.apply_to_event(uuid, uuid, jsonb) from anon;
 grant execute on function public.apply_to_event(uuid, uuid, jsonb) to authenticated;

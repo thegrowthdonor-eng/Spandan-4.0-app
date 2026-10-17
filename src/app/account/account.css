@@ -1,24 +1,744 @@
-.account-page { min-height:100vh; background:var(--paper); }
-.account-header { padding:26px 8vw;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d5c8bf; }
-.back-link { font-size:13px; }
-.account-hero { padding:92px 8vw 64px;background:var(--ink);color:var(--paper); }
-.account-hero h1 { font:500 clamp(58px,8vw,102px)/.88 "Playfair Display",serif;letter-spacing:-.07em;margin:26px 0; }
-.account-hero p:last-child { max-width:410px;line-height:1.7;color:#d5cac0;font-size:15px; }
-.account-grid { max-width:1100px;margin:auto;padding:78px 8vw;display:grid;grid-template-columns:1fr 1fr;gap:11vw; }
-.account-panel { background:#fffaf2;padding:34px;border:1px solid #ddd0c6;display:flex;flex-direction:column;gap:16px; }
-.auth-stack { display:grid;gap:24px; }
-.account-panel h2 { font:500 38px/.95 "Playfair Display",serif;letter-spacing:-.05em;margin:16px 0 6px; }
-.account-panel label { font-size:12px;display:grid;gap:7px; }
-.account-panel input { border:1px solid #d5c8bf;background:#f4ede4;padding:13px;font:14px "DM Sans",sans-serif;color:var(--ink); }
-.account-panel select { border:1px solid #d5c8bf;background:#f4ede4;padding:13px;font:14px "DM Sans",sans-serif;color:var(--ink); }
-.account-panel button { background:var(--ink);border:0;color:#a99ba3;padding:15px;font-size:13px;text-align:left;cursor:not-allowed; }
-.account-panel>a { font-size:12px;color:#80524d;text-decoration:underline; }
-.form-error { color:#9e3430;font-size:12px;margin:0; }
-.form-message { font-size:12px;line-height:1.5;margin:0;color:#80524d; }
-.access-steps { list-style:none;padding:0;margin:30px 0;display:grid;gap:24px; }
-.access-steps li { display:grid;grid-template-columns:45px 1fr;gap:13px; }
-.access-steps span { font:10px "DM Mono",monospace;color:#80524d;padding-top:3px; }
-.access-steps strong,.recovery strong { font-size:15px; }
-.access-steps p,.recovery p { font-size:13px;line-height:1.6;margin:7px 0 0; }
-.recovery { border-top:1px solid #b8aaa3;padding-top:20px; }
-@media(max-width:700px) { .account-header { padding:22px 7vw; }.account-hero { padding:70px 7vw 48px; }.account-grid { padding:55px 7vw;grid-template-columns:1fr;gap:22px; } }
+/* ==========================================================================
+   SPANDAN 4.0 — LIGHT THEME PORTAL GATEWAY
+   Matches Home Light Theme: #f6f5f1, #242b29, #dedfd8, #355747, #a9533e
+   ========================================================================== */
+
+body main.account-page,
+.account-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f6f5f1 !important;
+  color: #242b29 !important;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* --------------------------------------------------------------------------
+   HEADER
+   -------------------------------------------------------------------------- */
+.account-header {
+  max-width: 1040px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #dedfd8;
+}
+
+/* Ensure Spandan Branding in Account Header matches the Home Page */
+.account-header .spandan-brand-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.account-header .brand-official-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #dedfd8;
+  box-shadow: 0 1px 3px rgba(36, 43, 41, 0.04);
+}
+
+.account-header .brand-typography {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.account-header .brand-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.account-header .brand-name {
+  font: 600 20px/1 "Playfair Display", Georgia, serif !important;
+  letter-spacing: -0.02em !important;
+  color: #242b29 !important;
+  text-shadow: none !important;
+}
+
+.account-header .brand-edition {
+  font: 500 12px/1 "DM Mono", monospace !important;
+  color: #a9533e !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+.account-header .brand-sub {
+  font: 500 9px/1 "DM Mono", monospace !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: #656d67 !important;
+}
+
+.header-back-link {
+  font: 600 11px/1 "DM Sans", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #355747;
+  text-decoration: none;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid #dedfd8;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(36, 43, 41, 0.03);
+}
+
+.header-back-link:hover {
+  color: #233e31;
+  background: #edf3ea;
+  border-color: #355747;
+}
+
+/* --------------------------------------------------------------------------
+   HERO: REFINED TYPOGRAPHY MATCHING HOMEPAGE (SHORT & PUNCHY)
+   -------------------------------------------------------------------------- */
+.account-hero {
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 24px 24px;
+  text-align: center;
+}
+
+.account-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font: 11px "DM Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #656d67;
+}
+
+.account-edition {
+  border: 1px solid #c7cfc0;
+  padding: 4px 7px;
+  border-radius: 3px;
+  color: #355747;
+  font: 10px "DM Mono", monospace;
+  background: #fdfdfb;
+}
+
+.account-title {
+  font: 500 clamp(38px, 6.2vw, 56px)/1 "Playfair Display", Georgia, serif;
+  letter-spacing: -0.04em;
+  color: #242b29;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+}
+
+.account-title span {
+  font: 500 clamp(16px, 2.5vw, 22px)/1 "DM Mono", monospace;
+  color: #a9533e;
+  letter-spacing: -0.04em;
+  position: relative;
+  top: -12px;
+}
+
+.account-tagline {
+  margin: 0 auto;
+  font: 400 clamp(16px, 2.2vw, 20px)/1.4 "Playfair Display", Georgia, serif;
+  color: #555e58;
+  letter-spacing: -0.015em;
+  max-width: 500px;
+}
+
+.account-tagline em {
+  color: #a9533e;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   CONTENT & 3-CARD GATEWAY GRID
+   -------------------------------------------------------------------------- */
+.account-content {
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 8px 32px 48px;
+  flex: 1;
+}
+
+.gateway-hub-view {
+  width: 100%;
+}
+
+.gateway-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Base Card matching Home page */
+.gateway-card {
+  --card-bg: #ffffff;
+  --card-border: #dedfd8;
+  --card-ink: #242b29;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  text-align: left;
+  padding: 24px 22px;
+  min-height: 175px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: 0 2px 4px rgba(36, 43, 41, 0.03);
+  text-decoration: none;
+  color: inherit;
+}
+
+.gateway-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--card-ink);
+  box-shadow: 0 8px 24px rgba(36, 43, 41, 0.08);
+}
+
+.gateway-card .card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.gateway-card .card-icon-badge {
+  box-sizing: content-box;
+  width: 22px;
+  height: 22px;
+  padding: 10px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--card-ink);
+  transition: transform 0.15s ease;
+}
+
+.gateway-card:hover .card-icon-badge {
+  transform: scale(1.06);
+}
+
+.gateway-card .card-icon-badge svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.gateway-card .card-arrow {
+  font-size: 18px;
+  color: var(--card-ink);
+  transition: transform 0.18s ease;
+}
+
+.gateway-card:hover .card-arrow {
+  transform: translate(3px, -2px);
+}
+
+.gateway-card h3 {
+  margin: 0 0 8px;
+  font: 600 18px/1.2 "Playfair Display", Georgia, serif;
+  color: #242b29;
+  letter-spacing: -0.02em;
+}
+
+.gateway-card p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #656d67;
+}
+
+/* Card Palettes matching Homepage */
+/* 1. Green Hero (Sign In) */
+.gateway-card.card-green {
+  --card-bg: #345747;
+  --card-border: #345747;
+  --card-ink: #f2ead6;
+  color: #fffaf0;
+}
+.gateway-card.card-green h3 { color: #ffffff; }
+.gateway-card.card-green p { color: #e0e8dc; }
+.gateway-card.card-green .card-icon-badge {
+  background: rgba(255, 255, 255, 0.15);
+  color: #f2ead6;
+}
+
+/* 2. Warm Terracotta / Peach (Create Profile) */
+.gateway-card.card-peach {
+  --card-bg: #f7eae5;
+  --card-border: #ecd8cf;
+  --card-ink: #8a5745;
+}
+.gateway-card.card-peach h3 { color: #3b2219; }
+.gateway-card.card-peach p { color: #72584f; }
+.gateway-card.card-peach .card-icon-badge {
+  background: rgba(255, 255, 255, 0.7);
+  color: #8a5745;
+}
+
+/* 3. Champagne / Gold Sand (Enter as Guest) */
+.gateway-card.card-sand {
+  --card-bg: #f7eee2;
+  --card-border: #eaddcc;
+  --card-ink: #83613a;
+}
+.gateway-card.card-sand h3 { color: #36291b; }
+.gateway-card.card-sand p { color: #6d645b; }
+.gateway-card.card-sand .card-icon-badge {
+  background: rgba(255, 255, 255, 0.7);
+  color: #83613a;
+}
+
+/* 4. Lavender / Periwinkle (Notices) */
+.gateway-card.card-lavender {
+  --card-bg: #efecf5;
+  --card-border: #e0daec;
+  --card-ink: #695581;
+}
+.gateway-card.card-lavender h3 { color: #2d203d; }
+.gateway-card.card-lavender p { color: #5f4d75; }
+.gateway-card.card-lavender .card-icon-badge {
+  background: rgba(255, 255, 255, 0.65);
+  color: #695581;
+}
+
+/* 5. Sand (Standings) */
+.gateway-card.card-sand {
+  --card-bg: #f7eee2;
+  --card-border: #eaddcc;
+  --card-ink: #83613a;
+}
+.gateway-card.card-sand h3 { color: #3d2a13; }
+.gateway-card.card-sand p { color: #6f5332; }
+.gateway-card.card-sand .card-icon-badge {
+  background: rgba(255, 255, 255, 0.65);
+  color: #83613a;
+}
+
+/* 6. Mint / Sage (Gallery) */
+.gateway-card.card-mint {
+  --card-bg: #e7f0ed;
+  --card-border: #d2e2dc;
+  --card-ink: #3e6a5b;
+}
+.gateway-card.card-mint h3 { color: #1c362d; }
+.gateway-card.card-mint p { color: #3d5e53; }
+.gateway-card.card-mint .card-icon-badge {
+  background: rgba(255, 255, 255, 0.65);
+  color: #3e6a5b;
+}
+
+/* 7. Ice Blue (Council) */
+.gateway-card.card-ice {
+  --card-bg: #eaf0f6;
+  --card-border: #d8e2ed;
+  --card-ink: #46617d;
+}
+.gateway-card.card-ice h3 { color: #1b2e40; }
+.gateway-card.card-ice p { color: #41556a; }
+.gateway-card.card-ice .card-icon-badge {
+  background: rgba(255, 255, 255, 0.65);
+  color: #46617d;
+}
+
+/* 8. Light Sage (Event Rules) */
+.gateway-card.card-sage {
+  --card-bg: #eaf0e5;
+  --card-border: #d6e1cf;
+  --card-ink: #42613d;
+}
+.gateway-card.card-sage h3 { color: #1a3318; }
+.gateway-card.card-sage p { color: #435e40; }
+.gateway-card.card-sage .card-icon-badge {
+  background: rgba(255, 255, 255, 0.65);
+  color: #42613d;
+}
+
+/* --------------------------------------------------------------------------
+   FOCUSED AUTH VIEWS (SIGN IN & SIGN UP)
+   -------------------------------------------------------------------------- */
+.focused-auth-view {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.back-to-options-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  font: 600 12.5px/1 "DM Sans", sans-serif;
+  color: #656d67;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-bottom: 14px;
+  transition: color 0.15s ease;
+}
+
+.back-to-options-btn:hover {
+  color: #a9533e;
+}
+
+.auth-form-shell {
+  background: #ffffff;
+  border: 1px solid #dedfd8;
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: 0 6px 20px rgba(36, 43, 41, 0.05);
+}
+
+.auth-form-head {
+  margin-bottom: 22px;
+}
+
+.auth-badge {
+  font: 700 10px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #a9533e;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.auth-form-head h2 {
+  margin: 0 0 4px;
+  font: 600 24px/1.15 "DM Sans", sans-serif;
+  color: #242b29;
+  letter-spacing: -0.03em;
+}
+
+.auth-form-head p {
+  margin: 0;
+  font-size: 13px;
+  color: #656d67;
+  line-height: 1.5;
+}
+
+/* Form Inputs Styling */
+.account-form-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  font-weight: 600;
+  color: #242b29;
+}
+
+.label-hint {
+  font: 400 10.5px/1 "DM Mono", monospace;
+  color: #7b857d;
+}
+
+.forgot-link {
+  font: 500 11.5px/1 "DM Sans", sans-serif;
+  color: #a9533e;
+  text-decoration: underline;
+}
+
+.field-row-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.account-form-inner input,
+.account-form-inner select {
+  width: 100%;
+  min-height: 44px;
+  background: #fcfcf9;
+  border: 1px solid #cbd0c7;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #242b29;
+  font: 14px "DM Sans", sans-serif;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.account-form-inner input:focus,
+.account-form-inner select:focus {
+  outline: none;
+  border-color: #355747;
+  box-shadow: 0 0 0 3px rgba(53, 87, 71, 0.12);
+  background: #ffffff;
+}
+
+.account-form-inner input::placeholder {
+  color: #9aa29b;
+}
+
+.submit-btn {
+  width: 100%;
+  min-height: 46px;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font: 600 13px/1 "DM Sans", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 6px;
+  background: #242b29;
+  color: #ffffff;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #355747;
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-error-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fdf2f0;
+  border: 1px solid #f0cac4;
+  color: #98382b;
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.form-feedback-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.feedback-success {
+  background: #eff6ed;
+  border: 1px solid #cfe2ca;
+  color: #2e6833;
+}
+
+.feedback-error {
+  background: #fdf2f0;
+  border: 1px solid #f0cac4;
+  color: #98382b;
+}
+
+.form-error-inline {
+  color: #98382b;
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+.retry-link-btn {
+  background: transparent;
+  border: none;
+  color: #a9533e;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.auth-form-switch {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #dedfd8;
+  text-align: center;
+}
+
+.auth-form-switch p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #656d67;
+}
+
+.switch-btn {
+  background: transparent;
+  border: none;
+  color: #a9533e;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 4px;
+  text-decoration: underline;
+  font-size: inherit;
+}
+
+.switch-btn:hover {
+  color: #7d3321;
+}
+
+/* --------------------------------------------------------------------------
+   FOOTER
+   -------------------------------------------------------------------------- */
+.account-footer {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 24px;
+  border-top: 1px solid #dedfd8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 500 11px/1.4 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #7b857d;
+}
+
+.footer-links {
+  display: flex;
+  gap: 16px;
+}
+
+.footer-links a {
+  color: #656d67;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: #242b29;
+}
+
+/* --------------------------------------------------------------------------
+   GUEST DIRECTORY & RESTRICTION CALLOUT
+   -------------------------------------------------------------------------- */
+.guest-restriction-banner {
+  background: #fdfaf6;
+  border: 1px solid #eadfd5;
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.restriction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 10px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #a9533e;
+}
+
+.guest-restriction-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: #656d67;
+  line-height: 1.5;
+}
+
+.restriction-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.restriction-btn-signin {
+  font: 600 12.5px/1 "DM Sans", sans-serif;
+  color: #ffffff;
+  background: #a9533e;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.restriction-btn-signin:hover {
+  opacity: 0.9;
+}
+
+.restriction-btn-register {
+  font: 600 12.5px/1 "DM Sans", sans-serif;
+  color: #355747;
+  background: #eef3ec;
+  border: 1px solid #d2ded0;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.restriction-btn-register:hover {
+  background: #e2ede0;
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN (MOBILE & TABLET)
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .gateway-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .gateway-card {
+    min-height: auto;
+    padding: 20px 18px;
+  }
+
+  .account-hero {
+    padding: 24px 20px 16px;
+  }
+
+  .account-content {
+    padding: 8px 20px calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .field-row-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-footer {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+}
+.login-mode { display: flex; gap: 8px; margin-bottom: 20px; }
+.login-mode button { flex: 1; min-height: 44px; padding: 8px; border: 1px solid #dedfd8; border-radius: 8px; color: #526258; background: transparent; font: inherit; font-size: 12px; cursor: pointer; }
+.login-mode button[aria-pressed="true"] { background: #edf1e9; border-color: #66816d; color: #254c38; }
+.login-mode button:focus-visible { outline: 2px solid #355747; outline-offset: 2px; }
