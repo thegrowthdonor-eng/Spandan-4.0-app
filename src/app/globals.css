@@ -271,27 +271,32 @@ img, video { max-width: 100%; height: auto; }
 .ios-icon { font-size:14px;color:#bc6256;font-weight:700; }
 @media (max-width: 420px) { .pwa-install-banner { bottom:max(12px, env(safe-area-inset-bottom));width:calc(100% - 24px);padding:14px; } }
 
-/* Installed-app opening experience. The browser's own first splash is platform-controlled;
-   this takes over as soon as the PWA document is ready. */
+/* Installed-app opening experience. The browser's first frame uses manifest.ts;
+   this continues the official crest teal once the PWA document is ready. */
 .app-splash { display:none; }
 @media (display-mode: standalone) {
-  .app-splash { position:fixed; inset:0; z-index:10000; display:grid; place-items:center; overflow:hidden; background:#20151d; color:#f6f0e5; opacity:1; visibility:visible; transition:opacity .34s ease, visibility .34s ease; }
+  .app-splash { position:fixed; inset:0; z-index:10000; display:grid; place-items:center; overflow:hidden; background:#003438; background-image:radial-gradient(circle at 50% 42%,rgba(14,91,91,.7),transparent 36%),radial-gradient(circle at 8% 92%,rgba(209,125,85,.2),transparent 32%),linear-gradient(135deg,rgba(0,67,71,.8),rgba(0,35,39,.4)); color:#fffaf2; opacity:1; visibility:visible; transition:opacity .34s ease, visibility .34s ease; }
   .app-splash-dismissed { opacity:0; visibility:hidden; pointer-events:none; }
-  .app-splash::before { content:""; position:absolute; inset:18px; border:1px solid rgba(246,240,229,.16); border-radius:22px; }
-  .app-splash-content { position:relative; z-index:1; display:grid; justify-items:center; text-align:center; animation:splash-enter .8s cubic-bezier(.16,1,.3,1) both; }
-  .app-splash-mark { display:grid; place-items:center; width:clamp(170px,48vw,252px); aspect-ratio:1; border-radius:50%; background:rgba(255,255,255,.035); box-shadow:0 0 0 1px rgba(246,240,229,.18), 0 22px 70px rgba(0,0,0,.28); overflow:hidden; }
-  .app-splash-mark img { width:100%; height:100%; object-fit:contain; }
-  .app-splash-content p { margin:27px 0 9px; color:#d8c39b; font:10px/1 "DM Mono",monospace; letter-spacing:.2em; }
-  .app-splash-content strong { font:500 clamp(35px,10vw,54px)/.92 "Playfair Display",Georgia,serif; letter-spacing:-.06em; }
-  .app-splash-content strong span { color:#e88a76; font:500 .38em/1 "DM Mono",monospace; vertical-align:top; letter-spacing:-.04em; }
-  .app-splash-content small { margin-top:17px; color:rgba(246,240,229,.68); font:9px/1 "DM Mono",monospace; letter-spacing:.16em; }
-  .app-splash-glow { position:absolute; width:64vmax; height:64vmax; border-radius:50%; filter:blur(8px); opacity:.46; animation:splash-drift 6s ease-in-out infinite alternate; }
-  .app-splash-glow-one { top:-34vmax; left:-26vmax; background:radial-gradient(circle,rgba(169,83,62,.52),transparent 62%); }
-  .app-splash-glow-two { right:-33vmax; bottom:-42vmax; background:radial-gradient(circle,rgba(180,154,104,.34),transparent 62%); animation-delay:-2.5s; }
-  @keyframes splash-enter { from { opacity:0; transform:translateY(14px) scale(.95); } to { opacity:1; transform:translateY(0) scale(1); } }
-  @keyframes splash-drift { from { transform:translate3d(-2%,1%,0) scale(.94); } to { transform:translate3d(3%,-3%,0) scale(1.08); } }
+  .app-splash::before { content:""; position:absolute; inset:16px; border:1px solid rgba(255,250,242,.17); border-radius:28px; }
+  .app-splash::after { content:""; position:absolute; inset:0; opacity:.23; background-image:linear-gradient(rgba(255,250,242,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(255,250,242,.09) 1px,transparent 1px); background-size:38px 38px; mask-image:linear-gradient(to bottom,transparent,black 22%,black 78%,transparent); }
+  .app-splash-content { position:relative; z-index:1; display:grid; justify-items:center; text-align:center; animation:splash-enter .9s cubic-bezier(.16,1,.3,1) both; }
+  .app-splash-logo-stage { position:relative; display:grid; place-items:center; width:clamp(174px,48vw,248px); aspect-ratio:1; animation:splash-logo-reveal .95s cubic-bezier(.16,1,.3,1) both; }
+  .app-splash-logo-stage img { position:relative; z-index:2; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 18px 26px rgba(0,0,0,.28)); }
+  .app-splash-orbit { position:absolute; border:1px solid rgba(234,139,100,.58); border-radius:50%; }
+  .app-splash-orbit-one { inset:-10%; border-top-color:transparent; border-left-color:rgba(255,250,242,.64); animation:splash-orbit 3.8s linear infinite; }
+  .app-splash-orbit-two { inset:-20%; border-right-color:transparent; border-bottom-color:rgba(255,250,242,.34); animation:splash-orbit 5.8s linear infinite reverse; }
+  .app-splash-content p { margin:28px 0 10px; color:#f0b28c; font:10px/1 "DM Mono",monospace; letter-spacing:.2em; }
+  .app-splash-content strong { font:600 clamp(35px,10vw,54px)/.92 "Playfair Display",Georgia,serif; letter-spacing:-.055em; }
+  .app-splash-content strong span { color:#f0b28c; font:600 .38em/1 "DM Mono",monospace; vertical-align:top; letter-spacing:-.04em; }
+  .app-splash-content small { margin-top:17px; color:rgba(255,250,242,.72); font:9px/1.4 "DM Mono",monospace; letter-spacing:.12em; }
+  .app-splash-loader { display:block; width:84px; height:2px; margin-top:25px; overflow:hidden; border-radius:999px; background:rgba(255,250,242,.19); }
+  .app-splash-loader i { display:block; width:42%; height:100%; border-radius:inherit; background:#f0b28c; animation:splash-loader 1.2s cubic-bezier(.65,0,.35,1) both; }
+  @keyframes splash-enter { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes splash-logo-reveal { from { opacity:0; transform:scale(.78) rotate(-7deg); } to { opacity:1; transform:scale(1) rotate(0); } }
+  @keyframes splash-orbit { to { transform:rotate(360deg); } }
+  @keyframes splash-loader { from { transform:translateX(-110%); } to { transform:translateX(240%); } }
 }
-@media (prefers-reduced-motion:reduce) { .app-splash-content,.app-splash-glow { animation:none !important; } }
+@media (prefers-reduced-motion:reduce) { .app-splash-content,.app-splash-logo-stage,.app-splash-orbit,.app-splash-loader i { animation:none !important; } }
 
 /* Ground Radar Component (Minimal & Mobile-Friendly) */
 .radar-strip {

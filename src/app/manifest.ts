@@ -10,8 +10,10 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#261923",
-    theme_color: "#261923",
+    // Android uses this while the installed app is starting, before React loads.
+    // This is sampled from the official SPANDAN crest so launch never flashes purple.
+    background_color: "#003438",
+    theme_color: "#003438",
     categories: ["education", "entertainment"],
     icons: [
       { src: "/spandan-logo.png", sizes: "192x192", type: "image/png", purpose: "any" },

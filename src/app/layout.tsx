@@ -19,8 +19,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/spandan-logo.png" },
-      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/spandan-logo.png", type: "image/png" },
     ],
     apple: [
       { url: "/spandan-logo.png" },
