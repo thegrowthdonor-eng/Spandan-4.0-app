@@ -86,20 +86,24 @@ async function getActiveEditionId(): Promise<string> {
 }
 
 async function getAuthStatus() {
-  if (!hasSupabaseConfiguration()) return { loggedIn: false, name: "" };
+  if (!hasSupabaseConfiguration()) return { loggedIn: false, name: "", isOrganiser: false };
   try {
     const client = await createRequestClient();
     const { data: auth } = await client.auth.getUser();
-    if (!auth.user) return { loggedIn: false, name: "" };
-    const { data: profile } = await client
-      .from("profiles")
-      .select("full_name")
-      .eq("id", auth.user.id)
-      .maybeSingle();
+    if (!auth.user) return { loggedIn: false, name: "", isOrganiser: false };
+    const [profileResult, activationResult, noticeResult, eventsResult, adminResult] = await Promise.all([
+      client.from("profiles").select("full_name").eq("id", auth.user.id).maybeSingle(),
+      client.rpc("can_manage_access"),
+      client.rpc("can_publish_notices"),
+      client.rpc("list_managed_events"),
+      client.rpc("is_main_admin"),
+    ]);
+    const profile = profileResult.data;
     const firstName = profile?.full_name?.trim().split(/\s+/)[0] || "Student";
-    return { loggedIn: true, name: firstName };
+    const isOrganiser = activationResult.data === true || noticeResult.data === true || adminResult.data === true || (eventsResult.data?.length ?? 0) > 0;
+    return { loggedIn: true, name: firstName, isOrganiser };
   } catch {
-    return { loggedIn: false, name: "" };
+    return { loggedIn: false, name: "", isOrganiser: false };
   }
 }
 
@@ -139,6 +143,7 @@ export default async function HomePage() {
           <Link href="/events">Events</Link>
           <Link href="/schedule">Schedule</Link>
           <Link href="/notices">Notices</Link>
+          {authStatus.isOrganiser && <Link href="/admin" className={styles.headerCta}>Organiser portal →</Link>}
           <Link href="/my-fest" className={styles.headerCta}>
             My Fest ({authStatus.name}) →
           </Link>
@@ -252,7 +257,7 @@ export default async function HomePage() {
             <Link href="/guest">Guest Directory</Link>
             <Link href="/sponsors">Sponsors &amp; Partners</Link>
             <Link href="/faqs">Help &amp; FAQs</Link>
-            <Link href="/admin">Organiser portal <span aria-hidden>↗</span></Link>
+            {authStatus.isOrganiser && <Link href="/admin">Organiser portal <span aria-hidden>↗</span></Link>}
           </div>
         </footer>
       </div>
