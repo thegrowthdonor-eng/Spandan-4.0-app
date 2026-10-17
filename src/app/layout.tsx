@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AppSplash } from "@/components/app-splash";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PwaRegistration } from "@/components/pwa-registration";
 import { BottomNav } from "@/components/bottom-nav";
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en-IN">
       <body>
+        <AppSplash />
         <PwaRegistration />
         <PwaInstallPrompt />
         {children}
