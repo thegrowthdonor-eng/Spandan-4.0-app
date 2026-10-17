@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -22,20 +23,11 @@ export function PwaInstallPrompt() {
 
     if (isStandalone) return;
 
-    const dismissedTime = localStorage.getItem("spandan_pwa_dismissed");
-    if (dismissedTime) {
-      const hoursSinceDismissal = (Date.now() - Number(dismissedTime)) / 3_600_000;
-      if (hoursSinceDismissal < 72) return;
-    }
-
     const ua = window.navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(ua);
     const isAndroid = /android/.test(ua);
-    const isMobile = isIOS || isAndroid || window.matchMedia("(pointer: coarse)").matches;
-
-    if (!isMobile) return;
-
     setPlatform(isIOS ? "ios" : isAndroid ? "android" : "other");
+    setShowPrompt(true);
 
     const handleBeforeInstall = (event: Event) => {
       event.preventDefault();
@@ -53,19 +45,13 @@ export function PwaInstallPrompt() {
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     window.addEventListener("appinstalled", handleInstalled);
 
-    // iOS does not dispatch beforeinstallprompt. Some Android browsers only
-    // dispatch it after their own eligibility checks, so always offer guidance.
-    const promptTimer = window.setTimeout(() => setShowPrompt(true), 1500);
-
     return () => {
-      window.clearTimeout(promptTimer);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       window.removeEventListener("appinstalled", handleInstalled);
     };
   }, []);
 
   function handleDismiss() {
-    localStorage.setItem("spandan_pwa_dismissed", String(Date.now()));
     setShowPrompt(false);
     setShowGuide(false);
   }
@@ -82,7 +68,7 @@ export function PwaInstallPrompt() {
     setDeferredPrompt(null);
 
     if (choice.outcome === "dismissed") {
-      localStorage.setItem("spandan_pwa_dismissed", String(Date.now()));
+      setShowGuide(true);
     }
   }
 
@@ -92,17 +78,17 @@ export function PwaInstallPrompt() {
     <aside className="pwa-install-banner" aria-label="Install festival app">
       <div className="pwa-banner-content">
         <div className="pwa-icon-box" aria-hidden>
-          <span>S</span>
+          <Image src="/spandan-logo.png" alt="" width={40} height={40} />
         </div>
         <div className="pwa-text-box">
           <strong className="pwa-title">Install Spandan 4.0</strong>
-          <p className="pwa-sub">Save the festival app to your home screen for quicker access.</p>
+          <p className="pwa-sub">Save the official festival app to this device.</p>
         </div>
       </div>
 
       <div className="pwa-actions-box">
         <button type="button" className="pwa-install-btn" onClick={handleInstallClick}>
-          {deferredPrompt ? "Install app" : "Add to home screen"}
+          {deferredPrompt ? "Install app" : platform === "ios" ? "How to install" : "Install options"}
         </button>
         <button type="button" className="pwa-dismiss-btn" onClick={handleDismiss} aria-label="Dismiss install prompt">
           ×
