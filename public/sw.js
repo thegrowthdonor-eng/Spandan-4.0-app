@@ -1,4 +1,4 @@
-const CACHE_NAME = "spandan-public-shell-v5";
+const CACHE_NAME = "spandan-public-shell-v6";
 const PUBLIC_SHELL = [
   "/",
   "/offline",
@@ -11,7 +11,9 @@ const PUBLIC_SHELL = [
   "/gallery",
   "/merchandise",
   "/committee",
-  "/icon.svg"
+  "/manifest.webmanifest",
+  "/icon.svg",
+  "/spandan-logo.png"
 ];
 // Never persist routes that can render student identity, account status or setup controls.
 const PRIVATE_PREFIXES = ["/account", "/admin", "/api", "/my-fest", "/home", "/live", "/setup"];
