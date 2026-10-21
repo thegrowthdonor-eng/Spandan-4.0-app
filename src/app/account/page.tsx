@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasSupabaseConfiguration } from "@/server/env";
-import { createRequestClient } from "@/server/supabase/server";
+import { getActiveSession } from "@/server/auth/access";
 import { SpandanLogo } from "@/components/spandan-branding";
 import { AuthPortalClient } from "./auth-portal-client";
 import "./account.css";
@@ -19,17 +19,15 @@ export default async function AccountPage({
   searchParams: Promise<{ next?: string; mode?: string }>;
 }) {
   // If user is already authenticated, redirect to their student dashboard
+  let hasActiveSession = false;
   if (hasSupabaseConfiguration()) {
     try {
-      const client = await createRequestClient();
-      const { data: auth } = await client.auth.getUser();
-      if (auth.user) {
-        redirect("/home");
-      }
+      hasActiveSession = Boolean(await getActiveSession());
     } catch {
-      // Unauthenticated, continue to render sign-in form
+      // Session lookup failed; keep the sign-in form usable.
     }
   }
+  if (hasActiveSession) redirect("/home");
 
   const configured = hasSupabaseConfiguration();
   const { next, mode } = await searchParams;

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   } catch { return NextResponse.json({ error: "Sign-in is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } }); }
 
   const cookieStore = await cookies();
-  const response = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  let response: NextResponse = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   const client = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
     cookieOptions: { secure: process.env.NODE_ENV === "production", sameSite: "lax", httpOnly: true, path: "/" },
     cookies: {
@@ -44,10 +44,27 @@ export async function POST(request: Request) {
       setAll: (entries) => entries.forEach(({ name, value, options }) => response.cookies.set(name, value, options)),
     },
   });
-  const { error } = await client.auth.signInWithPassword({
+  const { data: signInData, error } = await client.auth.signInWithPassword({
     email,
     password: parsed.data.password,
   });
   if (error) return NextResponse.json(genericFailure, { status: 401, headers: { "Cache-Control": "no-store" } });
+
+  const { data: access, error: accessError } = await client
+    .from("access_records")
+    .select("state")
+    .eq("profile_id", signInData.user.id)
+    .eq("state", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (accessError || !access) {
+    response = NextResponse.json(
+      { error: "Your profile is awaiting Treasurer verification. Sign-in will unlock after activation." },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+    await client.auth.signOut({ scope: "local" });
+    return response;
+  }
   return response;
 }

@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     p_phone_e164: phone,
     p_fest_id: festId,
     p_auth_email: authEmail,
+    p_gender: parsed.data.gender,
   });
   if (profileError) {
     await admin.auth.admin.deleteUser(auth.user.id);

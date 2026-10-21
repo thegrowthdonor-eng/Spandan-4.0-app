@@ -833,3 +833,49 @@ img, video { max-width: 100%; height: auto; }
   white-space: nowrap;
 }
 
+/* Password Input with Show/Hide Toggle */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 44px !important;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #727f75;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  z-index: 2;
+  user-select: none;
+}
+
+.password-toggle-btn:hover:not(:disabled) {
+  color: #191018;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid #355747;
+  outline-offset: 1px;
+}
+
+.password-toggle-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

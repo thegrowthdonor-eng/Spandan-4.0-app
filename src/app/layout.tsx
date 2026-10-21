@@ -5,7 +5,7 @@ import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PwaRegistration } from "@/components/pwa-registration";
 import { BottomNav } from "@/components/bottom-nav";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
-import { createRequestClient } from "@/server/supabase/server";
+import { getActiveSession } from "@/server/auth/access";
 import "./globals.css";
 import "./app-ui.css";
 
@@ -39,9 +39,7 @@ async function hasAuthenticatedSession() {
   if (!hasPublicSupabaseConfiguration()) return false;
 
   try {
-    const client = await createRequestClient();
-    const { data } = await client.auth.getUser();
-    return Boolean(data.user);
+    return Boolean(await getActiveSession());
   } catch {
     return false;
   }

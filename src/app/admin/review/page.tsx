@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
 import { ReviewClient, ApplicationRow } from "./review-client";
+import { AdminEventPicker } from "@/components/admin/event-picker";
 import "./review.css";
 
 export const dynamic = "force-dynamic";
@@ -81,17 +82,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
         </p>
       </section>
 
-      <nav className="event-picker" aria-label="Managed events">
-        {events.map((event) => (
-          <Link
-            aria-current={event.id === selected.id ? "page" : undefined}
-            key={event.id}
-            href={`/admin/review?event=${event.id}`}
-          >
-            {event.title}
-          </Link>
-        ))}
-      </nav>
+      <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/review" />
 
       {error ? (
         <p className="review-empty">Applications are temporarily unavailable.</p>

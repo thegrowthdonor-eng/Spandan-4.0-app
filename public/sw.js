@@ -1,6 +1,5 @@
-const CACHE_NAME = "spandan-public-shell-v6";
+const CACHE_NAME = "spandan-public-shell-v7";
 const PUBLIC_SHELL = [
-  "/",
   "/offline",
   "/events",
   "/schedule",
@@ -41,6 +40,7 @@ self.addEventListener("fetch", (event) => {
   if (
     request.method !== "GET" ||
     url.origin !== self.location.origin ||
+    url.pathname === "/" ||
     PRIVATE_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))
   ) {
     return;

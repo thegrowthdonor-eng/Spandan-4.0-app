@@ -602,6 +602,9 @@
   max-height: 520px;
   overflow-y: auto;
 }
+.legacyEventGrid { display:none; }
+.eventFilters { display:grid; grid-template-columns:minmax(0,1fr) minmax(120px,.55fr); gap:8px; margin-bottom:10px; }
+.eventFilters input,.eventFilters select { width:100%; min-height:39px; border:1px solid #ded6cd; border-radius:7px; background:#fff; padding:0 10px; color:#2a2028; font:12px "DM Sans",sans-serif; }
 .eventCard {
   display: flex;
   flex-direction: column;

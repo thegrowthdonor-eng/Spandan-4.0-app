@@ -16,7 +16,7 @@ export type ActivationRecord = {
   fest_id: string;
 };
 
-export function ActivationClient({ queue }: { queue: ActivationRecord[] }) {
+export function ActivationClient({ queue, canRemoveProfiles }: { queue: ActivationRecord[]; canRemoveProfiles: boolean }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState<string>("pending");
@@ -81,6 +81,28 @@ export function ActivationClient({ queue }: { queue: ActivationRecord[] }) {
       }
     } catch {
       setStatusMessage({ id: record.profile_id, text: "Network error updating activation.", isError: true });
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  async function removeProfile(record: ActivationRecord) {
+    if (!window.confirm(`Permanently remove ${record.full_name}'s profile and login? This is only allowed when no event records depend on it.`)) return;
+    setPendingId(record.profile_id);
+    setStatusMessage(null);
+    try {
+      const response = await fetch("/api/admin/activation", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId: record.profile_id }),
+        cache: "no-store",
+      });
+      const result = await response.json() as { ok?: boolean; error?: string };
+      if (!response.ok) return setStatusMessage({ id: record.profile_id, text: result.error ?? "Unable to remove this profile.", isError: true });
+      setStatusMessage({ text: `${record.full_name}'s profile was removed.` });
+      router.refresh();
+    } catch {
+      setStatusMessage({ id: record.profile_id, text: "Unable to remove this profile.", isError: true });
     } finally {
       setPendingId(null);
     }
@@ -302,6 +324,11 @@ export function ActivationClient({ queue }: { queue: ActivationRecord[] }) {
                           onClick={() => handleUpdateAccess(row, "suspended")}
                         >
                           Suspend
+                        </button>
+                      )}
+                      {canRemoveProfiles && (
+                        <button type="button" className="btn-remove-profile" disabled={isPending} onClick={() => void removeProfile(row)}>
+                          Remove profile
                         </button>
                       )}
                     </div>

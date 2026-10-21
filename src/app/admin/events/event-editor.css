@@ -63,9 +63,20 @@
 .new-question-form legend { font: 600 11px/1 "DM Sans", sans-serif; text-transform: uppercase; letter-spacing: .06em; padding: 0 6px; color: #705c5a; }
 
 /* Lifecycle tab */
-.lifecycle-state p { margin: 4px 0; font-size: 14px; }
-.lifecycle-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.lifecycle-btn { min-height: 52px; padding: 0 24px !important; }
+
+/* Retained in the transport shape for backwards compatibility, but removed
+   from the simplified admin workflow. */
+
+.editor-management-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:28px; }
+.editor-management-card { display:grid; gap:12px; }
+.editor-management-card h2 { margin:0; font:700 22px/1.15 "Playfair Display",serif; }
+.editor-management-card label { display:grid; gap:7px; font:600 11px/1.2 "DM Sans",sans-serif; text-transform:uppercase; letter-spacing:.06em; color:#4f3d3b; }
+.editor-management-card input,.editor-management-card select { min-height:44px; border:1px solid #d5c8bf; border-radius:7px; background:#fffdf9; padding:9px 12px; color:#191018; font:14px "DM Sans",sans-serif; text-transform:none; letter-spacing:0; }
+.editor-event-filters { display:grid; grid-template-columns:minmax(180px,1fr) 150px minmax(220px,1.2fr); gap:10px; align-items:end; }
+.editor-event-filters label { display:grid; gap:6px; font:600 10px/1.2 "DM Sans",sans-serif; text-transform:uppercase; letter-spacing:.06em; color:#705c5a; }
+.editor-event-filters input,.editor-event-filters select { min-height:44px; border:1px solid #c9bdb4; border-radius:7px; background:#fff; padding:0 11px; font:13px "DM Sans",sans-serif; text-transform:none; letter-spacing:0; }
+
+@media(max-width:800px){.editor-management-grid{grid-template-columns:1fr}.editor-event-filters{grid-template-columns:1fr}.editor-event-select{width:100%}}
 
 .readiness-check { padding: 22px; background: #fffdf9; border: 1px solid #d5c8c0; }
 .readiness-check p { margin: 0 0 12px; }

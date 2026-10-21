@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImageUploadWidget } from "@/components/admin/image-upload-widget";
 
@@ -24,18 +24,21 @@ type EventData = {
   venue: string | null;
   application_capacity: number | null;
   waitlist_enabled: boolean;
-  application_opens_at: string | null;
-  application_closes_at: string | null;
-  roster_lock_at: string | null;
-  reporting_at: string | null;
   starts_at: string | null;
-  ends_at: string | null;
   eligibility: Record<string, unknown>;
   application_questions: ApplicationQuestion[];
   group_min_size: number | null;
   group_max_size: number | null;
   batch_restricted: boolean;
   poster_url: string | null;
+};
+
+type EditionData = {
+  edition_id: string;
+  name: string;
+  status: string;
+  registration_opens_at: string | null;
+  registration_closes_at: string | null;
 };
 
 function toDatetimeLocal(iso: string | null): string {
@@ -61,16 +64,6 @@ function fromDatetimeLocal(value: string): string | null {
   return new Date(localMs).toISOString();
 }
 
-const LIFECYCLE_ACTIONS: Record<string, { label: string; next: string }[]> = {
-  draft: [{ label: "Publish", next: "published" }],
-  published: [{ label: "Open registrations", next: "open" }, { label: "Cancel", next: "cancelled" }],
-  open: [{ label: "Close registrations", next: "closed" }, { label: "Cancel", next: "cancelled" }],
-  closed: [{ label: "Open registrations again", next: "open" }, { label: "Cancel", next: "cancelled" }],
-  ongoing: [{ label: "Mark completed", next: "completed" }, { label: "Cancel", next: "cancelled" }],
-  completed: [],
-  cancelled: [],
-};
-
 function stateColor(state: string): string {
   switch (state) {
     case "draft": return "#705c5a";
@@ -84,12 +77,19 @@ function stateColor(state: string): string {
   }
 }
 
-export function EventEditor({ events }: { events: EventData[] }) {
+export function EventEditor({ events, editions }: { events: EventData[]; editions: EditionData[] }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(events[0]?.event_id ?? "");
+  const [eventSearch, setEventSearch] = useState("");
+  const [eventStateFilter, setEventStateFilter] = useState("all");
   const [message, setMessage] = useState<{ text: string; isError: boolean } | null>(null);
   const [pending, setPending] = useState(false);
-  const [activeTab, setActiveTab] = useState<"content" | "timing" | "questions" | "lifecycle">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "timing" | "questions">("content");
+  const [editionId, setEditionId] = useState(editions[0]?.edition_id ?? "");
+  const selectedEdition = editions.find((edition) => edition.edition_id === editionId) ?? editions[0];
+  const [globalOpensAt, setGlobalOpensAt] = useState(toDatetimeLocal(selectedEdition?.registration_opens_at ?? null));
+  const [globalClosesAt, setGlobalClosesAt] = useState(toDatetimeLocal(selectedEdition?.registration_closes_at ?? null));
+  const [newEvent, setNewEvent] = useState({ title: "", category: "sport", format: "sport", scoreTemplate: "generic", division: "open" });
 
   // Get the live event record (always reflect current selection)
   const current = events.find((e) => e.event_id === selectedId);
@@ -101,18 +101,21 @@ export function EventEditor({ events }: { events: EventData[] }) {
   const [venue, setVenue] = useState(current?.venue ?? "");
   const [capacity, setCapacity] = useState(current?.application_capacity?.toString() ?? "");
   const [waitlistEnabled, setWaitlistEnabled] = useState(current?.waitlist_enabled ?? false);
-  const [applicationOpensAt, setApplicationOpensAt] = useState(toDatetimeLocal(current?.application_opens_at ?? null));
-  const [applicationClosesAt, setApplicationClosesAt] = useState(toDatetimeLocal(current?.application_closes_at ?? null));
-  const [rosterLockAt, setRosterLockAt] = useState(toDatetimeLocal(current?.roster_lock_at ?? null));
-  const [reportingAt, setReportingAt] = useState(toDatetimeLocal(current?.reporting_at ?? null));
   const [startsAt, setStartsAt] = useState(toDatetimeLocal(current?.starts_at ?? null));
-  const [endsAt, setEndsAt] = useState(toDatetimeLocal(current?.ends_at ?? null));
   const [groupMinSize, setGroupMinSize] = useState(current?.group_min_size?.toString() ?? "");
   const [groupMaxSize, setGroupMaxSize] = useState(current?.group_max_size?.toString() ?? "");
   const [batchRestricted, setBatchRestricted] = useState(current?.batch_restricted ?? false);
   const [posterUrl, setPosterUrl] = useState(current?.poster_url ?? "");
   const [questions, setQuestions] = useState<ApplicationQuestion[]>(current?.application_questions ?? []);
-  const [newQuestion, setNewQuestion] = useState({ key: "", label: "", type: "text" as "text" | "select", required: false, options: "" });
+  const [division, setDivision] = useState(String(current?.eligibility?.division ?? "open"));
+  const [newQuestion, setNewQuestion] = useState({ label: "", required: false });
+  const filteredEvents = useMemo(() => {
+    const query = eventSearch.trim().toLowerCase();
+    return events.filter((event) => {
+      if (eventStateFilter !== "all" && event.state !== eventStateFilter) return false;
+      return !query || `${event.title} ${event.category} ${event.format} ${event.state}`.toLowerCase().includes(query);
+    });
+  }, [eventSearch, eventStateFilter, events]);
 
   function selectEvent(id: string) {
     const e = events.find((ev) => ev.event_id === id);
@@ -124,17 +127,13 @@ export function EventEditor({ events }: { events: EventData[] }) {
     setVenue(e.venue ?? "");
     setCapacity(e.application_capacity?.toString() ?? "");
     setWaitlistEnabled(e.waitlist_enabled);
-    setApplicationOpensAt(toDatetimeLocal(e.application_opens_at));
-    setApplicationClosesAt(toDatetimeLocal(e.application_closes_at));
-    setRosterLockAt(toDatetimeLocal(e.roster_lock_at));
-    setReportingAt(toDatetimeLocal(e.reporting_at));
     setStartsAt(toDatetimeLocal(e.starts_at));
-    setEndsAt(toDatetimeLocal(e.ends_at));
     setGroupMinSize(e.group_min_size?.toString() ?? "");
     setGroupMaxSize(e.group_max_size?.toString() ?? "");
     setBatchRestricted(e.batch_restricted);
     setPosterUrl(e.poster_url ?? "");
     setQuestions(e.application_questions ?? []);
+    setDivision(String(e.eligibility?.division ?? "open"));
     setMessage(null);
   }
 
@@ -176,13 +175,8 @@ export function EventEditor({ events }: { events: EventData[] }) {
       venue: venue.trim(),
       capacity: capacity ? Number(capacity) : null,
       waitlistEnabled,
-      applicationOpensAt: fromDatetimeLocal(applicationOpensAt),
-      applicationClosesAt: fromDatetimeLocal(applicationClosesAt),
-      rosterLockAt: fromDatetimeLocal(rosterLockAt),
-      reportingAt: fromDatetimeLocal(reportingAt),
       startsAt: fromDatetimeLocal(startsAt),
-      endsAt: fromDatetimeLocal(endsAt),
-      eligibility: current.eligibility ?? {},
+      eligibility: { ...(current.eligibility ?? {}), division },
       applicationQuestions: questions,
       groupMinSize: groupMinSize ? Number(groupMinSize) : null,
       groupMaxSize: groupMaxSize ? Number(groupMaxSize) : null,
@@ -191,43 +185,104 @@ export function EventEditor({ events }: { events: EventData[] }) {
     });
   }
 
-  async function setLifecycleState(state: string) {
-    await post({ action: "setEventState", eventId: selectedId, state });
-  }
-
   function addQuestion() {
-    const key = newQuestion.key.trim().toLowerCase().replace(/\s+/g, "_");
-    if (!key || !newQuestion.label.trim()) return;
-    if (questions.some((q) => q.key === key)) {
-      setMessage({ text: "A question with this key already exists.", isError: true });
-      return;
-    }
+    if (!newQuestion.label.trim()) return;
+    const key = `question_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`;
     setQuestions([...questions, {
       key,
       label: newQuestion.label.trim(),
-      type: newQuestion.type,
+      type: "text",
       required: newQuestion.required,
-      options: newQuestion.type === "select" ? newQuestion.options.split("\n").map((o) => o.trim()).filter(Boolean) : undefined,
     }]);
-    setNewQuestion({ key: "", label: "", type: "text", required: false, options: "" });
+    setNewQuestion({ label: "", required: false });
   }
 
   function removeQuestion(key: string) {
     setQuestions(questions.filter((q) => q.key !== key));
   }
 
-  if (!events.length) {
-    return (
-      <section className="control-panel editor-empty">
-        <p className="eyebrow">Event editor</p>
-        <h1>No events yet.</h1>
-        <p className="control-copy">Create a draft event in Festival Setup before editing it here.</p>
-      </section>
-    );
+  function selectEdition(id: string) {
+    setEditionId(id);
+    const edition = editions.find((item) => item.edition_id === id);
+    setGlobalOpensAt(toDatetimeLocal(edition?.registration_opens_at ?? null));
+    setGlobalClosesAt(toDatetimeLocal(edition?.registration_closes_at ?? null));
+  }
+
+  async function saveRegistrationWindow() {
+    const opensAt = fromDatetimeLocal(globalOpensAt);
+    const closesAt = fromDatetimeLocal(globalClosesAt);
+    if (!opensAt || !closesAt) {
+      setMessage({ text: "Choose both registration dates.", isError: true });
+      return;
+    }
+    await post({ action: "setRegistrationWindow", editionId, applicationOpensAt: opensAt, applicationClosesAt: closesAt });
+  }
+
+  async function createEvent() {
+    const created = await post({
+      action: "createEvent",
+      editionId,
+      title: newEvent.title,
+      category: newEvent.category,
+      format: newEvent.format,
+      scoreTemplate: newEvent.scoreTemplate,
+      division: newEvent.division,
+      summary: "",
+      venue: "",
+      capacity: null,
+      startsAt: null,
+      posterUrl: null,
+    });
+    if (created) setNewEvent({ title: "", category: "sport", format: "sport", scoreTemplate: "generic", division: "open" });
   }
 
   return (
     <section className="event-editor">
+      <div className="editor-management-grid">
+        <section className="control-panel editor-management-card">
+          <p className="eyebrow">One registration window</p>
+          <h2>Festival registrations</h2>
+          <p className="control-copy">These dates apply to every event. Registrations are currently open for testing.</p>
+          <label>Festival edition
+            <select value={editionId} onChange={(event) => selectEdition(event.target.value)} disabled={pending}>
+              {editions.map((edition) => <option key={edition.edition_id} value={edition.edition_id}>{edition.name}</option>)}
+            </select>
+          </label>
+          <div className="field-pair">
+            <label>Opens<input type="datetime-local" value={globalOpensAt} onChange={(event) => setGlobalOpensAt(event.target.value)} /></label>
+            <label>Closes<input type="datetime-local" value={globalClosesAt} onChange={(event) => setGlobalClosesAt(event.target.value)} /></label>
+          </div>
+          <button type="button" className="primary-control" disabled={pending || !editionId} onClick={() => void saveRegistrationWindow()}>
+            {pending ? "Saving…" : "Save for every event"}
+          </button>
+        </section>
+
+        <section className="control-panel editor-management-card">
+          <p className="eyebrow">Event catalogue</p>
+          <h2>Create event</h2>
+          <p className="control-copy">Create it here, then complete its content and timing below.</p>
+          <label>Event title<input value={newEvent.title} onChange={(event) => setNewEvent({ ...newEvent, title: event.target.value })} maxLength={160} placeholder="e.g. Inter-batch Cricket" /></label>
+          <div className="field-pair">
+            <label>Category<select value={newEvent.category} onChange={(event) => setNewEvent({ ...newEvent, category: event.target.value })}><option value="sport">Sport</option><option value="cultural">Cultural</option><option value="literary">Literary</option><option value="creative">Creative</option><option value="other">Other</option></select></label>
+            <label>Format<select value={newEvent.format} onChange={(event) => setNewEvent({ ...newEvent, format: event.target.value })}><option value="sport">Sport</option><option value="solo">Solo</option><option value="pair">Pair</option><option value="group">Group</option></select></label>
+          </div>
+          <div className="field-pair">
+            <label>Division<select value={newEvent.division} onChange={(event) => setNewEvent({ ...newEvent, division: event.target.value })}><option value="open">Open / mixed</option><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
+            <label>Score template<select value={newEvent.scoreTemplate} onChange={(event) => setNewEvent({ ...newEvent, scoreTemplate: event.target.value })}><option value="generic">Generic</option><option value="cricket">Cricket</option><option value="football">Football</option><option value="badminton">Badminton</option></select></label>
+          </div>
+          <button type="button" className="primary-control" disabled={pending || !newEvent.title.trim() || !editionId} onClick={() => void createEvent()}>
+            {pending ? "Creating…" : "Create event"}
+          </button>
+        </section>
+      </div>
+
+      {!events.length ? (
+        <section className="control-panel editor-empty">
+          <p className="eyebrow">Event editor</p>
+          <h1>No events yet.</h1>
+          <p className="control-copy">Create the first event above.</p>
+        </section>
+      ) : <>
       <div className="editor-header">
         <div>
           <p className="eyebrow">Event editor</p>
@@ -238,33 +293,46 @@ export function EventEditor({ events }: { events: EventData[] }) {
             </span>
           )}
         </div>
+        <div className="editor-event-filters">
+          <label>
+            <span>Search events</span>
+            <input type="search" value={eventSearch} onChange={(event) => setEventSearch(event.target.value)} placeholder="Search title or category" />
+          </label>
+          <label>
+            <span>Status</span>
+            <select value={eventStateFilter} onChange={(event) => setEventStateFilter(event.target.value)}>
+              <option value="all">All statuses</option>
+              {[...new Set(events.map((event) => event.state))].map((state) => <option key={state} value={state}>{state}</option>)}
+            </select>
+          </label>
         <label className="editor-event-select">
-          <span>Event</span>
+          <span>Choose event</span>
           <select
             value={selectedId}
             onChange={(e) => selectEvent(e.target.value)}
             disabled={pending}
           >
-            {events.map((ev) => (
+            {filteredEvents.map((ev) => (
               <option key={ev.event_id} value={ev.event_id}>
                 {ev.title} · {ev.state}
               </option>
             ))}
           </select>
         </label>
+        </div>
       </div>
 
       {current && (
         <>
           <nav className="editor-tabs" aria-label="Editor sections">
-            {(["content", "timing", "questions", "lifecycle"] as const).map((tab) => (
+            {(["content", "timing", "questions"] as const).map((tab) => (
               <button
                 key={tab}
                 type="button"
                 className={activeTab === tab ? "editor-tab active" : "editor-tab"}
                 onClick={() => setActiveTab(tab)}
               >
-                {tab === "content" ? "Content & rules" : tab === "timing" ? "Schedule & timing" : tab === "questions" ? "Registration questions" : "Lifecycle"}
+                {tab === "content" ? "Content & rules" : tab === "timing" ? "Event timing" : "Registration questions"}
               </button>
             ))}
           </nav>
@@ -344,6 +412,15 @@ export function EventEditor({ events }: { events: EventData[] }) {
                 Venue ✦
                 <input value={venue} onChange={(e) => setVenue(e.target.value)} maxLength={160} placeholder="Room number, ground, or area" />
               </label>
+              <label>
+                Gender division
+                <select value={division} onChange={(event) => setDivision(event.target.value)}>
+                  <option value="open">Open / mixed</option>
+                  <option value="boys">Boys</option>
+                  <option value="girls">Girls</option>
+                </select>
+                <small>Matched against the gender saved during student sign-up.</small>
+              </label>
               <div className="field-pair">
                 <label>
                   Capacity
@@ -415,63 +492,16 @@ export function EventEditor({ events }: { events: EventData[] }) {
           {activeTab === "timing" && (
             <div className="editor-section">
               <div className="editor-hint">
-                <p>All times are interpreted as Indian Standard Time (IST, UTC+5:30). Registration window is required before opening applications.</p>
+                <p>Event start is interpreted as Indian Standard Time (IST, UTC+5:30). Registration dates are managed once for the full festival above.</p>
               </div>
-              <div className="field-pair">
-                <label>
-                  Registration opens ✦
-                  <input
-                    type="datetime-local"
-                    value={applicationOpensAt}
-                    onChange={(e) => setApplicationOpensAt(e.target.value)}
-                  />
-                </label>
-                <label>
-                  Registration closes ✦
-                  <input
-                    type="datetime-local"
-                    value={applicationClosesAt}
-                    onChange={(e) => setApplicationClosesAt(e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="field-pair">
-                <label>
-                  Roster lock
-                  <input
-                    type="datetime-local"
-                    value={rosterLockAt}
-                    onChange={(e) => setRosterLockAt(e.target.value)}
-                  />
-                  <small>Students cannot withdraw after this time.</small>
-                </label>
-                <label>
-                  Reporting time
-                  <input
-                    type="datetime-local"
-                    value={reportingAt}
-                    onChange={(e) => setReportingAt(e.target.value)}
-                  />
-                </label>
-              </div>
-              <div className="field-pair">
-                <label>
-                  Event start
-                  <input
-                    type="datetime-local"
-                    value={startsAt}
-                    onChange={(e) => setStartsAt(e.target.value)}
-                  />
-                </label>
-                <label>
-                  Event end
-                  <input
-                    type="datetime-local"
-                    value={endsAt}
-                    onChange={(e) => setEndsAt(e.target.value)}
-                  />
-                </label>
-              </div>
+              <label>
+                Event start
+                <input
+                  type="datetime-local"
+                  value={startsAt}
+                  onChange={(e) => setStartsAt(e.target.value)}
+                />
+              </label>
               <button
                 type="button"
                 className="primary-control"
@@ -486,7 +516,7 @@ export function EventEditor({ events }: { events: EventData[] }) {
           {activeTab === "questions" && (
             <div className="editor-section">
               <div className="editor-hint">
-                <p>Registration questions are shown to students when they apply. Answers are stored per application. Save content to persist changes.</p>
+                <p>Add only event-specific questions. Name, roll number, batch, phone and gender already come from the verified profile.</p>
               </div>
               {questions.length > 0 && (
                 <ul className="question-list">
@@ -494,8 +524,7 @@ export function EventEditor({ events }: { events: EventData[] }) {
                     <li key={q.key} className="question-row">
                       <div>
                         <strong>{q.label}</strong>
-                        <span>{q.type} · key: {q.key}{q.required ? " · required" : ""}</span>
-                        {q.options && <span>{q.options.join(", ")}</span>}
+                        <span>{q.required ? "Required" : "Optional"}</span>
                       </div>
                       <button
                         type="button"
@@ -511,57 +540,23 @@ export function EventEditor({ events }: { events: EventData[] }) {
               )}
               <fieldset className="new-question-form">
                 <legend>Add question</legend>
-                <div className="field-pair">
-                  <label>
-                    Display label
-                    <input
-                      value={newQuestion.label}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, label: e.target.value })}
-                      placeholder="e.g. Roll number in your batch"
-                      maxLength={200}
-                    />
-                  </label>
-                  <label>
-                    Field key
-                    <input
-                      value={newQuestion.key}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, key: e.target.value })}
-                      placeholder="e.g. roll_number"
-                      maxLength={80}
-                    />
-                  </label>
-                </div>
-                <div className="field-pair">
-                  <label>
-                    Type
-                    <select
-                      value={newQuestion.type}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, type: e.target.value as "text" | "select" })}
-                    >
-                      <option value="text">Text (free response)</option>
-                      <option value="select">Select (fixed options)</option>
-                    </select>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={newQuestion.required}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, required: e.target.checked })}
-                    />
-                    Required to apply
-                  </label>
-                </div>
-                {newQuestion.type === "select" && (
-                  <label>
-                    Options (one per line)
-                    <textarea
-                      value={newQuestion.options}
-                      onChange={(e) => setNewQuestion({ ...newQuestion, options: e.target.value })}
-                      rows={4}
-                      placeholder={"Option A\nOption B\nOption C"}
-                    />
-                  </label>
-                )}
+                <label>
+                  Question
+                  <input
+                    value={newQuestion.label}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, label: e.target.value })}
+                    placeholder="e.g. Which song will you perform?"
+                    maxLength={200}
+                  />
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={newQuestion.required}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, required: e.target.checked })}
+                  />
+                  Required to apply
+                </label>
                 <button type="button" className="primary-control" onClick={addQuestion}>
                   Add question
                 </button>
@@ -577,44 +572,10 @@ export function EventEditor({ events }: { events: EventData[] }) {
             </div>
           )}
 
-          {activeTab === "lifecycle" && (
-            <div className="editor-section">
-              <div className="editor-hint lifecycle-state">
-                <p>Current state: <strong style={{ color: stateColor(current.state) }}>{current.state}</strong></p>
-                <p>Publishing requires: summary, venue, and rules to be set. Opening requires registration window times.</p>
-              </div>
-              <div className="lifecycle-actions">
-                {(LIFECYCLE_ACTIONS[current.state] ?? []).map(({ label, next }) => (
-                  <button
-                    key={next}
-                    type="button"
-                    className={next === "cancelled" ? "revoke-button lifecycle-btn" : "primary-control lifecycle-btn"}
-                    disabled={pending}
-                    onClick={() => void setLifecycleState(next)}
-                  >
-                    {pending ? "Working…" : label}
-                  </button>
-                ))}
-                {(LIFECYCLE_ACTIONS[current.state] ?? []).length === 0 && (
-                  <p className="control-copy">No lifecycle actions are available for a {current.state} event.</p>
-                )}
-              </div>
-              <div className="readiness-check">
-                <p className="eyebrow">Readiness checks</p>
-                <ul>
-                  <li className={current.summary ? "check-pass" : "check-fail"}>Summary {current.summary ? "✓" : "✗ required"}</li>
-                  <li className={current.venue ? "check-pass" : "check-fail"}>Venue {current.venue ? "✓" : "✗ required"}</li>
-                  <li className={current.rules_markdown ? "check-pass" : "check-fail"}>Rules {current.rules_markdown ? "✓" : "✗ required"}</li>
-                  <li className={current.application_opens_at ? "check-pass" : "check-warn"}>Registration opens {current.application_opens_at ? "✓" : "⚠ needed to open"}</li>
-                  <li className={current.application_closes_at ? "check-pass" : "check-warn"}>Registration closes {current.application_closes_at ? "✓" : "⚠ needed to open"}</li>
-                  <li className={current.roster_lock_at ? "check-pass" : "check-warn"}>Roster lock {current.roster_lock_at ? "✓" : "— optional"}</li>
-                  <li className={current.starts_at ? "check-pass" : "check-warn"}>Start time {current.starts_at ? "✓" : "— optional"}</li>
-                </ul>
-              </div>
-            </div>
-          )}
         </>
       )}
+
+      </>}
 
       {message && (
         <p className={`control-message ${message.isError ? "error-message" : ""}`} role="status">

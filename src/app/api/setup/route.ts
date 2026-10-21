@@ -16,7 +16,7 @@ const schema = z.object({
   fullName: z.string().trim().min(1).max(100),
   rollNumber: z.string().trim().min(1).max(80),
   phone: z.string().trim().min(10).max(20),
-  password: z.string().min(12).max(256),
+  password: z.string().min(8).max(256),
 });
 
 export async function POST(request: Request) {

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
 import { SpandanLogo } from "@/components/spandan-branding";
+import { AssignedEventsList } from "./assigned-events-list";
 import styles from "./dashboard.module.css";
 
 export const dynamic = "force-dynamic";
@@ -343,7 +344,7 @@ export default async function AdminPage() {
               {hasLoadError ? (
                 <p className={styles.panelEmpty}>Event assignments unavailable.</p>
               ) : events.length ? (
-                <div className={styles.eventGrid}>
+                <><AssignedEventsList events={events} /><div className={styles.legacyEventGrid} aria-hidden="true">
                   {events.map((event) => (
                     <Link
                       key={event.id}
@@ -363,7 +364,7 @@ export default async function AdminPage() {
                       </div>
                     </Link>
                   ))}
-                </div>
+                </div></>
               ) : (
                 <div className={styles.panelEmpty}>
                   <span className={styles.emptyIcon} aria-hidden>📋</span>

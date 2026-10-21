@@ -209,6 +209,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   // Check if the current user has already applied & detect schedule clashes (Doc 03)
   let existingApplication: { id: string; review_state: string; selection_state: string } | null = null;
   let userAccessState: string | null = null;
+  let userGender: string | null = null;
   let isAuthenticated = false;
   let clashWarning: string | null = null;
   try {
@@ -216,13 +217,15 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     const { data: { user } } = await client.auth.getUser();
     if (user) {
       isAuthenticated = true;
-      const [appResult, accessResult, otherAppsResult] = await Promise.all([
+      const [appResult, accessResult, profileResult, otherAppsResult] = await Promise.all([
         client.from("applications").select("id,review_state,selection_state").eq("event_id", event.id).eq("student_id", user.id).maybeSingle(),
         client.from("access_records").select("state").eq("profile_id", user.id).maybeSingle(),
+        client.from("profiles").select("gender").eq("id", user.id).maybeSingle(),
         client.from("applications").select("id,events(id,title,starts_at)").eq("student_id", user.id).neq("review_state", "rejected").neq("review_state", "withdrawn"),
       ]);
       existingApplication = appResult.data;
       userAccessState = accessResult.data?.state ?? null;
+      userGender = profileResult.data?.gender ?? null;
 
       if (!existingApplication && event.starts_at && otherAppsResult.data) {
         const thisStart = new Date(event.starts_at).getTime();
@@ -244,8 +247,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   }
 
   const questions: Question[] = Array.isArray(event.application_questions) ? event.application_questions : [];
-  const rosterLocked = event.roster_lock_at && now >= new Date(event.roster_lock_at);
-
   const division = event.eligibility?.division?.toLowerCase() ?? "open";
   const divisionTitle = division === "boys" ? "👦 Boys Division" : division === "girls" ? "👧 Girls Division" : "👥 Open / Mixed";
 
@@ -294,6 +295,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         </aside>
       );
     }
+    const requiredGender = division === "boys" ? "male" : division === "girls" ? "female" : null;
+    if (requiredGender && userGender && userGender !== requiredGender) {
+      return <aside className="event-apply-note"><strong>This event is outside your registered division.</strong><p>Your verified profile gender does not match this event&apos;s eligibility. Open and mixed events remain available.</p><Link href="/events">Browse eligible events →</Link></aside>;
+    }
     if (existingApplication) {
       if (existingApplication.review_state === "withdrawn") {
         return <aside className="event-apply-note"><strong>Your previous application was withdrawn.</strong><p>You may submit a new application if registration is still open.</p>{appOpen && <ApplyButton eventId={evt.id} questions={questions} />}</aside>;
@@ -306,14 +311,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
           <strong>You have already applied to this event.</strong>
           <p>Your application is {existingApplication.review_state.replaceAll("_", " ")}. Selection status: {existingApplication.selection_state.replaceAll("_", " ")}.</p>
           <Link href="/my-fest">View in My Fest →</Link>
-          {!rosterLocked && (
-            <WithdrawButton applicationId={existingApplication.id} />
-          )}
-          {rosterLocked && (
-            <div className="withdrawal-section">
-              <p>The roster is locked. To make changes, contact the organiser directly through the help desk.</p>
-            </div>
-          )}
+          <WithdrawButton applicationId={existingApplication.id} />
         </aside>
       );
     }
@@ -422,10 +420,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
           <div>
             <dt>Schedule</dt>
             <dd>{datetime(event.starts_at)}</dd>
-          </div>
-          <div>
-            <dt>Reporting</dt>
-            <dd>{datetime(event.reporting_at)}</dd>
           </div>
           <div>
             <dt>Venue</dt>

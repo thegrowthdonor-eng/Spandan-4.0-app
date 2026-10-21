@@ -135,6 +135,8 @@
   gap: 10px;
 }
 
+.btn-remove-profile { border:1px solid #9f2f2a; background:#fff; color:#8f211d; min-height:40px; padding:0 12px; border-radius:6px; font:700 10px/1 "DM Sans",sans-serif; text-transform:uppercase; letter-spacing:.06em; cursor:pointer; }
+
 /* Recovery Modal */
 .recovery-notice {
   background: #fff3cd;

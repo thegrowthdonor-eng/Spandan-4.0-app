@@ -57,6 +57,22 @@ test("signInSchema parses both UG and Senior credentials backward-compatibly", (
   });
   assert.equal(seniorFormatted.success, true);
 
+  // 8-character password boundary test
+  const eightCharPass = signInSchema.safeParse({
+    batch: "2023",
+    rollNumber: "23MBBS045",
+    password: "12345678",
+  });
+  assert.equal(eightCharPass.success, true);
+
+  // Rejection: 7-character password (below 8 minimum)
+  const sevenCharPass = signInSchema.safeParse({
+    batch: "2023",
+    rollNumber: "23MBBS045",
+    password: "1234567",
+  });
+  assert.equal(sevenCharPass.success, false);
+
   // Rejection: short password
   const shortPass = signInSchema.safeParse({
     mode: "senior",

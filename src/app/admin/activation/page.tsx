@@ -38,7 +38,10 @@ export default async function ActivationPage() {
     );
   }
 
-  const { data, error } = await client.rpc("list_activation_queue");
+  const [{ data, error }, { data: isMainAdmin }] = await Promise.all([
+    client.rpc("list_activation_queue"),
+    client.rpc("is_main_admin"),
+  ]);
   const queue = (data ?? []) as ActivationRecord[];
 
   return (
@@ -66,7 +69,7 @@ export default async function ActivationPage() {
       {error ? (
         <p className="admin-empty">The activation queue is temporarily unavailable. No records are shown.</p>
       ) : (
-        <ActivationClient queue={queue} />
+        <ActivationClient queue={queue} canRemoveProfiles={isMainAdmin === true} />
       )}
     </main>
   );

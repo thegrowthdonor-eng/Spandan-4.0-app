@@ -91,13 +91,15 @@ async function getAuthStatus() {
     const client = await createRequestClient();
     const { data: auth } = await client.auth.getUser();
     if (!auth.user) return { loggedIn: false, name: "", isOrganiser: false };
-    const [profileResult, activationResult, noticeResult, eventsResult, adminResult] = await Promise.all([
+    const [profileResult, accessResult, activationResult, noticeResult, eventsResult, adminResult] = await Promise.all([
       client.from("profiles").select("full_name").eq("id", auth.user.id).maybeSingle(),
+      client.from("access_records").select("state").eq("profile_id", auth.user.id).eq("state", "active").limit(1).maybeSingle(),
       client.rpc("can_manage_access"),
       client.rpc("can_publish_notices"),
       client.rpc("list_managed_events"),
       client.rpc("is_main_admin"),
     ]);
+    if (!accessResult.data) return { loggedIn: false, name: "", isOrganiser: false };
     const profile = profileResult.data;
     const firstName = profile?.full_name?.trim().split(/\s+/)[0] || "Student";
     const isOrganiser = activationResult.data === true || noticeResult.data === true || adminResult.data === true || (eventsResult.data?.length ?? 0) > 0;
@@ -107,13 +109,16 @@ async function getAuthStatus() {
   }
 }
 
-const destinations = [
+const primaryDestinations = [
   { href: "/events", title: "Events", detail: "Browse events and apply to take part.", path: "M8 3v3m8-3v3M4 10h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" },
   { href: "/schedule", title: "Schedule", detail: "Times, venues and upcoming fixtures.", path: "M12 8v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" },
+  { href: "/gallery", title: "Gallery", detail: "Moments from across the campus.", path: "M3 4h18v16H3V4Zm0 12 5-5 4 4 3-3 6 6M16 8h.01" },
   { href: "/standings", title: "Results & standings", detail: "Event winners and batch positions.", path: "M5 20v-6h4v6m2 0V4h4v16m2 0v-9h4v9M3 20h19" },
+];
+
+const secondaryDestinations = [
   { href: "/notices", title: "Notices", detail: "Announcements and important updates.", path: "M8 5h12v16H4V5h4Zm0 0V3h8v4H8V5Zm0 7h8m-8 4h5" },
   { href: "/merchandise", title: "Merchandise", detail: "The official festival collection.", path: "m5 8-1 13h16L19 8H5Zm3 0V6a4 4 0 0 1 8 0v2" },
-  { href: "/gallery", title: "Gallery", detail: "Moments from across the campus.", path: "M3 4h18v16H3V4Zm0 12 5-5 4 4 3-3 6 6M16 8h.01" },
   { href: "/committee", title: "Council", detail: "Meet the organising team.", path: "M16 21v-3a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v3m16 0v-3a4 4 0 0 0-3-4M14 6a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm3-3a4 4 0 0 1 0 8" },
   { href: "/faqs", title: "Help & Information", detail: "Useful information for your fest experience.", path: "M9 9a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" },
 ];
@@ -213,7 +218,7 @@ export default async function HomePage() {
             <span>From first entry to final encore.</span>
           </div>
           <div className={styles.grid}>
-            {destinations.map((item) => (
+            {primaryDestinations.map((item) => (
               <Link href={item.href} key={item.href} className={styles.card}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d={item.path} />
@@ -223,6 +228,15 @@ export default async function HomePage() {
                   <p>{item.detail}</p>
                 </div>
                 <span className={styles.arrow} aria-hidden>↗</span>
+              </Link>
+            ))}
+          </div>
+          <div className={styles.secondaryLinks} aria-label="More festival options">
+            {secondaryDestinations.map((item) => (
+              <Link href={item.href} key={item.href} className={styles.secondaryLink}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.path} /></svg>
+                <span><strong>{item.title}</strong><small>{item.detail}</small></span>
+                <b aria-hidden>→</b>
               </Link>
             ))}
           </div>

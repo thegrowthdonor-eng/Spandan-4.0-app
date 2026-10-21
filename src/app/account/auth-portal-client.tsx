@@ -38,6 +38,7 @@ export function AuthPortalClient({
           <SignInForm
             configured={configured}
             returnTo={returnTo}
+            onSwitchToSignup={() => setView("signup")}
           />
 
           <div className="auth-form-switch">

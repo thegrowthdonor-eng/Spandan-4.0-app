@@ -832,17 +832,17 @@ body .events-page .events-hero p:not(.eyebrow):not(.college-affil-pill) {
 .banner-completed { background: #ede9fe; color: #5b21b6; }
 
 /* Rules section */
-.event-rules { padding: 6vh 7vw 10vh; }
-.event-rules h2 { margin: 12px 0 24px; font: 500 clamp(32px, 5vw, 54px)/.95 "Playfair Display", serif; letter-spacing: -.05em; color: #261923; }
+.event-rules { padding: 40px 7vw 64px; }
+.event-rules h2 { margin: 8px 0 18px; font: 600 clamp(24px, 3.2vw, 34px)/1.08 "Playfair Display", serif; letter-spacing: -.035em; color: #261923; }
 .rules-copy-container { max-width: 760px; }
 .rules-formatted {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 .rules-section-heading {
   margin: 20px 0 6px;
-  font: 700 18px/1.3 "Playfair Display", serif;
+  font: 700 16px/1.35 "Playfair Display", serif;
   color: #191018;
   border-bottom: 2px solid #e0c9a0;
   padding-bottom: 6px;
@@ -853,12 +853,12 @@ body .events-page .events-hero p:not(.eyebrow):not(.college-affil-pill) {
   padding-left: 20px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 .rules-bullet-item {
   color: #2b1f28;
-  line-height: 1.6;
-  font-size: 14.5px;
+  line-height: 1.55;
+  font-size: 13.5px;
 }
 .rules-strong {
   color: #191018;
@@ -867,8 +867,8 @@ body .events-page .events-hero p:not(.eyebrow):not(.college-affil-pill) {
 .rules-paragraph {
   margin: 0;
   color: #2b1f28;
-  line-height: 1.65;
-  font-size: 14.5px;
+  line-height: 1.6;
+  font-size: 13.5px;
 }
 
 /* Registration questions */

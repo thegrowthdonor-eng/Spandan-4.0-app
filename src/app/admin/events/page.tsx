@@ -10,9 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function EventEditorPage() {
   const client = await createRequestClient();
   if (!(await client.auth.getUser()).data.user) redirect("/account");
-  const [{ data: isAdmin }, { data: events }] = await Promise.all([
+  const [{ data: isAdmin }, { data: events }, { data: editions }] = await Promise.all([
     client.rpc("is_main_admin"),
     client.rpc("list_admin_event_editor_data"),
+    client.rpc("list_admin_editions"),
   ]);
   if (isAdmin !== true) redirect("/admin");
 
@@ -25,10 +26,10 @@ export default async function EventEditorPage() {
       <section className="editor-hero">
         <p className="eyebrow">Main Admin · Event editor</p>
         <h1>Event editor</h1>
-        <p>Edit event content, timing, registration questions, and lifecycle. Changes are audited. Publishing is guarded by server readiness checks.</p>
+        <p>Create and manage events, set the one festival-wide registration window, and frame only the questions each event genuinely needs.</p>
       </section>
       <section className="control-content">
-        <EventEditor events={(events ?? []) as never[]} />
+        <EventEditor events={(events ?? []) as never[]} editions={(editions ?? []) as never[]} />
       </section>
     </main>
   );

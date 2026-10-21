@@ -4,8 +4,8 @@ export const signInSchema = z.union([z.object({
   mode: z.literal("ug").optional(),
   batch: z.string().trim().min(1).max(80),
   rollNumber: z.string().trim().min(1).max(80),
-  password: z.string().min(12).max(256),
-}), z.object({ mode: z.literal("senior"), phone: z.string().trim().min(10).max(20), password: z.string().min(12).max(256) })]);
+  password: z.string().min(8).max(256),
+}), z.object({ mode: z.literal("senior"), phone: z.string().trim().min(10).max(20), password: z.string().min(8).max(256) })]);
 
 export type SignInInput = z.infer<typeof signInSchema>;
 
@@ -14,7 +14,8 @@ export const signUpSchema = z.object({
   batchId: z.string().uuid(),
   rollNumber: z.string().trim().min(1).max(80),
   phone: z.string().trim().min(10).max(20),
-  password: z.string().min(12).max(256),
+  gender: z.enum(["male", "female", "other", "prefer_not_to_say"]),
+  password: z.string().min(8).max(256),
 });
 
 export const recoveryIssueSchema = z.object({
@@ -24,7 +25,7 @@ export const recoveryIssueSchema = z.object({
 
 export const recoveryRedeemSchema = z.object({
   token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
-  password: z.string().min(12).max(256),
+  password: z.string().min(8).max(256),
 });
 
 export const eventApplicationSchema = z.object({
@@ -43,6 +44,10 @@ export const activationUpdateSchema = z.object({
   state: z.enum(["active", "rejected", "suspended"]),
   reason: z.string().trim().max(500).optional(),
   ledgerReference: z.string().trim().max(120).optional(),
+});
+
+export const profileRemovalSchema = z.object({
+  profileId: z.string().uuid(),
 });
 
 export const applicationReviewSchema = z.object({
@@ -220,22 +225,22 @@ export const helpStaffSchema = z.object({
 
 const optionalDateTime = z.string().datetime().nullable();
 export const festivalSetupSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("createBatch"), editionId: z.string().uuid(), label: z.string().trim().min(1).max(80), courseLabel: z.string().trim().max(120).optional(), eligible: z.boolean() }),
+  z.object({
+    action: z.literal("setRegistrationWindow"),
+    editionId: z.string().uuid(),
+    applicationOpensAt: z.string().datetime(),
+    applicationClosesAt: z.string().datetime(),
+  }).refine((value) => value.applicationClosesAt > value.applicationOpensAt, {
+    message: "Registration closing time must be after opening time.",
+  }),
   z.object({
     action: z.literal("createEvent"), editionId: z.string().uuid(), title: z.string().trim().min(1).max(160),
     category: z.enum(["sport", "cultural", "literary", "creative", "other"]), format: z.enum(["solo", "pair", "group", "sport"]),
+    division: z.enum(["boys", "girls", "open"]).default("open"),
     scoreTemplate: z.enum(["generic", "cricket", "football", "badminton"]), summary: z.string().trim().max(600), venue: z.string().trim().max(160).optional(),
-    capacity: z.number().int().positive().nullable(), applicationOpensAt: optionalDateTime, applicationClosesAt: optionalDateTime,
-    reportingAt: optionalDateTime, startsAt: optionalDateTime, endsAt: optionalDateTime,
+    capacity: z.number().int().positive().nullable(), startsAt: optionalDateTime,
     posterUrl: optionalWebUrl,
-  }).superRefine((value, context) => {
-    if (value.applicationOpensAt && value.applicationClosesAt && value.applicationClosesAt <= value.applicationOpensAt) context.addIssue({ code: z.ZodIssueCode.custom, message: "Registration closing time must be after opening time." });
-    if (value.startsAt && value.endsAt && value.endsAt < value.startsAt) context.addIssue({ code: z.ZodIssueCode.custom, message: "Event end time must be after its start time." });
   }),
-  z.object({ action: z.literal("setEventState"), eventId: z.string().uuid(), state: z.enum(["published", "open", "closed", "cancelled"]) }),
-  // Legacy updateEvent (content-only) — kept for backwards compatibility
-  z.object({ action: z.literal("updateEvent"), eventId: z.string().uuid(), summary: z.string().trim().max(600), rules: z.string().trim().min(1).max(20000), venue: z.string().trim().min(1).max(160), capacity: z.number().int().positive().nullable(), applicationOpensAt: optionalDateTime, applicationClosesAt: optionalDateTime, reportingAt: optionalDateTime, startsAt: optionalDateTime, endsAt: optionalDateTime }),
-  // Full event update — fixes the timing-null bug by always persisting all fields
   z.object({
     action: z.literal("updateEventFull"),
     eventId: z.string().uuid(),
@@ -245,12 +250,7 @@ export const festivalSetupSchema = z.discriminatedUnion("action", [
     venue: z.string().trim().max(160),
     capacity: z.number().int().positive().nullable(),
     waitlistEnabled: z.boolean(),
-    applicationOpensAt: optionalDateTime,
-    applicationClosesAt: optionalDateTime,
-    rosterLockAt: optionalDateTime,
-    reportingAt: optionalDateTime,
     startsAt: optionalDateTime,
-    endsAt: optionalDateTime,
     eligibility: z.record(z.string(), z.unknown()).default({}),
     applicationQuestions: z.array(z.object({
       key: z.string().trim().min(1).max(80),
@@ -264,10 +264,6 @@ export const festivalSetupSchema = z.discriminatedUnion("action", [
     batchRestricted: z.boolean(),
     posterUrl: optionalWebUrl,
   }).superRefine((value, context) => {
-    if (value.applicationOpensAt && value.applicationClosesAt && value.applicationClosesAt <= value.applicationOpensAt)
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "Registration closing time must be after opening time." });
-    if (value.startsAt && value.endsAt && value.endsAt < value.startsAt)
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "Event end time must be after its start time." });
     if (value.groupMinSize && value.groupMaxSize && value.groupMaxSize < value.groupMinSize)
       context.addIssue({ code: z.ZodIssueCode.custom, message: "Group max size must be at least the minimum." });
   }),

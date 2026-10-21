@@ -40,14 +40,7 @@ export async function POST(request: Request) {
   let result;
   const data = parsed.data;
 
-  if (data.action === "createBatch") {
-    result = await client.rpc("create_eligible_batch", {
-      p_edition_id: data.editionId,
-      p_label: data.label,
-      p_course_label: data.courseLabel || null,
-      p_eligible: data.eligible,
-    });
-  } else if (data.action === "createEvent") {
+  if (data.action === "createEvent") {
     result = await client.rpc("create_admin_event", {
       p_edition_id: data.editionId,
       p_title: data.title,
@@ -57,33 +50,16 @@ export async function POST(request: Request) {
       p_summary: data.summary,
       p_venue: data.venue || null,
       p_application_capacity: data.capacity,
-      p_application_opens_at: data.applicationOpensAt,
-      p_application_closes_at: data.applicationClosesAt,
-      p_reporting_at: data.reportingAt,
       p_starts_at: data.startsAt,
-      p_ends_at: data.endsAt,
+      p_division: data.division,
     });
-  } else if (data.action === "setEventState") {
-    result = await client.rpc("set_admin_event_state", {
-      p_event_id: data.eventId,
-      p_state: data.state,
-    });
-  } else if (data.action === "updateEvent") {
-    // Legacy content-only update (kept for backwards compatibility)
-    result = await client.rpc("update_admin_event_content", {
-      p_event_id: data.eventId,
-      p_summary: data.summary,
-      p_rules_markdown: data.rules,
-      p_venue: data.venue,
-      p_application_capacity: data.capacity,
-      p_application_opens_at: data.applicationOpensAt,
-      p_application_closes_at: data.applicationClosesAt,
-      p_reporting_at: data.reportingAt,
-      p_starts_at: data.startsAt,
-      p_ends_at: data.endsAt,
+  } else if (data.action === "setRegistrationWindow") {
+    result = await client.rpc("set_global_registration_window", {
+      p_edition_id: data.editionId,
+      p_opens_at: data.applicationOpensAt,
+      p_closes_at: data.applicationClosesAt,
     });
   } else {
-    // updateEventFull — fixes the timing-null bug by always persisting all fields
     result = await client.rpc("update_admin_event_full", {
       p_event_id: data.eventId,
       p_title: data.title,
@@ -92,12 +68,12 @@ export async function POST(request: Request) {
       p_venue: data.venue,
       p_application_capacity: data.capacity,
       p_waitlist_enabled: data.waitlistEnabled,
-      p_application_opens_at: data.applicationOpensAt,
-      p_application_closes_at: data.applicationClosesAt,
-      p_roster_lock_at: data.rosterLockAt,
-      p_reporting_at: data.reportingAt,
+      p_application_opens_at: null,
+      p_application_closes_at: null,
+      p_roster_lock_at: null,
+      p_reporting_at: null,
       p_starts_at: data.startsAt,
-      p_ends_at: data.endsAt,
+      p_ends_at: null,
       p_eligibility: data.eligibility,
       p_application_questions: data.applicationQuestions,
       p_group_min_size: data.groupMinSize,

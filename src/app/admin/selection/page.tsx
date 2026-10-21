@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
 import { SelectionClient, SelectionRow } from "./selection-client";
+import { AdminEventPicker } from "@/components/admin/event-picker";
 import "../review/review.css";
 
 export const dynamic = "force-dynamic";
@@ -80,17 +81,7 @@ export default async function SelectionPage({ searchParams }: { searchParams: Pr
         </p>
       </section>
 
-      <nav className="event-picker" aria-label="Managed solo events">
-        {events.map((event) => (
-          <Link
-            aria-current={event.id === selected.id ? "page" : undefined}
-            key={event.id}
-            href={`/admin/selection?event=${event.id}`}
-          >
-            {event.title}
-          </Link>
-        ))}
-      </nav>
+      <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/selection" label="Managed solo events" />
 
       {error ? (
         <p className="review-empty">The selection queue is temporarily unavailable.</p>

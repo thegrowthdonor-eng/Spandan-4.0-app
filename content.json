@@ -645,7 +645,7 @@
           ],
           [
             "p",
-            "Names: trim spaces, allow ordinary Unicode names, cap length at 100 characters. Phone: normalise to E.164, default India +91 with validation; possession is not proven by format. Password: proposed minimum 12 characters, permit password managers and paste, no arbitrary composition puzzles. Phone changes and batch-roll corrections require staff review after activation. Avoid storing government ID scans; visually check college ID or use an authorised roster."
+            "Names: trim spaces, allow ordinary Unicode names, cap length at 100 characters. Phone: normalise to E.164, default India +91 with validation; possession is not proven by format. Password: proposed minimum 8 characters, permit password managers and paste, no arbitrary composition puzzles. Phone changes and batch-roll corrections require staff review after activation. Avoid storing government ID scans; visually check college ID or use an authorised roster."
           ],
           [
             "h",

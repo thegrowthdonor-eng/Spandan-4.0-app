@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
 import { ResultsClient, PointRule, EligibleBatch, ResultPublication } from "./results-client";
+import { AdminEventPicker } from "@/components/admin/event-picker";
 import "./results.css";
 
 export const dynamic = "force-dynamic";
@@ -106,17 +107,7 @@ export default async function AdminResultsPage({
         </p>
       </section>
 
-      <nav className="event-picker" aria-label="Managed events">
-        {events.map((event) => (
-          <Link
-            aria-current={event.id === selected.id ? "page" : undefined}
-            key={event.id}
-            href={`/admin/results?event=${event.id}`}
-          >
-            {event.title}
-          </Link>
-        ))}
-      </nav>
+      <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/results" />
 
       <ResultsClient
         event={selected}

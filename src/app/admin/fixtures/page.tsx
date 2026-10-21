@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
 import { FixturesClient, FixtureItem } from "./fixtures-client";
+import { AdminEventPicker } from "@/components/admin/event-picker";
 import "./fixtures.css";
 
 export const dynamic = "force-dynamic";
@@ -87,17 +88,7 @@ export default async function FixturesPage({
         </p>
       </section>
 
-      <nav className="fixture-picker" aria-label="Managed events">
-        {events.map((event) => (
-          <Link
-            aria-current={event.id === selected.id ? "page" : undefined}
-            key={event.id}
-            href={`/admin/fixtures?event=${event.id}`}
-          >
-            {event.title}
-          </Link>
-        ))}
-      </nav>
+      <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/fixtures" />
 
       {error ? (
         <p className="fixture-empty">Fixtures are temporarily unavailable.</p>

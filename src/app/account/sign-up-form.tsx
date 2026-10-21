@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { PasswordInput } from "@/components/password-input";
 
 type Batch = { id: string; label: string };
 
@@ -176,18 +177,37 @@ export function SignUpForm({
       </div>
 
       <div className="field-group">
+        <label htmlFor="signup-gender">
+          <span className="label-text">Gender</span>
+          <span className="label-hint">Used only to enforce boys/girls event eligibility</span>
+        </label>
+        <select
+          id="signup-gender"
+          name="gender"
+          disabled={!configured || pending}
+          required
+          defaultValue=""
+        >
+          <option value="" disabled>Select your gender</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other</option>
+          <option value="prefer_not_to_say">Prefer not to say</option>
+        </select>
+      </div>
+
+      <div className="field-group">
         <label htmlFor="signup-password">
           <span className="label-text">Create Password</span>
-          <span className="label-hint">Minimum 12 characters</span>
+          <span className="label-hint">Minimum 8 characters</span>
         </label>
-        <input
+        <PasswordInput
           id="signup-password"
           name="password"
           disabled={!configured || pending}
-          type="password"
-          minLength={12}
+          minLength={8}
           autoComplete="new-password"
-          placeholder="At least 12 characters"
+          placeholder="At least 8 characters"
           required
         />
       </div>

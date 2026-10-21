@@ -11,7 +11,7 @@ export async function POST(request: Request) {
  if (request.headers.get("origin") && request.headers.get("origin") !== new URL(request.url).origin) return NextResponse.json(failure, { status: 403, headers });
  try {
   const parsed = seniorRedeemSchema.safeParse(await request.json());
-  if (!parsed.success) return NextResponse.json({ error: "Use a valid setup link and a password of 12–256 characters." }, { status: 400, headers });
+  if (!parsed.success) return NextResponse.json({ error: "Use a valid setup link and a password of 8–256 characters." }, { status: 400, headers });
   const admin = createAdminClient(), pepper = requiredServerEnv("AUTH_IDENTITY_PEPPER");
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const checks = await Promise.all(["invite-ip:"+ip,"invite-token:"+parsed.data.token].map(key => admin.rpc("consume_auth_rate_limit", { p_key_hash: hashRateLimitKey(key,pepper), p_max_attempts: 5, p_window_seconds: 900 })));
