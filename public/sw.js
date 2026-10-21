@@ -1,4 +1,4 @@
-const CACHE_NAME = "spandan-public-shell-v7";
+const CACHE_NAME = "spandan-public-shell-v8";
 const PUBLIC_SHELL = [
   "/offline",
   "/events",
