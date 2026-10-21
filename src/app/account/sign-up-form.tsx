@@ -146,17 +146,18 @@ export function SignUpForm({
       <div className="field-row-grid">
         <div className="field-group">
           <label htmlFor="signup-roll">
-            <span className="label-text">Roll Number</span>
+            <span className="label-text">Roll Number (1–100)</span>
           </label>
           <input
             id="signup-roll"
             name="rollNumber"
             disabled={!configured || pending}
             autoComplete="off"
-            placeholder="e.g. 23MBBS045"
+            placeholder="e.g. 89 or 23MBBS089"
             maxLength={80}
             required
           />
+          <span className="label-hint">Valid range: 1 to 100</span>
         </div>
 
         <div className="field-group">

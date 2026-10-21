@@ -9,10 +9,27 @@ export const signInSchema = z.union([z.object({
 
 export type SignInInput = z.infer<typeof signInSchema>;
 
+export function extractRollNumberInt(roll: string): number | null {
+  const trimmed = roll.trim();
+  if (!trimmed || trimmed.startsWith("-") || trimmed.includes(" -")) return null;
+  if (!/^[A-Za-z0-9_ -]+$/.test(trimmed)) return null;
+  const match = trimmed.match(/(?:^|[A-Za-z_ -])0*([1-9]\d*)$/);
+  if (!match) return null;
+  const num = parseInt(match[1], 10);
+  return Number.isNaN(num) ? null : num;
+}
+
+export function isValidRollNumber(roll: string): boolean {
+  const num = extractRollNumberInt(roll);
+  return num !== null && num >= 1 && num <= 100;
+}
+
 export const signUpSchema = z.object({
   fullName: z.string().trim().min(1).max(100),
   batchId: z.string().uuid(),
-  rollNumber: z.string().trim().min(1).max(80),
+  rollNumber: z.string().trim().min(1).max(80).refine(isValidRollNumber, {
+    message: "Roll number must be between 1 and 100.",
+  }),
   phone: z.string().trim().min(10).max(20),
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]),
   password: z.string().min(8).max(256),
@@ -157,7 +174,7 @@ export const committeeRoleSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("assign"),
     profileId: z.string().uuid(),
-    role: z.enum(["main_admin", "treasurer", "event_head", "notice_publisher"]),
+    role: z.enum(["main_admin", "treasurer", "event_head", "notice_publisher", "event_coordinator"]),
     eventId: z.string().uuid().nullable(),
   }).superRefine((value, context) => {
     if ((value.role === "event_head") !== Boolean(value.eventId)) {
@@ -240,6 +257,11 @@ export const festivalSetupSchema = z.discriminatedUnion("action", [
     scoreTemplate: z.enum(["generic", "cricket", "football", "badminton"]), summary: z.string().trim().max(600), venue: z.string().trim().max(160).optional(),
     capacity: z.number().int().positive().nullable(), startsAt: optionalDateTime,
     posterUrl: optionalWebUrl,
+  }),
+  z.object({
+    action: z.literal("setEventState"),
+    eventId: z.string().uuid(),
+    state: z.enum(["draft", "published", "open", "closed", "ongoing", "completed", "cancelled"]),
   }),
   z.object({
     action: z.literal("updateEventFull"),

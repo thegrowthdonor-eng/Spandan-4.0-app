@@ -77,7 +77,7 @@ function stateColor(state: string): string {
   }
 }
 
-export function EventEditor({ events, editions }: { events: EventData[]; editions: EditionData[] }) {
+export function EventEditor({ events, editions, isAdmin = true }: { events: EventData[]; editions: EditionData[]; isAdmin?: boolean }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(events[0]?.event_id ?? "");
   const [eventSearch, setEventSearch] = useState("");
@@ -163,6 +163,23 @@ export function EventEditor({ events, editions }: { events: EventData[]; edition
     }
   }
 
+  async function changeEventState(newState: string) {
+    if (!current) return;
+    const ok = await post({
+      action: "setEventState",
+      eventId: selectedId,
+      state: newState,
+    });
+    if (ok) {
+      setMessage({
+        text: newState === "open"
+          ? "Event approved and opened for student registrations!"
+          : `Event state set to ${newState}.`,
+        isError: false,
+      });
+    }
+  }
+
   async function saveContent() {
     if (!current) return;
     // Build application_questions from state
@@ -233,34 +250,48 @@ export function EventEditor({ events, editions }: { events: EventData[]; edition
       startsAt: null,
       posterUrl: null,
     });
-    if (created) setNewEvent({ title: "", category: "sport", format: "sport", scoreTemplate: "generic", division: "open" });
+    if (created) {
+      setNewEvent({ title: "", category: "sport", format: "sport", scoreTemplate: "generic", division: "open" });
+      setMessage({
+        text: isAdmin
+          ? "Event created successfully and open for registrations."
+          : "Event proposed in Draft state! Fill in its rules, venue and poster below. It will go live once approved by Main Admin.",
+        isError: false,
+      });
+    }
   }
 
   return (
     <section className="event-editor">
       <div className="editor-management-grid">
-        <section className="control-panel editor-management-card">
-          <p className="eyebrow">One registration window</p>
-          <h2>Festival registrations</h2>
-          <p className="control-copy">These dates apply to every event. Registrations are currently open for testing.</p>
-          <label>Festival edition
-            <select value={editionId} onChange={(event) => selectEdition(event.target.value)} disabled={pending}>
-              {editions.map((edition) => <option key={edition.edition_id} value={edition.edition_id}>{edition.name}</option>)}
-            </select>
-          </label>
-          <div className="field-pair">
-            <label>Opens<input type="datetime-local" value={globalOpensAt} onChange={(event) => setGlobalOpensAt(event.target.value)} /></label>
-            <label>Closes<input type="datetime-local" value={globalClosesAt} onChange={(event) => setGlobalClosesAt(event.target.value)} /></label>
-          </div>
-          <button type="button" className="primary-control" disabled={pending || !editionId} onClick={() => void saveRegistrationWindow()}>
-            {pending ? "Saving…" : "Save for every event"}
-          </button>
-        </section>
+        {isAdmin && (
+          <section className="control-panel editor-management-card">
+            <p className="eyebrow">One registration window</p>
+            <h2>Festival registrations</h2>
+            <p className="control-copy">These dates apply to every event. Registrations are currently open for testing.</p>
+            <label>Festival edition
+              <select value={editionId} onChange={(event) => selectEdition(event.target.value)} disabled={pending}>
+                {editions.map((edition) => <option key={edition.edition_id} value={edition.edition_id}>{edition.name}</option>)}
+              </select>
+            </label>
+            <div className="field-pair">
+              <label>Opens<input type="datetime-local" value={globalOpensAt} onChange={(event) => setGlobalOpensAt(event.target.value)} /></label>
+              <label>Closes<input type="datetime-local" value={globalClosesAt} onChange={(event) => setGlobalClosesAt(event.target.value)} /></label>
+            </div>
+            <button type="button" className="primary-control" disabled={pending || !editionId} onClick={() => void saveRegistrationWindow()}>
+              {pending ? "Saving…" : "Save for every event"}
+            </button>
+          </section>
+        )}
 
         <section className="control-panel editor-management-card">
-          <p className="eyebrow">Event catalogue</p>
-          <h2>Create event</h2>
-          <p className="control-copy">Create it here, then complete its content and timing below.</p>
+          <p className="eyebrow">{isAdmin ? "Event catalogue" : "Propose Event"}</p>
+          <h2>{isAdmin ? "Create event" : "Propose new event"}</h2>
+          <p className="control-copy">
+            {isAdmin
+              ? "Create it here, then complete its content and timing below."
+              : "Propose a new event. It will be created as a Draft for your coordination, ready for admin review."}
+          </p>
           <label>Event title<input value={newEvent.title} onChange={(event) => setNewEvent({ ...newEvent, title: event.target.value })} maxLength={160} placeholder="e.g. Inter-batch Cricket" /></label>
           <div className="field-pair">
             <label>Category<select value={newEvent.category} onChange={(event) => setNewEvent({ ...newEvent, category: event.target.value })}><option value="sport">Sport</option><option value="cultural">Cultural</option><option value="literary">Literary</option><option value="creative">Creative</option><option value="other">Other</option></select></label>
@@ -271,7 +302,7 @@ export function EventEditor({ events, editions }: { events: EventData[]; edition
             <label>Score template<select value={newEvent.scoreTemplate} onChange={(event) => setNewEvent({ ...newEvent, scoreTemplate: event.target.value })}><option value="generic">Generic</option><option value="cricket">Cricket</option><option value="football">Football</option><option value="badminton">Badminton</option></select></label>
           </div>
           <button type="button" className="primary-control" disabled={pending || !newEvent.title.trim() || !editionId} onClick={() => void createEvent()}>
-            {pending ? "Creating…" : "Create event"}
+            {pending ? "Creating…" : isAdmin ? "Create event" : "Propose event (Draft)"}
           </button>
         </section>
       </div>
@@ -280,18 +311,73 @@ export function EventEditor({ events, editions }: { events: EventData[]; edition
         <section className="control-panel editor-empty">
           <p className="eyebrow">Event editor</p>
           <h1>No events yet.</h1>
-          <p className="control-copy">Create the first event above.</p>
+          <p className="control-copy">{isAdmin ? "Create the first event above." : "Propose your first event above."}</p>
         </section>
       ) : <>
       <div className="editor-header">
         <div>
-          <p className="eyebrow">Event editor</p>
+          <p className="eyebrow">{isAdmin ? "Event editor" : "Assigned Event"}</p>
           <h1>{current?.title ?? "Choose an event"}</h1>
-          {current && (
-            <span className="editor-state-badge" style={{ background: stateColor(current.state) }}>
-              {current.state}
-            </span>
-          )}
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap" }}>
+            {current && (
+              <span
+                className="editor-state-badge"
+                style={{
+                  background: current.state === "draft" ? "#b45309" : stateColor(current.state),
+                  color: "#fff",
+                  fontWeight: 600,
+                  letterSpacing: "0.03em",
+                }}
+              >
+                {current.state === "draft" ? "Draft · Needs Admin Approval" : current.state}
+              </span>
+            )}
+            {isAdmin && current && (
+              <div style={{ display: "inline-flex", gap: "0.5rem", alignItems: "center", marginLeft: "0.5rem" }}>
+                {current.state === "draft" && (
+                  <button
+                    type="button"
+                    style={{
+                      background: "#16a34a",
+                      color: "#fff",
+                      border: "none",
+                      padding: "0.25rem 0.75rem",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: "0.82rem",
+                    }}
+                    disabled={pending}
+                    onClick={() => void changeEventState("open")}
+                  >
+                    ✓ Approve & Open Event
+                  </button>
+                )}
+                <label style={{ fontSize: "0.8rem", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                  <span style={{ color: "var(--muted, #94a3b8)" }}>Change status:</span>
+                  <select
+                    style={{
+                      background: "rgba(255,255,255,0.08)",
+                      color: "inherit",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: "4px",
+                      padding: "0.2rem 0.5rem",
+                      fontSize: "0.8rem",
+                    }}
+                    value={current.state}
+                    disabled={pending}
+                    onChange={(e) => void changeEventState(e.target.value)}
+                  >
+                    <option value="draft">draft</option>
+                    <option value="published">published</option>
+                    <option value="open">open</option>
+                    <option value="closed">closed</option>
+                    <option value="cancelled">cancelled</option>
+                  </select>
+                </label>
+              </div>
+            )}
+          </div>
         </div>
         <div className="editor-event-filters">
           <label>
@@ -314,7 +400,7 @@ export function EventEditor({ events, editions }: { events: EventData[]; edition
           >
             {filteredEvents.map((ev) => (
               <option key={ev.event_id} value={ev.event_id}>
-                {ev.title} · {ev.state}
+                {ev.title} · {ev.state}{ev.state === "draft" ? " [Needs Approval]" : ""}
               </option>
             ))}
           </select>

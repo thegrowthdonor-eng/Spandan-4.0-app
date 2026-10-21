@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   if (!parsed.success || !hasPublicSupabaseConfiguration())
     return NextResponse.json({ error: "Festival setup is currently unavailable." }, { status: 503, headers });
 
-  const denied = NextResponse.json({ error: "Only a current Main Admin can change festival setup." }, { status: 403, headers });
+  const denied = NextResponse.json({ error: "You are not authorised to modify festival events or setup." }, { status: 403, headers });
   const store = await cookies();
   const client = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -58,6 +58,11 @@ export async function POST(request: Request) {
       p_edition_id: data.editionId,
       p_opens_at: data.applicationOpensAt,
       p_closes_at: data.applicationClosesAt,
+    });
+  } else if (data.action === "setEventState") {
+    result = await client.rpc("set_admin_event_state", {
+      p_event_id: data.eventId,
+      p_state: data.state,
     });
   } else {
     result = await client.rpc("update_admin_event_full", {

@@ -136,6 +136,51 @@
 }
 
 .btn-remove-profile { border:1px solid #9f2f2a; background:#fff; color:#8f211d; min-height:40px; padding:0 12px; border-radius:6px; font:700 10px/1 "DM Sans",sans-serif; text-transform:uppercase; letter-spacing:.06em; cursor:pointer; }
+.btn-remove-profile:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin-role-badge {
+  font: 700 11px/1 "DM Mono", monospace;
+  background: #fdf2f8;
+  color: #9d174d;
+  border: 1px solid #fbcfe8;
+  padding: 3px 7px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-self {
+  font: 600 10px/1 "DM Mono", monospace;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 5px;
+  border-radius: 2px;
+}
+
+.admin-shield-notice {
+  font-size: 12px;
+  font-weight: 500;
+  color: #831843;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  padding: 8px 12px;
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.admin-protected-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #fff7ed;
+  border-left: 3px solid #ea580c;
+  padding: 6px 10px;
+  margin-top: 8px;
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+  color: #9a3412;
+}
 
 /* Recovery Modal */
 .recovery-notice {

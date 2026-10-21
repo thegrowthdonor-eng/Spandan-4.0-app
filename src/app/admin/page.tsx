@@ -57,26 +57,28 @@ export default async function AdminPage() {
   const client = await createRequestClient();
   if (!(await client.auth.getUser()).data.user) redirect("/account");
 
-  const [accessCheck, eventsResult, activationResult, noticeCheck, mainAdminCheck] = await Promise.all([
+  const [accessCheck, eventsResult, activationResult, noticeCheck, mainAdminCheck, canCreateCheck] = await Promise.all([
     client.rpc("can_manage_access"),
     client.rpc("list_managed_events"),
     client.rpc("list_activation_queue"),
     client.rpc("can_publish_notices"),
     client.rpc("is_main_admin"),
+    client.rpc("can_create_events"),
   ]);
 
   const events = (eventsResult.data ?? []) as ManagedEvent[];
   const canActivate = accessCheck.data === true;
   const canPublishNotices = noticeCheck.data === true;
   const isMainAdmin = mainAdminCheck.data === true;
+  const canCreateEvents = canCreateCheck.data === true;
   const activationQueue = (activationResult.data ?? []) as ActivationRow[];
 
-  if (!canActivate && !events.length && !canPublishNotices && !isMainAdmin) {
+  if (!canActivate && !events.length && !canPublishNotices && !isMainAdmin && !canCreateEvents) {
     return <EmptyWorkspace title="This area is restricted." copy="Your account does not currently have an organiser assignment." />;
   }
 
   const pendingCount = activationResult.error ? null : activationQueue.filter((row) => row.access_state === "pending").length;
-  const hasLoadError = Boolean(accessCheck.error || eventsResult.error || noticeCheck.error || mainAdminCheck.error);
+  const hasLoadError = Boolean(accessCheck.error || eventsResult.error || noticeCheck.error || mainAdminCheck.error || canCreateCheck.error);
 
   const tools: Tool[] = [
     // PRIORITY 1: GROUND & COUNTER OPERATIONS
@@ -131,13 +133,15 @@ export default async function AdminPage() {
     ] : []),
 
     // PRIORITY 2: EVENT COORDINATION
-    ...(isMainAdmin ? [
+    ...(isMainAdmin || canCreateEvents ? [
       {
         href: "/admin/events",
-        title: "Event Editor & Rules",
-        subtitle: "Configure event catalogue, category rules, registrations & deadlines",
-        badge: "CATALOGUE & RULES",
-        actionText: "Configure Events",
+        title: isMainAdmin ? "Event Editor & Rules" : "My Events & Add Event",
+        subtitle: isMainAdmin
+          ? "Configure event catalogue, category rules, registrations & deadlines"
+          : "Propose new events, configure rules, poster, venue and questions",
+        badge: isMainAdmin ? "CATALOGUE & RULES" : "COORDINATOR",
+        actionText: isMainAdmin ? "Configure Events" : "Manage Events",
         accent: "indigo" as const,
         group: "events",
         icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"

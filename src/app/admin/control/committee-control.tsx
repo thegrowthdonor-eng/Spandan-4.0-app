@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Candidate = { profile_id: string; full_name: string; fest_id: string; batch_label: string };
-type Member = { assignment_id: string; profile_id: string; full_name: string; fest_id: string; batch_label: string; role: "main_admin" | "treasurer" | "event_head" | "notice_publisher"; event_id: string | null; event_title: string | null; granted_at: string };
+type Member = { assignment_id: string; profile_id: string; full_name: string; fest_id: string; batch_label: string; role: "main_admin" | "treasurer" | "event_head" | "notice_publisher" | "event_coordinator"; event_id: string | null; event_title: string | null; granted_at: string };
 type EventRow = { event_id: string; title: string; category: string; state: string };
-const roleLabels = { main_admin: "Main Admin", treasurer: "Treasurer", event_head: "Event Head", notice_publisher: "Notice Publisher" };
+const roleLabels = { main_admin: "Main Admin", treasurer: "Treasurer", event_coordinator: "Event Coordinator", event_head: "Event Head", notice_publisher: "Notice Publisher" };
 
 export function CommitteeControl({ candidates, members, events }: { candidates: Candidate[]; members: Member[]; events: EventRow[] }) {
   const router = useRouter();
@@ -50,7 +50,7 @@ export function CommitteeControl({ candidates, members, events }: { candidates: 
       {candidates.length ? <form onSubmit={(event) => { event.preventDefault(); void command({ action: "assign", profileId, role, eventId: role === "event_head" ? eventId || null : null }); }} className="committee-form">
         <label>Search controller candidate<input type="search" value={candidateSearch} onChange={(event) => setCandidateSearch(event.target.value)} placeholder="Name or Fest ID" /></label>
         <label>Committee member<select required value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">Choose verified 2023 student</option>{visibleCandidates.map((candidate) => <option key={candidate.profile_id} value={candidate.profile_id}>{candidate.full_name} · {candidate.fest_id}</option>)}</select></label>
-        <label>Responsibility<select value={role} onChange={(event) => setRole(event.target.value as Member["role"])}><option value="treasurer">Treasurer — registration verification</option><option value="notice_publisher">Notice Publisher — official notices</option><option value="event_head">Event Head — assigned event only</option><option value="main_admin">Main Admin — full organiser control</option></select></label>
+        <label>Responsibility<select value={role} onChange={(event) => setRole(event.target.value as Member["role"])}><option value="treasurer">Treasurer — registration verification</option><option value="event_coordinator">Event Coordinator — add & manage events</option><option value="notice_publisher">Notice Publisher — official notices</option><option value="event_head">Event Head — assigned event only</option><option value="main_admin">Main Admin — full organiser control</option></select></label>
         {role === "event_head" ? <><label>Search event<input type="search" value={eventSearch} onChange={(event) => setEventSearch(event.target.value)} placeholder="Title, category or status" /></label><label>Assigned event<select required value={eventId} onChange={(event) => setEventId(event.target.value)}><option value="">Choose one event</option>{visibleEvents.map((festivalEvent) => <option key={festivalEvent.event_id} value={festivalEvent.event_id}>{festivalEvent.title} · {festivalEvent.state}</option>)}</select></label></> : null}
         <button className="primary-control" disabled={pending || !profileId || (role === "event_head" && !eventId)}>{pending ? "Updating…" : `Give ${roleLabels[role]} access`}</button>
       </form> : <p className="empty-control">No active 2023-batch account is available. Activate the student first, then assign their responsibility here.</p>}

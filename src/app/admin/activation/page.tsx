@@ -69,7 +69,12 @@ export default async function ActivationPage() {
       {error ? (
         <p className="admin-empty">The activation queue is temporarily unavailable. No records are shown.</p>
       ) : (
-        <ActivationClient queue={queue} canRemoveProfiles={isMainAdmin === true} />
+        <ActivationClient
+          queue={queue}
+          canRemoveProfiles={Boolean(allowed || isMainAdmin)}
+          isViewerMainAdmin={Boolean(isMainAdmin)}
+          currentUserId={auth.user.id}
+        />
       )}
     </main>
   );

@@ -14,9 +14,20 @@ export type ActivationRecord = {
   course_label: string | null;
   roll_canonical: string;
   fest_id: string;
+  is_admin?: boolean;
 };
 
-export function ActivationClient({ queue, canRemoveProfiles }: { queue: ActivationRecord[]; canRemoveProfiles: boolean }) {
+export function ActivationClient({
+  queue,
+  canRemoveProfiles,
+  isViewerMainAdmin = false,
+  currentUserId,
+}: {
+  queue: ActivationRecord[];
+  canRemoveProfiles: boolean;
+  isViewerMainAdmin?: boolean;
+  currentUserId?: string;
+}) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState<string>("pending");
@@ -33,8 +44,11 @@ export function ActivationClient({ queue, canRemoveProfiles }: { queue: Activati
   const [recoveryPending, setRecoveryPending] = useState(false);
   const [issuedToken, setIssuedToken] = useState<{ token: string; expiresAt: string } | null>(null);
 
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
+
   const filtered = useMemo(() => {
     return queue.filter((item) => {
+      if (deletedIds.has(item.profile_id)) return false;
       if (stateFilter !== "all" && item.access_state !== stateFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase().trim();
@@ -46,9 +60,21 @@ export function ActivationClient({ queue, canRemoveProfiles }: { queue: Activati
       }
       return true;
     });
-  }, [queue, stateFilter, search]);
+  }, [queue, deletedIds, stateFilter, search]);
 
   async function handleUpdateAccess(record: ActivationRecord, state: "active" | "rejected" | "suspended") {
+    if (record.is_admin && !isViewerMainAdmin) {
+      setStatusMessage({ id: record.profile_id, text: "Only Main Admins can modify or suspend an Admin profile.", isError: true });
+      return;
+    }
+    if (record.is_admin && record.profile_id === currentUserId && (state === "suspended" || state === "rejected")) {
+      setStatusMessage({ id: record.profile_id, text: "You cannot suspend or reject your own Admin profile.", isError: true });
+      return;
+    }
+    if (record.is_admin && isViewerMainAdmin && record.profile_id !== currentUserId && (state === "suspended" || state === "rejected")) {
+      if (!window.confirm(`Are you sure you want to ${state === "suspended" ? "suspend" : "reject"} Main Admin ${record.full_name}'s access?`)) return;
+    }
+
     const ledger = ledgerMap[record.profile_id]?.trim() || "";
     const reason = reasonMap[record.profile_id]?.trim() || "";
 
@@ -87,7 +113,21 @@ export function ActivationClient({ queue, canRemoveProfiles }: { queue: Activati
   }
 
   async function removeProfile(record: ActivationRecord) {
-    if (!window.confirm(`Permanently remove ${record.full_name}'s profile and login? This is only allowed when no event records depend on it.`)) return;
+    if (record.is_admin && !isViewerMainAdmin) {
+      setStatusMessage({ id: record.profile_id, text: "Only Main Admins can remove an Admin profile.", isError: true });
+      return;
+    }
+    if (record.is_admin && record.profile_id === currentUserId) {
+      setStatusMessage({ id: record.profile_id, text: "You cannot remove your own Admin profile.", isError: true });
+      return;
+    }
+
+    const confirmMsg = record.is_admin
+      ? `CRITICAL: Permanently remove Main Admin ${record.full_name}'s profile, login, and all festival roles? At least one active Main Admin must remain.`
+      : `Permanently remove ${record.full_name}'s profile and login? This is only allowed when no event records depend on it.`;
+
+    if (!window.confirm(confirmMsg)) return;
+
     setPendingId(record.profile_id);
     setStatusMessage(null);
     try {
@@ -99,7 +139,8 @@ export function ActivationClient({ queue, canRemoveProfiles }: { queue: Activati
       });
       const result = await response.json() as { ok?: boolean; error?: string };
       if (!response.ok) return setStatusMessage({ id: record.profile_id, text: result.error ?? "Unable to remove this profile.", isError: true });
-      setStatusMessage({ text: `${record.full_name}'s profile was removed.` });
+      setDeletedIds((prev) => new Set([...prev, record.profile_id]));
+      setStatusMessage({ text: `${record.full_name}'s profile was permanently removed.` });
       router.refresh();
     } catch {
       setStatusMessage({ id: record.profile_id, text: "Unable to remove this profile.", isError: true });
@@ -214,6 +255,8 @@ export function ActivationClient({ queue, canRemoveProfiles }: { queue: Activati
                     <span className={`status-badge access-${row.access_state}`}>
                       {row.access_state.toUpperCase()}
                     </span>
+                    {row.is_admin && <span className="admin-role-badge">🛡️ Main Admin</span>}
+                    {row.profile_id === currentUserId && <span className="badge-self">You</span>}
                     <span className="fest-id-badge">ID: {row.fest_id}</span>
                     <span className="timestamp-badge">
                       Requested:{" "}
@@ -241,6 +284,13 @@ export function ActivationClient({ queue, canRemoveProfiles }: { queue: Activati
                       </>
                     )}
                   </p>
+
+                  {row.is_admin && !isViewerMainAdmin && (
+                    <div className="admin-protected-banner">
+                      <strong>🛡️ Protected Administrator Profile</strong>
+                      <span>Suspension, rejection, and removal are strictly restricted to Main Admins.</span>
+                    </div>
+                  )}
 
                   <div className="sub-actions-row">
                     <button
@@ -295,43 +345,57 @@ export function ActivationClient({ queue, canRemoveProfiles }: { queue: Activati
                       />
                     </div>
 
-                    <div className="button-group">
-                      {row.access_state !== "active" && (
-                        <button
-                          type="button"
-                          className="btn-approve"
-                          disabled={isPending}
-                          onClick={() => handleUpdateAccess(row, "active")}
-                        >
-                          {isPending ? "Saving…" : "Activate"}
-                        </button>
-                      )}
-                      {row.access_state !== "rejected" && (
-                        <button
-                          type="button"
-                          className="btn-reject"
-                          disabled={isPending}
-                          onClick={() => handleUpdateAccess(row, "rejected")}
-                        >
-                          Reject
-                        </button>
-                      )}
-                      {row.access_state === "active" && (
-                        <button
-                          type="button"
-                          className="btn-waitlist"
-                          disabled={isPending}
-                          onClick={() => handleUpdateAccess(row, "suspended")}
-                        >
-                          Suspend
-                        </button>
-                      )}
-                      {canRemoveProfiles && (
-                        <button type="button" className="btn-remove-profile" disabled={isPending} onClick={() => void removeProfile(row)}>
-                          Remove profile
-                        </button>
-                      )}
-                    </div>
+                    {row.is_admin && !isViewerMainAdmin ? (
+                      <div className="admin-shield-notice">
+                        🛡️ Admin profile protected. You do not have permission to suspend or remove administrator accounts.
+                      </div>
+                    ) : (
+                      <div className="button-group">
+                        {row.access_state !== "active" && (
+                          <button
+                            type="button"
+                            className="btn-approve"
+                            disabled={isPending}
+                            onClick={() => handleUpdateAccess(row, "active")}
+                          >
+                            {isPending ? "Saving…" : "Activate"}
+                          </button>
+                        )}
+                        {row.access_state !== "rejected" && (
+                          <button
+                            type="button"
+                            className="btn-reject"
+                            disabled={isPending || (row.is_admin && row.profile_id === currentUserId)}
+                            title={row.is_admin && row.profile_id === currentUserId ? "You cannot reject your own Admin profile" : undefined}
+                            onClick={() => handleUpdateAccess(row, "rejected")}
+                          >
+                            Reject
+                          </button>
+                        )}
+                        {row.access_state === "active" && (
+                          <button
+                            type="button"
+                            className="btn-waitlist"
+                            disabled={isPending || (row.is_admin && row.profile_id === currentUserId)}
+                            title={row.is_admin && row.profile_id === currentUserId ? "You cannot suspend your own Admin profile" : undefined}
+                            onClick={() => handleUpdateAccess(row, "suspended")}
+                          >
+                            Suspend
+                          </button>
+                        )}
+                        {canRemoveProfiles && (
+                          <button
+                            type="button"
+                            className="btn-remove-profile"
+                            disabled={isPending || (row.is_admin && row.profile_id === currentUserId)}
+                            title={row.is_admin && row.profile_id === currentUserId ? "You cannot remove your own Admin profile" : undefined}
+                            onClick={() => void removeProfile(row)}
+                          >
+                            Remove profile
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </article>
