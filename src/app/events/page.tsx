@@ -5,7 +5,7 @@ import { FestTopNav } from "@/components/spandan-branding";
 import { EventCatalogue, type EventCard } from "./event-catalogue";
 import "./events.css";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 export const metadata: Metadata = {
   title: "Events | SPANDAN 4.0",
   description: "Browse all Spandan 4.0 events. Find competitions, cultural shows, literary events, and sports. Apply once your account is active.",

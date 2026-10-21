@@ -4,7 +4,7 @@ import { createPublicClient } from "@/server/supabase/public";
 import { FestTopNav } from "@/components/spandan-branding";
 import "../public-info.css";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type Notice = { id: string; title: string; body: string; urgency: "normal" | "important" | "urgent"; publish_at: string; events: { title: string } | null };
 function date(value: string) { return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(value)); }

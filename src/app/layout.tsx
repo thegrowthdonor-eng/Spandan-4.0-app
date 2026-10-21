@@ -4,6 +4,7 @@ import { InstalledAppNotificationPrompt } from "@/components/installed-app-notif
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PwaRegistration } from "@/components/pwa-registration";
 import { BottomNav } from "@/components/bottom-nav";
+import { NavigationProgress } from "@/components/navigation-progress";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { getActiveSession } from "@/server/auth/access";
 import "./globals.css";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en-IN">
       <body>
+        <NavigationProgress />
         <AppSplash />
         <PwaRegistration />
         <InstalledAppNotificationPrompt isAuthenticated={isAuthenticated} />

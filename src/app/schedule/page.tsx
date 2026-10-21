@@ -7,7 +7,7 @@ import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createPublicClient } from "@/server/supabase/public";
 import "../public-info.css";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type Fixture = {
   id: string;

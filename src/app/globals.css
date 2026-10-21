@@ -880,3 +880,19 @@ img, video { max-width: 100%; height: auto; }
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Fast Mobile Touch & Instant Tactile Feedback */
+a, button, .bnav-item, .gateway-card, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bnav-item:active,
+.gateway-card:active,
+.btn-approve:active,
+.btn-reject:active,
+.browse-events-btn:active {
+  transform: scale(0.97);
+  transition: transform 0.08s ease;
+}
+

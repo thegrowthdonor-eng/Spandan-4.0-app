@@ -7,7 +7,7 @@ import { createPublicClient } from "@/server/supabase/public";
 import { FestTopNav } from "@/components/spandan-branding";
 import "../public-info.css";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 export const metadata: Metadata = {
   title: "Results & Standings | SPANDAN 4.0",
