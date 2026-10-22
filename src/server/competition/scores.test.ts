@@ -8,6 +8,7 @@ test("renders legal cricket balls without decimal-over arithmetic", () => {
 });
 
 test("rejects invalid sport payloads while accepting defined templates", () => {
-  assert.deepEqual(validateScore("football", { teamAGoals: 2, teamBGoals: 1, period: "second_half" }), { teamAGoals: 2, teamBGoals: 1, period: "second_half" });
-  assert.throws(() => validateScore("cricket", { teamA: { runs: 8, wickets: 0, completedOvers: 1, legalBalls: 6 }, teamB: { runs: 0, wickets: 0, completedOvers: 0, legalBalls: 0 }, innings: 1 }));
+  assert.deepEqual(validateScore("football", { teamA_goals: "2", teamB_goals: "1" }), { teamA_goals: "2", teamB_goals: "1" });
+  assert.throws(() => validateScore("football", { teamA_goals: -1, teamB_goals: 1 }));
+  assert.throws(() => validateScore("cricket", { teamA_runs: "8", teamA_wickets: "0", teamA_overs: "1.6", teamB_runs: "0", teamB_wickets: "0", teamB_overs: "0.0" }));
 });

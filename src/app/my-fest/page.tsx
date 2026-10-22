@@ -7,6 +7,8 @@ import { createRequestClient } from "@/server/supabase/server";
 import { createAdminClient } from "@/server/supabase/admin";
 import { SpandanLogo } from "@/components/spandan-branding";
 import { SignOutForm } from "@/components/sign-out-form";
+import { PollWidget } from "./poll-widget";
+import { HelpDesk, type HelpThread } from "./support-tools";
 import "./my-fest.css";
 
 export const metadata = {
@@ -29,6 +31,15 @@ type Application = {
     starts_at: string | null;
     venue: string | null;
   } | null;
+};
+
+type Reminder = {
+  id: string;
+  title: string;
+  body: string | null;
+  due_at: string;
+  dismissed_at: string | null;
+  events: { title: string } | null;
 };
 
 function formatDateTime(value: string) {
@@ -60,7 +71,7 @@ export default async function MyFestPage() {
   }
 
   const admin = createAdminClient();
-  const [profileResult, accessResult, applicationResult, activationPermission, noticePermission, managedEvents] =
+  const [profileResult, accessResult, applicationResult, activationPermission, noticePermission, managedEvents, helpThreadsResult, remindersResult] =
     await Promise.all([
       admin
         .from("profiles")
@@ -80,6 +91,18 @@ export default async function MyFestPage() {
       client.rpc("can_manage_access"),
       client.rpc("can_publish_notices"),
       client.rpc("list_managed_events"),
+      client
+        .from("help_threads")
+        .select("id,subject,state,created_at,updated_at,help_messages(id,author_id,body,created_at,profiles(full_name))")
+        .eq("owner_id", auth.user.id)
+        .order("updated_at", { ascending: false }),
+      client
+        .from("reminders")
+        .select("id,title,body,due_at,dismissed_at,events(title)")
+        .eq("profile_id", auth.user.id)
+        .is("dismissed_at", null)
+        .order("due_at", { ascending: true })
+        .limit(20),
     ]);
 
   if (profileResult.error || !profileResult.data) {
@@ -132,6 +155,8 @@ export default async function MyFestPage() {
 
   const access = accessResult.data;
   const applications = (applicationResult.data ?? []) as unknown as Application[];
+  const helpThreads = (helpThreadsResult.data ?? []) as unknown as HelpThread[];
+  const reminders = (remindersResult.data ?? []) as unknown as Reminder[];
   const status = access?.state ?? "pending";
   const isOrganiser =
     activationPermission.data === true ||
@@ -355,6 +380,42 @@ export default async function MyFestPage() {
               </Link>
             </div>
           )}
+        </section>
+
+        <section className="section-block" aria-labelledby="reminders-title">
+          <div className="section-head">
+            <h2 id="reminders-title">Schedule reminders</h2>
+          </div>
+          {reminders.length ? (
+            <div className="reminder-list">
+              {reminders.map((reminder) => (
+                <article key={reminder.id} className="reminder-card">
+                  <div>
+                    <h3>{reminder.title}</h3>
+                    {reminder.body ? <p>{reminder.body}</p> : null}
+                    <small>{reminder.events?.title ?? "Festival fixture"}</small>
+                  </div>
+                  <time dateTime={reminder.due_at}>{formatDateTime(reminder.due_at)}</time>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="section-empty-note">No upcoming schedule reminders.</p>
+          )}
+        </section>
+
+        <section className="section-block" aria-labelledby="polls-title">
+          <div className="section-head">
+            <h2 id="polls-title">Festival polls</h2>
+          </div>
+          <PollWidget editionId={access?.edition_id} active={status === "active"} />
+        </section>
+
+        <section className="section-block" aria-labelledby="support-title">
+          <div className="section-head">
+            <h2 id="support-title">Help desk</h2>
+          </div>
+          <HelpDesk editionId={access?.edition_id} initialThreads={helpThreads} />
         </section>
 
         {/* ------------------------------------------------------------------

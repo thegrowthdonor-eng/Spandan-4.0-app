@@ -4,12 +4,14 @@ import { useState, useRef } from "react";
 import { compressImageFile, formatFileSize } from "@/lib/image-compressor";
 
 interface ImageUploadWidgetProps {
+  eventId: string;
   folder?: string;
   onUploadSuccess: (url: string) => void;
   label?: string;
 }
 
 export function ImageUploadWidget({
+  eventId,
   folder = "posters",
   onUploadSuccess,
   label = "Upload Image (Auto-Compress to WebP)",
@@ -51,6 +53,7 @@ export function ImageUploadWidget({
       const formData = new FormData();
       formData.append("file", compression.file);
       formData.append("folder", folder);
+      formData.append("eventId", eventId);
 
       const res = await fetch("/api/admin/upload", {
         method: "POST",

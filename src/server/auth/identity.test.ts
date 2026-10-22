@@ -4,28 +4,28 @@ import { canonicaliseBatchRoll, createRecoveryToken, hashRateLimitKey, hashRecov
 
 const pepper = "test-pepper-must-be-at-least-thirty-two-characters";
 
-test("canonicalises harmless batch-roll formatting without losing meaningful characters", () => {
-  assert.deepEqual(canonicaliseBatchRoll({ batch: " mbbs   2024 ", rollNumber: " 047 " }), {
+test("canonicalises harmless batch formatting while preserving a canonical roll", () => {
+  assert.deepEqual(canonicaliseBatchRoll({ batch: " mbbs   2024 ", rollNumber: " 47 " }), {
     batch: "MBBS 2024",
-    rollNumber: "047",
+    rollNumber: "47",
   });
 });
 
 test("produces stable, private reserved-domain email identities", () => {
-  const identifier = toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "047" }, pepper);
+  const identifier = toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "47" }, pepper);
   assert.match(identifier, /^spandan\+[a-f0-9]{64}@spandan\.invalid$/);
-  assert.equal(identifier, toPrivateAuthEmail({ batch: " mbbs  2024 ", rollNumber: "047" }, pepper));
-  assert.notEqual(identifier, toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "048" }, pepper));
+  assert.equal(identifier, toPrivateAuthEmail({ batch: " mbbs  2024 ", rollNumber: "47" }, pepper));
+  assert.notEqual(identifier, toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "48" }, pepper));
 });
 
 test("rejects a dangerously short identity pepper", () => {
-  assert.throws(() => toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "047" }, "short"));
+  assert.throws(() => toPrivateAuthEmail({ batch: "MBBS 2024", rollNumber: "47" }, "short"));
 });
 
 test("hashes rate-limit keys without retaining identifiers", () => {
-  const hash = hashRateLimitKey("account:MBBS 2024\u001f047", pepper);
+  const hash = hashRateLimitKey("account:MBBS 2024\u001f47", pepper);
   assert.match(hash, /^[a-f0-9]{64}$/);
-  assert.equal(hash.includes("047"), false);
+  assert.equal(hash.includes("47"), false);
   assert.equal(hash.includes("MBBS"), false);
 });
 

@@ -16,6 +16,14 @@ export type HelpThreadStaff = {
   message_count: number;
 };
 
+type HelpMessage = {
+  message_id: string;
+  author_id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+};
+
 export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -27,6 +35,8 @@ export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
   const [replyMessage, setReplyMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError?: boolean } | null>(null);
+  const [messages, setMessages] = useState<HelpMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   const filtered = useMemo(() => {
     return threads.filter((t) => {
@@ -63,6 +73,7 @@ export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
         setStatusMessage({ text: `Thread updated (${actionType.replace("_", " ")}).` });
         setActiveThread(null);
         setReplyMessage("");
+        setMessages([]);
         router.refresh();
       } else {
         setStatusMessage({ text: data.error ?? "Failed to update thread.", isError: true });
@@ -71,6 +82,24 @@ export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
       setStatusMessage({ text: "Network error updating thread.", isError: true });
     } finally {
       setPending(false);
+    }
+  }
+
+  async function openThread(thread: HelpThreadStaff) {
+    setActiveThread(thread);
+    setActionType(thread.assigned_to_name ? "resolve" : "assign_self");
+    setReplyMessage("");
+    setMessages([]);
+    setMessagesLoading(true);
+    try {
+      const response = await fetch(`/api/admin/help?threadId=${thread.thread_id}`, { cache: "no-store" });
+      const data = (await response.json()) as { messages?: HelpMessage[]; error?: string };
+      if (!response.ok) setStatusMessage({ text: data.error ?? "Unable to load this conversation.", isError: true });
+      else setMessages(data.messages ?? []);
+    } catch {
+      setStatusMessage({ text: "Network error loading this conversation.", isError: true });
+    } finally {
+      setMessagesLoading(false);
     }
   }
 
@@ -165,10 +194,7 @@ export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
                 <button
                   type="button"
                   className="btn-action primary"
-                  onClick={() => {
-                    setActiveThread(t);
-                    setActionType(t.assigned_to_name ? "resolve" : "assign_self");
-                  }}
+                  onClick={() => void openThread(t)}
                 >
                   Manage Request
                 </button>
@@ -186,6 +212,16 @@ export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
             <p>
               Subject: <strong>{activeThread.subject}</strong> · Student: <strong>{activeThread.owner_name}</strong>
             </p>
+
+            <section className="help-conversation" aria-label="Help request conversation">
+              <h3>Conversation</h3>
+              {messagesLoading ? <p>Loading messages…</p> : messages.length ? <div className="help-message-list">{messages.map((message) => (
+                <article key={message.message_id} className="help-message">
+                  <header><strong>{message.author_name}</strong><time dateTime={message.created_at}>{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(message.created_at))}</time></header>
+                  <p>{message.body}</p>
+                </article>
+              ))}</div> : <p>No messages were found for this thread.</p>}
+            </section>
 
             <form onSubmit={handleActionSubmit}>
               <label className="modal-label">
@@ -220,6 +256,7 @@ export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
                   onClick={() => {
                     setActiveThread(null);
                     setReplyMessage("");
+                    setMessages([]);
                   }}
                 >
                   Cancel

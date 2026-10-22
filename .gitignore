@@ -6,4 +6,5 @@ node_modules/
 *.tsbuildinfo
 
 .vercel
-.env*
+.vscode/
+scratch/

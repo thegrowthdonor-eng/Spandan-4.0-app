@@ -1,21 +1,24 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useReducer, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 function NavigationProgressBarInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [state, dispatch] = useReducer(progressReducer, { loading: false, progress: 0 });
+  const loadingRef = useRef(false);
+
+  useEffect(() => {
+    loadingRef.current = state.loading;
+  }, [state.loading]);
 
   // Complete progress on route change
   useEffect(() => {
-    if (loading) {
-      setProgress(100);
+    if (loadingRef.current) {
+      dispatch({ type: "complete" });
       const timer = setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
+        dispatch({ type: "reset" });
       }, 300);
       return () => clearTimeout(timer);
     }
@@ -24,18 +27,13 @@ function NavigationProgressBarInner() {
   // Trickle progress while loading
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (loading) {
-      setProgress(25);
+    if (state.loading) {
       interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 85) return prev;
-          const next = prev + Math.random() * 12;
-          return next > 85 ? 85 : next;
-        });
+        dispatch({ type: "trickle" });
       }, 250);
     }
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [state.loading]);
 
   // Intercept all link clicks for instant 0ms visual feedback
   useEffect(() => {
@@ -68,8 +66,7 @@ function NavigationProgressBarInner() {
           targetUrl.origin === currentUrl.origin &&
           (targetUrl.pathname !== currentUrl.pathname || targetUrl.search !== currentUrl.search)
         ) {
-          setLoading(true);
-          setProgress(20);
+          dispatch({ type: "start" });
         }
       } catch {
         // Skip invalid URL
@@ -80,7 +77,7 @@ function NavigationProgressBarInner() {
     return () => document.removeEventListener("click", handleClick, { capture: true });
   }, []);
 
-  if (!loading && progress === 0) return null;
+  if (!state.loading && state.progress === 0) return null;
 
   return (
     <div
@@ -88,7 +85,7 @@ function NavigationProgressBarInner() {
       role="progressbar"
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={progress}
+      aria-valuenow={state.progress}
       aria-label="Loading page"
       style={{
         position: "fixed",
@@ -104,16 +101,34 @@ function NavigationProgressBarInner() {
       <div
         style={{
           height: "100%",
-          width: `${progress}%`,
+          width: `${state.progress}%`,
           background: "linear-gradient(90deg, #a9533e 0%, #c47656 40%, #e2a048 75%, #4ade80 100%)",
           boxShadow: "0 0 12px rgba(169, 83, 62, 0.8), 0 0 6px rgba(226, 160, 72, 0.9)",
-          transition: progress === 100 ? "width 180ms ease-out, opacity 300ms 120ms ease" : "width 280ms ease-out",
-          opacity: progress === 100 ? 0 : 1,
+          transition: state.progress === 100 ? "width 180ms ease-out, opacity 300ms 120ms ease" : "width 280ms ease-out",
+          opacity: state.progress === 100 ? 0 : 1,
           borderRadius: "0 2px 2px 0",
         }}
       />
     </div>
   );
+}
+
+type ProgressState = { loading: boolean; progress: number };
+type ProgressAction = { type: "start" } | { type: "complete" } | { type: "reset" } | { type: "trickle" };
+
+function progressReducer(state: ProgressState, action: ProgressAction): ProgressState {
+  switch (action.type) {
+    case "start":
+      return { loading: true, progress: Math.max(state.progress, 20) };
+    case "complete":
+      return state.loading ? { loading: true, progress: 100 } : state;
+    case "reset":
+      return { loading: false, progress: 0 };
+    case "trickle": {
+      if (!state.loading || state.progress >= 85) return state;
+      return { ...state, progress: Math.min(85, state.progress + Math.random() * 12) };
+    }
+  }
 }
 
 export function NavigationProgress() {

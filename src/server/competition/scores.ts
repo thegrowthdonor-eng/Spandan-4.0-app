@@ -1,32 +1,32 @@
 import { z } from "zod";
 
-const nonNegativeInteger = z.number().int().min(0);
-
-const cricketInnings = z.object({
-  runs: nonNegativeInteger,
-  wickets: z.number().int().min(0).max(10),
-  completedOvers: nonNegativeInteger,
-  legalBalls: z.number().int().min(0).max(5),
-});
-
+// These schemas intentionally mirror the staff score-entry controls. The RPC
+// repeats equivalent rules, so alternate clients cannot bypass validation.
+const wholeNumber = z.union([z.number().int().min(0), z.string().regex(/^\d+$/)]);
 const cricket = z.object({
-  teamA: cricketInnings,
-  teamB: cricketInnings,
-  target: nonNegativeInteger.optional(),
-  innings: z.number().int().min(1).max(4),
-});
-
+  teamA_runs: wholeNumber.refine((value) => Number(value) <= 999),
+  teamA_wickets: wholeNumber.refine((value) => Number(value) <= 10),
+  teamA_overs: z.string().regex(/^\d+\.[0-5]$/),
+  teamB_runs: wholeNumber.refine((value) => Number(value) <= 999),
+  teamB_wickets: wholeNumber.refine((value) => Number(value) <= 10),
+  teamB_overs: z.string().regex(/^\d+\.[0-5]$/),
+  summary: z.string().max(1000).optional(),
+}).strict();
 const football = z.object({
-  teamAGoals: nonNegativeInteger,
-  teamBGoals: nonNegativeInteger,
-  period: z.enum(["first_half", "half_time", "second_half", "extra_time", "penalties", "final"]),
-  teamAPenalties: nonNegativeInteger.optional(),
-  teamBPenalties: nonNegativeInteger.optional(),
-});
-
-const badmintonGame = z.object({ teamA: nonNegativeInteger, teamB: nonNegativeInteger });
-const badminton = z.object({ games: z.array(badmintonGame).min(1).max(5), currentGame: z.number().int().min(1).max(5) });
-const generic = z.record(z.string(), z.unknown());
+  teamA_goals: wholeNumber.refine((value) => Number(value) <= 99),
+  teamB_goals: wholeNumber.refine((value) => Number(value) <= 99),
+  penalties: z.string().max(160).optional(),
+}).strict();
+const badminton = z.object({
+  set1: z.string().regex(/^\d{1,3}-\d{1,3}$/),
+  set2: z.string().regex(/^\d{1,3}-\d{1,3}$/).optional().or(z.literal("")),
+  set3: z.string().regex(/^\d{1,3}-\d{1,3}$/).optional().or(z.literal("")),
+  winner: z.string().max(160).optional(),
+}).strict();
+const generic = z.object({ winner: z.string().max(160).optional(), summary: z.string().max(1000).optional() }).strict().refine(
+  (value) => Boolean(value.winner?.trim() || value.summary?.trim()),
+  "A result or summary is required."
+);
 
 const schemas = { cricket, football, badminton, generic } as const;
 export type ScoreTemplate = keyof typeof schemas;

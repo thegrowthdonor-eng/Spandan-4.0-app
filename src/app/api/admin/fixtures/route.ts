@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { fixtureCommandSchema, fixtureCreateSchema } from "@/server/auth/contracts";
+import { type ScoreTemplate, validateScore } from "@/server/competition/scores";
+import { parseFixturePayload } from "@/server/competition/fixture-request";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 
 export const runtime = "nodejs";
@@ -65,9 +66,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid fixture request." }, { status: 403, headers });
   }
 
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
-    body = (await request.json()) as Record<string, unknown>;
+    body = await request.json();
   } catch {
     return NextResponse.json({ error: "Check the fixture payload and try again." }, { status: 400, headers });
   }
@@ -76,33 +77,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Fixtures service unavailable." }, { status: 503, headers });
   }
 
-  // Support both command union and legacy create
-  let command:
-    | { action: "create"; eventId: string; stage: string; participantALabel: string; participantBLabel: string; venue?: string; reportingAt: string | null; startsAt: string | null }
-    | { action: "reschedule"; fixtureId: string; reportingAt: string | null; startsAt: string | null; venue?: string; reason: string }
-    | { action: "score"; fixtureId: string; expectedVersion: number; scorePayload: Record<string, unknown>; status: "scheduled" | "live" | "paused" | "final" | "cancelled" }
-    | { action: "reminders"; fixtureId: string; body?: string };
-
-  if (body.action) {
-    const parsed = fixtureCommandSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Invalid fixture command." },
-        { status: 400, headers }
-      );
-    }
-    command = parsed.data;
-  } else {
-    // Legacy create format
-    const parsed = fixtureCreateSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Invalid fixture creation details." },
-        { status: 400, headers }
-      );
-    }
-    command = { action: "create", ...parsed.data };
-  }
+  const payload = parseFixturePayload(body);
+  if (!payload.success) return NextResponse.json({ error: payload.error }, { status: 400, headers });
+  const { command } = payload;
 
   const denied = NextResponse.json({ error: "Not authorised for this fixture operation." }, { status: 403, headers });
   const store = await cookies();
@@ -154,7 +131,7 @@ export async function POST(request: Request) {
     if (error) {
       if (error.code === "42501" || error.code === "28000") return denied;
       if (error.code === "22023") {
-        return NextResponse.json({ error: "A reschedule reason is required." }, { status: 400, headers });
+        return NextResponse.json({ error: error.message || "Check the reporting time, start time, and reschedule reason." }, { status: 400, headers });
       }
       return NextResponse.json({ error: "Unable to reschedule fixture right now." }, { status: 503, headers });
     }
@@ -163,6 +140,18 @@ export async function POST(request: Request) {
   }
 
   if (command.action === "score") {
+    const { data: template, error: templateError } = await client.rpc("get_fixture_score_template", {
+      p_fixture_id: command.fixtureId,
+    });
+    if (templateError) {
+      if (templateError.code === "42501" || templateError.code === "28000") return denied;
+      return NextResponse.json({ error: "Unable to validate this fixture score." }, { status: 503, headers });
+    }
+    try {
+      validateScore(template as ScoreTemplate, command.scorePayload);
+    } catch {
+      return NextResponse.json({ error: "Score fields do not match this event's score template." }, { status: 400, headers });
+    }
     const { data, error } = await client.rpc("write_score_snapshot", {
       p_fixture_id: command.fixtureId,
       p_expected_version: command.expectedVersion,

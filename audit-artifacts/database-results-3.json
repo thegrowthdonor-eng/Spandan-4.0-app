@@ -1,0 +1,92 @@
+[
+  {
+    "label": "participant cannot issue recovery",
+    "expected": "42501",
+    "observed": "42501: Not authorised to issue recovery",
+    "passed": true
+  },
+  {
+    "label": "admin recovery token issue",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "treasurer recovery denied",
+    "expected": "42501",
+    "observed": "42501: Not authorised to issue recovery",
+    "passed": true
+  },
+  {
+    "label": "active feedback submission",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "pending feedback blocked",
+    "expected": "42501",
+    "observed": "42501: Account is not active for feedback",
+    "passed": true
+  },
+  {
+    "label": "missing gender cannot bypass division",
+    "expected": "42501",
+    "observed": "submitted",
+    "passed": false
+  },
+  {
+    "label": "required answer missing rejected",
+    "expected": "22023",
+    "observed": "22023: Complete every required event question",
+    "passed": true
+  },
+  {
+    "label": "invalid select option rejected",
+    "expected": "22023",
+    "observed": "submitted",
+    "passed": false
+  },
+  {
+    "label": "approve own event",
+    "expected": "approved",
+    "observed": "approved",
+    "passed": true
+  },
+  {
+    "label": "select own event",
+    "expected": "selected",
+    "observed": "selected",
+    "passed": true
+  },
+  {
+    "label": "configure points",
+    "expected": "false",
+    "observed": "false",
+    "passed": true
+  },
+  {
+    "label": "publish results first",
+    "expected": "1",
+    "observed": "1",
+    "passed": true
+  },
+  {
+    "label": "correct results with reason",
+    "expected": "2",
+    "observed": "2",
+    "passed": true
+  },
+  {
+    "label": "correction does not double count points",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "cannot suspend own main-admin profile",
+    "expected": "22023",
+    "observed": "22023: You cannot suspend or reject your own Admin profile",
+    "passed": true
+  }
+]

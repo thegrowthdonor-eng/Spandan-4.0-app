@@ -12,7 +12,12 @@ export function InviteSetup({ recovery = false }: { recovery?: boolean }) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash.replace(/^#/, "").trim();
-      if (hash) setHashToken(hash);
+      if (hash) {
+        // Keep the server and initial client markup identical, then read the
+        // fragment after hydration. URL fragments are never sent to the server.
+        const timer = window.setTimeout(() => setHashToken(hash), 0);
+        return () => window.clearTimeout(timer);
+      }
     }
   }, []);
 
@@ -43,6 +48,7 @@ export function InviteSetup({ recovery = false }: { recovery?: boolean }) {
         const form = new FormData(e.currentTarget);
         const pass = form.get("password") as string;
         const confirm = form.get("confirm") as string;
+        const gender = form.get("gender") as string;
         const tokenVal = ((form.get("token") as string) || hashToken || (typeof window !== "undefined" ? window.location.hash.replace(/^#/, "").trim() : "")).trim();
 
         if (!tokenVal) {
@@ -57,6 +63,10 @@ export function InviteSetup({ recovery = false }: { recovery?: boolean }) {
           setMessage("Passwords do not match.");
           return;
         }
+        if (!recovery && !["male", "female", "other", "prefer_not_to_say"].includes(gender)) {
+          setMessage("Please choose your gender. It is required for event eligibility.");
+          return;
+        }
 
         setPending(true);
         setMessage("");
@@ -64,7 +74,7 @@ export function InviteSetup({ recovery = false }: { recovery?: boolean }) {
           const res = await fetch(recovery ? "/api/auth/recovery/redeem" : "/api/auth/invite", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: tokenVal, password: pass }),
+            body: JSON.stringify(recovery ? { token: tokenVal, password: pass } : { token: tokenVal, password: pass, gender }),
           });
           const body = (await res.json().catch(() => ({}))) as { error?: string };
           if (!res.ok) {
@@ -98,6 +108,22 @@ export function InviteSetup({ recovery = false }: { recovery?: boolean }) {
             autoComplete="off"
             spellCheck={false}
           />
+        </div>
+      )}
+
+      {!recovery && (
+        <div className="field-group">
+          <label htmlFor="invite-gender">
+            <span className="label-text">Gender</span>
+            <span className="label-hint">Used only for boys/girls event eligibility</span>
+          </label>
+          <select id="invite-gender" name="gender" required disabled={pending} defaultValue="">
+            <option value="" disabled>Select your gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
         </div>
       )}
 

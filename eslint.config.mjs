@@ -5,5 +5,6 @@ import nextTypescript from "eslint-config-next/typescript";
 export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
-  globalIgnores([".next/**", "node_modules/**"]),
+  // Audit evidence and one-off content tooling are not shipped application code.
+  globalIgnores([".next/**", "node_modules/**", "audit-artifacts/**", "scratch/**"]),
 ]);

@@ -1,0 +1,1409 @@
+{
+  "pages": [
+    {
+      "role": "guest",
+      "route": "/",
+      "status": 200,
+      "finalPath": "/",
+      "heading": [
+        "SPANDAN4.0"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/home",
+      "status": 200,
+      "finalPath": "/",
+      "heading": [
+        "SPANDAN4.0"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/guest",
+      "status": 200,
+      "finalPath": "/guest",
+      "heading": [
+        "Festival information,open to everyone."
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/events",
+      "status": 200,
+      "finalPath": "/events",
+      "heading": [
+        "Find your festival arena"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/schedule",
+      "status": 200,
+      "finalPath": "/schedule",
+      "heading": [
+        "Festival Schedule & Campus Feed"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/live",
+      "status": 200,
+      "finalPath": "/live",
+      "heading": [
+        "Live matches"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/standings",
+      "status": 200,
+      "finalPath": "/standings",
+      "heading": [
+        "Results & Standings"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/notices",
+      "status": 200,
+      "finalPath": "/notices",
+      "heading": [
+        "Fest Notices & Circulars"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/sponsors",
+      "status": 200,
+      "finalPath": "/sponsors",
+      "heading": [
+        "Festival Sponsors & Partners"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/gallery",
+      "status": 200,
+      "finalPath": "/gallery",
+      "heading": [
+        "Festival Moments & Reveals"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/merchandise",
+      "status": 200,
+      "finalPath": "/merchandise",
+      "heading": [
+        "Merch details coming soon"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/committee",
+      "status": 200,
+      "finalPath": "/committee",
+      "heading": [
+        "Committee details coming soon"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/faqs",
+      "status": 200,
+      "finalPath": "/faqs",
+      "heading": [
+        "Rules & FAQs"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/account",
+      "status": 200,
+      "finalPath": "/account",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/account/recover",
+      "status": 200,
+      "finalPath": "/account/recover",
+      "heading": [
+        "Reset password"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/account/invite",
+      "status": 200,
+      "finalPath": "/account/invite",
+      "heading": [
+        "Welcome to Spandan"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/my-fest",
+      "status": 200,
+      "finalPath": "/account",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/admin",
+      "status": 200,
+      "finalPath": "/account",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/setup",
+      "status": 200,
+      "finalPath": "/setup",
+      "heading": [
+        "StartSPANDAN."
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "guest",
+      "route": "/offline",
+      "status": 200,
+      "finalPath": "/offline",
+      "heading": [
+        "You're offline."
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/my-fest",
+      "status": 200,
+      "finalPath": "/my-fest",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin",
+      "status": 200,
+      "finalPath": "/admin",
+      "heading": [
+        "Operations Hub"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/activation",
+      "status": 200,
+      "finalPath": "/admin/activation",
+      "heading": [
+        "Activation queue"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/events",
+      "status": 200,
+      "finalPath": "/admin/events",
+      "heading": [
+        "Event editor & catalogue",
+        "100m Sprint — Boys"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/review",
+      "status": 200,
+      "finalPath": "/admin/review",
+      "heading": [
+        "Application review"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/selection",
+      "status": 200,
+      "finalPath": "/admin/selection",
+      "heading": [
+        "Participant selection"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/groups",
+      "status": 200,
+      "finalPath": "/admin/groups",
+      "heading": [
+        "Groups & captains"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/fixtures",
+      "status": 200,
+      "finalPath": "/admin/fixtures",
+      "heading": [
+        "Fixtures & scores"
+      ],
+      "restricted": false,
+      "warning": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/results",
+      "status": 200,
+      "finalPath": "/admin/results",
+      "heading": [
+        "Results & podium"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/help",
+      "status": 200,
+      "finalPath": "/admin/help",
+      "heading": [
+        "Support desk"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/notices",
+      "status": 200,
+      "finalPath": "/admin/notices",
+      "heading": [
+        "Official notices"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "participant",
+      "route": "/admin/control",
+      "status": 200,
+      "finalPath": "/admin/control",
+      "heading": [
+        "Control centre"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/my-fest",
+      "status": 200,
+      "finalPath": "/my-fest",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin",
+      "status": 200,
+      "finalPath": "/admin",
+      "heading": [
+        "Operations Hub"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/activation",
+      "status": 200,
+      "finalPath": "/admin/activation",
+      "heading": [
+        "Activation queue"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/events",
+      "status": 200,
+      "finalPath": "/admin/events",
+      "heading": [
+        "Event editor & catalogue",
+        "100m Sprint — Boys"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/review",
+      "status": 200,
+      "finalPath": "/admin/review",
+      "heading": [
+        "Application review"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/selection",
+      "status": 200,
+      "finalPath": "/admin/selection",
+      "heading": [
+        "Participant selection"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/groups",
+      "status": 200,
+      "finalPath": "/admin/groups",
+      "heading": [
+        "Groups & captains"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/fixtures",
+      "status": 200,
+      "finalPath": "/admin/fixtures",
+      "heading": [
+        "Fixtures & scores"
+      ],
+      "restricted": false,
+      "warning": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/results",
+      "status": 200,
+      "finalPath": "/admin/results",
+      "heading": [
+        "Results & podium"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/help",
+      "status": 200,
+      "finalPath": "/admin/help",
+      "heading": [
+        "Support desk"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/notices",
+      "status": 200,
+      "finalPath": "/admin/notices",
+      "heading": [
+        "Official notices"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "treasurer",
+      "route": "/admin/control",
+      "status": 200,
+      "finalPath": "/admin/control",
+      "heading": [
+        "Control centre"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/my-fest",
+      "status": 200,
+      "finalPath": "/my-fest",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin",
+      "status": 200,
+      "finalPath": "/admin",
+      "heading": [
+        "Operations Hub"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/activation",
+      "status": 200,
+      "finalPath": "/admin/activation",
+      "heading": [
+        "Activation queue"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/events",
+      "status": 200,
+      "finalPath": "/admin/events",
+      "heading": [
+        "Event editor & catalogue",
+        "100m Sprint — Boys"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/review",
+      "status": 200,
+      "finalPath": "/admin/review",
+      "heading": [
+        "Application review"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/selection",
+      "status": 200,
+      "finalPath": "/admin/selection",
+      "heading": [
+        "Participant selection"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/groups",
+      "status": 200,
+      "finalPath": "/admin/groups",
+      "heading": [
+        "Groups & captains"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/fixtures",
+      "status": 200,
+      "finalPath": "/admin/fixtures",
+      "heading": [
+        "Fixtures & scores"
+      ],
+      "restricted": false,
+      "warning": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/results",
+      "status": 200,
+      "finalPath": "/admin/results",
+      "heading": [
+        "Results & podium"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/help",
+      "status": 200,
+      "finalPath": "/admin/help",
+      "heading": [
+        "Support desk"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/notices",
+      "status": 200,
+      "finalPath": "/admin/notices",
+      "heading": [
+        "Official notices"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_head",
+      "route": "/admin/control",
+      "status": 200,
+      "finalPath": "/admin/control",
+      "heading": [
+        "Control centre"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/my-fest",
+      "status": 200,
+      "finalPath": "/my-fest",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin",
+      "status": 200,
+      "finalPath": "/admin",
+      "heading": [
+        "Operations Hub"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/activation",
+      "status": 200,
+      "finalPath": "/admin/activation",
+      "heading": [
+        "Activation queue"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/events",
+      "status": 200,
+      "finalPath": "/admin/events",
+      "heading": [
+        "Event editor & catalogue",
+        "100m Sprint — Boys"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/review",
+      "status": 200,
+      "finalPath": "/admin/review",
+      "heading": [
+        "Application review"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/selection",
+      "status": 200,
+      "finalPath": "/admin/selection",
+      "heading": [
+        "Participant selection"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/groups",
+      "status": 200,
+      "finalPath": "/admin/groups",
+      "heading": [
+        "Groups & captains"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/fixtures",
+      "status": 200,
+      "finalPath": "/admin/fixtures",
+      "heading": [
+        "Fixtures & scores"
+      ],
+      "restricted": false,
+      "warning": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/results",
+      "status": 200,
+      "finalPath": "/admin/results",
+      "heading": [
+        "Results & podium"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/help",
+      "status": 200,
+      "finalPath": "/admin/help",
+      "heading": [
+        "Support desk"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/notices",
+      "status": 200,
+      "finalPath": "/admin/notices",
+      "heading": [
+        "Official notices"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "event_coordinator",
+      "route": "/admin/control",
+      "status": 200,
+      "finalPath": "/admin/control",
+      "heading": [
+        "Control centre"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/my-fest",
+      "status": 200,
+      "finalPath": "/my-fest",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin",
+      "status": 200,
+      "finalPath": "/admin",
+      "heading": [
+        "Operations Hub"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/activation",
+      "status": 200,
+      "finalPath": "/admin/activation",
+      "heading": [
+        "Activation queue"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/events",
+      "status": 200,
+      "finalPath": "/admin/events",
+      "heading": [
+        "Event editor & catalogue",
+        "100m Sprint — Boys"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/review",
+      "status": 200,
+      "finalPath": "/admin/review",
+      "heading": [
+        "Application review"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/selection",
+      "status": 200,
+      "finalPath": "/admin/selection",
+      "heading": [
+        "Participant selection"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/groups",
+      "status": 200,
+      "finalPath": "/admin/groups",
+      "heading": [
+        "Groups & captains"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/fixtures",
+      "status": 200,
+      "finalPath": "/admin/fixtures",
+      "heading": [
+        "Fixtures & scores"
+      ],
+      "restricted": false,
+      "warning": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/results",
+      "status": 200,
+      "finalPath": "/admin/results",
+      "heading": [
+        "Results & podium"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/help",
+      "status": 200,
+      "finalPath": "/admin/help",
+      "heading": [
+        "Support desk"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/notices",
+      "status": 200,
+      "finalPath": "/admin/notices",
+      "heading": [
+        "Official notices"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "notice_publisher",
+      "route": "/admin/control",
+      "status": 200,
+      "finalPath": "/admin/control",
+      "heading": [
+        "Control centre"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/my-fest",
+      "status": 200,
+      "finalPath": "/my-fest",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin",
+      "status": 200,
+      "finalPath": "/admin",
+      "heading": [
+        "Operations Hub"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/activation",
+      "status": 200,
+      "finalPath": "/admin/activation",
+      "heading": [
+        "Activation queue"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/events",
+      "status": 200,
+      "finalPath": "/admin/events",
+      "heading": [
+        "Event editor & catalogue",
+        "100m Sprint — Boys"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/review",
+      "status": 200,
+      "finalPath": "/admin/review",
+      "heading": [
+        "Application review"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/selection",
+      "status": 200,
+      "finalPath": "/admin/selection",
+      "heading": [
+        "Participant selection"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/groups",
+      "status": 200,
+      "finalPath": "/admin/groups",
+      "heading": [
+        "Groups & captains"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/fixtures",
+      "status": 200,
+      "finalPath": "/admin/fixtures",
+      "heading": [
+        "Fixtures & scores"
+      ],
+      "restricted": false,
+      "warning": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/results",
+      "status": 200,
+      "finalPath": "/admin/results",
+      "heading": [
+        "Results & podium"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/help",
+      "status": 200,
+      "finalPath": "/admin/help",
+      "heading": [
+        "Support desk"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/notices",
+      "status": 200,
+      "finalPath": "/admin/notices",
+      "heading": [
+        "Official notices"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "main_admin",
+      "route": "/admin/control",
+      "status": 200,
+      "finalPath": "/admin/control",
+      "heading": [
+        "Control centre"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/my-fest",
+      "status": 200,
+      "finalPath": "/my-fest",
+      "heading": [],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin",
+      "status": 200,
+      "finalPath": "/admin",
+      "heading": [
+        "Operations Hub"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/activation",
+      "status": 200,
+      "finalPath": "/admin/activation",
+      "heading": [
+        "Activation queue"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/events",
+      "status": 200,
+      "finalPath": "/admin/events",
+      "heading": [
+        "Event editor & catalogue",
+        "100m Sprint — Boys"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/review",
+      "status": 200,
+      "finalPath": "/admin/review",
+      "heading": [
+        "Application review"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/selection",
+      "status": 200,
+      "finalPath": "/admin/selection",
+      "heading": [
+        "Participant selection"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/groups",
+      "status": 200,
+      "finalPath": "/admin/groups",
+      "heading": [
+        "Groups & captains"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/fixtures",
+      "status": 200,
+      "finalPath": "/admin/fixtures",
+      "heading": [
+        "Fixtures & scores"
+      ],
+      "restricted": false,
+      "warning": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/results",
+      "status": 200,
+      "finalPath": "/admin/results",
+      "heading": [
+        "Results & podium"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/help",
+      "status": 200,
+      "finalPath": "/admin/help",
+      "heading": [
+        "Support desk"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/notices",
+      "status": 200,
+      "finalPath": "/admin/notices",
+      "heading": [
+        "Official notices"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "role": "pending",
+      "route": "/admin/control",
+      "status": 200,
+      "finalPath": "/admin/control",
+      "heading": [
+        "Control centre"
+      ],
+      "restricted": false,
+      "warning": false,
+      "overflow": false,
+      "errors": []
+    }
+  ],
+  "api": [
+    {
+      "url": "/api/applications",
+      "method": "POST",
+      "status": 401,
+      "body": "{\"error\":\"Please sign in to apply.\"}"
+    },
+    {
+      "url": "/api/admin/fixtures",
+      "method": "POST",
+      "status": 500,
+      "body": ""
+    },
+    {
+      "url": "/api/admin/committee",
+      "method": "POST",
+      "status": 403,
+      "body": "{\"error\":\"Only a current Main Admin can change committee access.\"}"
+    },
+    {
+      "url": "/api/auth/login",
+      "method": "POST",
+      "status": 401,
+      "body": "{\"error\":\"Unable to sign in with those credentials.\"}"
+    },
+    {
+      "role": "participant",
+      "url": "/api/admin/results",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "pointRules": [],
+        "results": [],
+        "participants": []
+      }
+    }
+  ],
+  "cleanup": [
+    {
+      "object": "event"
+    },
+    {
+      "object": "test_user"
+    },
+    {
+      "object": "test_user"
+    },
+    {
+      "object": "test_user"
+    },
+    {
+      "object": "test_user"
+    },
+    {
+      "object": "test_user"
+    },
+    {
+      "object": "test_user"
+    },
+    {
+      "object": "test_user"
+    },
+    {
+      "object": "edition"
+    }
+  ]
+}

@@ -9,7 +9,7 @@ import "../admin.css";
 export const dynamic = "force-dynamic";
 
 type Candidate = { profile_id: string; full_name: string; fest_id: string; batch_label: string };
-type CommitteeMember = { assignment_id: string; profile_id: string; full_name: string; fest_id: string; batch_label: string; role: "main_admin" | "treasurer" | "event_head" | "notice_publisher"; event_id: string | null; event_title: string | null; granted_at: string };
+type CommitteeMember = { assignment_id: string; profile_id: string; full_name: string; fest_id: string; batch_label: string; role: "main_admin" | "treasurer" | "event_head" | "notice_publisher" | "event_coordinator"; event_id: string | null; event_title: string | null; granted_at: string };
 type EventRow = { event_id: string; title: string; category: string; state: string };
 type Edition = { edition_id: string; name: string; starts_on: string | null; ends_on: string | null; status: string };
 

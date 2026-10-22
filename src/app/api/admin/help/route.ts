@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const headers = { "Cache-Control": "no-store" };
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!hasPublicSupabaseConfiguration()) {
     return NextResponse.json({ error: "Help desk service unavailable." }, { status: 503, headers });
   }
@@ -30,13 +30,19 @@ export async function GET() {
 
   if (!(await client.auth.getUser()).data.user) return denied;
 
-  const { data, error } = await client.rpc("list_help_threads_for_staff");
+  const threadId = new URL(request.url).searchParams.get("threadId");
+  if (threadId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(threadId)) {
+    return NextResponse.json({ error: "Valid help thread ID required." }, { status: 400, headers });
+  }
+  const { data, error } = threadId
+    ? await client.rpc("get_help_thread_messages", { p_thread_id: threadId })
+    : await client.rpc("list_help_threads_for_staff");
   if (error) {
     if (error.code === "42501" || error.code === "28000") return denied;
     return NextResponse.json({ error: "Unable to load help desk threads." }, { status: 500, headers });
   }
 
-  return NextResponse.json({ ok: true, threads: data ?? [] }, { headers });
+  return NextResponse.json(threadId ? { ok: true, messages: data ?? [] } : { ok: true, threads: data ?? [] }, { headers });
 }
 
 export async function POST(request: Request) {

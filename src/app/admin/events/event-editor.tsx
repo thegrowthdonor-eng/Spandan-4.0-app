@@ -436,6 +436,7 @@ export function EventEditor({ events, editions, isAdmin = true }: { events: Even
                 <label>
                   Event Poster / Banner Image
                   <ImageUploadWidget
+                    eventId={current.event_id}
                     folder="posters"
                     onUploadSuccess={(url) => setPosterUrl(url)}
                     label="Upload Poster (Auto-Compress to WebP)"

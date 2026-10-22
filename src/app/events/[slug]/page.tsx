@@ -296,7 +296,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       );
     }
     const requiredGender = division === "boys" ? "male" : division === "girls" ? "female" : null;
-    if (requiredGender && userGender && userGender !== requiredGender) {
+    if (requiredGender && userGender !== requiredGender) {
       return <aside className="event-apply-note"><strong>This event is outside your registered division.</strong><p>Your verified profile gender does not match this event&apos;s eligibility. Open and mixed events remain available.</p><Link href="/events">Browse eligible events →</Link></aside>;
     }
     if (existingApplication) {
@@ -320,7 +320,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         <aside className="event-apply-note">
           <strong>Applications are not currently open.</strong>
           <p>
-            {evt.state === "published" && evt.application_opens_at && now < new Date(evt.application_opens_at)
+            {evt.application_opens_at && now < new Date(evt.application_opens_at)
               ? `Registration opens on ${datetime(evt.application_opens_at)}.`
               : evt.state === "closed"
                 ? "Registration for this event has closed."
@@ -430,7 +430,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             <dd>
               {appOpen
                 ? `Closes ${datetime(event.application_closes_at)}${event.waitlist_enabled ? " · waitlist possible" : ""}`
-                : event.state === "published" && event.application_opens_at && now < new Date(event.application_opens_at)
+                : event.application_opens_at && now < new Date(event.application_opens_at)
                   ? `Opens ${datetime(event.application_opens_at)}`
                   : "Not open"}
             </dd>

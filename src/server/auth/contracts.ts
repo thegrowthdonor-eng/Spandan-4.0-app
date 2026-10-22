@@ -1,22 +1,25 @@
 import { z } from "zod";
 
+/**
+ * A UG roll number is an identifier, not a free-form college code. Keeping one
+ * canonical, digits-only form makes sign-up and sign-in hash the same identity.
+ */
+export const rollNumberSchema = z.string().trim().regex(/^(?:[1-9]|[1-9]\d|100)$/, {
+  message: "Roll number must be a number from 1 to 100, without leading zeroes.",
+});
+
 export const signInSchema = z.union([z.object({
   mode: z.literal("ug").optional(),
   batch: z.string().trim().min(1).max(80),
-  rollNumber: z.string().trim().min(1).max(80),
+  rollNumber: rollNumberSchema,
   password: z.string().min(8).max(256),
 }), z.object({ mode: z.literal("senior"), phone: z.string().trim().min(10).max(20), password: z.string().min(8).max(256) })]);
 
 export type SignInInput = z.infer<typeof signInSchema>;
 
 export function extractRollNumberInt(roll: string): number | null {
-  const trimmed = roll.trim();
-  if (!trimmed || trimmed.startsWith("-") || trimmed.includes(" -")) return null;
-  if (!/^[A-Za-z0-9_ -]+$/.test(trimmed)) return null;
-  const match = trimmed.match(/(?:^|[A-Za-z_ -])0*([1-9]\d*)$/);
-  if (!match) return null;
-  const num = parseInt(match[1], 10);
-  return Number.isNaN(num) ? null : num;
+  const parsed = rollNumberSchema.safeParse(roll);
+  return parsed.success ? Number(parsed.data) : null;
 }
 
 export function isValidRollNumber(roll: string): boolean {
@@ -27,9 +30,7 @@ export function isValidRollNumber(roll: string): boolean {
 export const signUpSchema = z.object({
   fullName: z.string().trim().min(1).max(100),
   batchId: z.string().uuid(),
-  rollNumber: z.string().trim().min(1).max(80).refine(isValidRollNumber, {
-    message: "Roll number must be between 1 and 100.",
-  }),
+  rollNumber: rollNumberSchema,
   phone: z.string().trim().min(10).max(20),
   gender: z.enum(["male", "female", "other", "prefer_not_to_say"]),
   password: z.string().min(8).max(256),
@@ -122,6 +123,10 @@ export const fixtureCommandSchema = z.discriminatedUnion("action", [
     startsAt: z.string().datetime().nullable(),
     venue: z.string().trim().max(160).optional(),
     reason: z.string().trim().min(1).max(500),
+  }).superRefine((value, context) => {
+    if (value.reportingAt && value.startsAt && new Date(value.reportingAt).getTime() > new Date(value.startsAt).getTime()) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Reporting time must be before or equal to match start." });
+    }
   }),
   z.object({
     action: z.literal("score"),
@@ -280,6 +285,16 @@ export const festivalSetupSchema = z.discriminatedUnion("action", [
       type: z.enum(["text", "select"]),
       required: z.boolean().default(false),
       options: z.array(z.string().trim().min(1).max(200)).optional(),
+    }).superRefine((question, context) => {
+      if (question.type === "select") {
+        if (!question.options || question.options.length === 0) {
+          context.addIssue({ code: z.ZodIssueCode.custom, message: "Select questions need at least one option." });
+        } else if (new Set(question.options).size !== question.options.length) {
+          context.addIssue({ code: z.ZodIssueCode.custom, message: "Select question options must be unique." });
+        }
+      } else if (question.options?.length) {
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "Text questions cannot define select options." });
+      }
     })).default([]),
     groupMinSize: z.number().int().positive().nullable(),
     groupMaxSize: z.number().int().positive().nullable(),
@@ -288,6 +303,9 @@ export const festivalSetupSchema = z.discriminatedUnion("action", [
   }).superRefine((value, context) => {
     if (value.groupMinSize && value.groupMaxSize && value.groupMaxSize < value.groupMinSize)
       context.addIssue({ code: z.ZodIssueCode.custom, message: "Group max size must be at least the minimum." });
+    if (new Set(value.applicationQuestions.map((question) => question.key)).size !== value.applicationQuestions.length) {
+      context.addIssue({ code: z.ZodIssueCode.custom, message: "Every application question needs a unique key." });
+    }
   }),
 ]);
 

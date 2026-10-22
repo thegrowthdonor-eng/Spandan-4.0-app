@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer } from "react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -10,36 +10,53 @@ interface BeforeInstallPromptEvent extends Event {
 
 type Platform = "android" | "ios" | "other";
 
+type InstallState = { deferredPrompt: BeforeInstallPromptEvent | null; showPrompt: boolean; platform: Platform; showGuide: boolean };
+type InstallAction =
+  | { type: "show"; platform: Platform; prompt?: BeforeInstallPromptEvent }
+  | { type: "dismiss" }
+  | { type: "showGuide" }
+  | { type: "hideGuide" }
+  | { type: "promptDismissed" }
+  | { type: "installed" };
+
+const initialInstallState: InstallState = { deferredPrompt: null, showPrompt: false, platform: "other", showGuide: false };
+
+function installReducer(state: InstallState, action: InstallAction): InstallState {
+  switch (action.type) {
+    case "show": return { ...state, deferredPrompt: action.prompt ?? null, platform: action.platform, showPrompt: true };
+    case "dismiss": return { ...state, showPrompt: false, showGuide: false };
+    case "showGuide": return { ...state, showGuide: true };
+    case "hideGuide": return { ...state, showGuide: false };
+    case "promptDismissed": return { ...state, deferredPrompt: null, showPrompt: true, showGuide: true };
+    case "installed": return initialInstallState;
+  }
+}
+
 export function PwaInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [platform, setPlatform] = useState<Platform>("other");
-  const [showGuide, setShowGuide] = useState(false);
+  const [state, dispatch] = useReducer(installReducer, initialInstallState);
+  const setShowGuide = (showGuide: boolean) => dispatch({ type: showGuide ? "showGuide" : "hideGuide" });
 
   useEffect(() => {
     const isStandalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
-    if (isStandalone) return;
+    if (isStandalone || localStorage.getItem("spandan_pwa_dismissed") === "true") return;
 
     const ua = window.navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(ua);
     const isAndroid = /android/.test(ua);
-    setPlatform(isIOS ? "ios" : isAndroid ? "android" : "other");
-    setShowPrompt(true);
+    if (!isIOS && !isAndroid) return;
+    if (isIOS) dispatch({ type: "show", platform: "ios" });
 
     const handleBeforeInstall = (event: Event) => {
       event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
-      setShowPrompt(true);
+      dispatch({ type: "show", platform: isAndroid ? "android" : "other", prompt: event as BeforeInstallPromptEvent });
     };
 
     const handleInstalled = () => {
       localStorage.removeItem("spandan_pwa_dismissed");
-      setShowPrompt(false);
-      setShowGuide(false);
-      setDeferredPrompt(null);
+      dispatch({ type: "installed" });
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstall);
@@ -52,27 +69,26 @@ export function PwaInstallPrompt() {
   }, []);
 
   function handleDismiss() {
-    setShowPrompt(false);
-    setShowGuide(false);
+    localStorage.setItem("spandan_pwa_dismissed", "true");
+    dispatch({ type: "dismiss" });
   }
 
   async function handleInstallClick() {
-    if (!deferredPrompt) {
-      setShowGuide(true);
+    if (!state.deferredPrompt) {
+      dispatch({ type: "showGuide" });
       return;
     }
 
-    await deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
-    setShowPrompt(false);
-    setDeferredPrompt(null);
-
+    await state.deferredPrompt.prompt();
+    const choice = await state.deferredPrompt.userChoice;
     if (choice.outcome === "dismissed") {
-      setShowGuide(true);
+      dispatch({ type: "promptDismissed" });
+    } else {
+      dispatch({ type: "dismiss" });
     }
   }
 
-  if (!showPrompt) return null;
+  if (!state.showPrompt) return null;
 
   return (
     <aside className="pwa-install-banner" aria-label="Install festival app">
@@ -88,21 +104,21 @@ export function PwaInstallPrompt() {
 
       <div className="pwa-actions-box">
         <button type="button" className="pwa-install-btn" onClick={handleInstallClick}>
-          {deferredPrompt ? "Install app" : platform === "ios" ? "How to install" : "Install options"}
+          {state.deferredPrompt ? "Install app" : state.platform === "ios" ? "How to install" : "Install options"}
         </button>
         <button type="button" className="pwa-dismiss-btn" onClick={handleDismiss} aria-label="Dismiss install prompt">
           ×
         </button>
       </div>
 
-      {showGuide && (
+      {state.showGuide && (
         <div className="pwa-ios-modal">
           <div className="pwa-ios-modal-header">
-            <strong>{platform === "ios" ? "Install on iPhone / iPad" : "Install from your browser"}</strong>
+            <strong>{state.platform === "ios" ? "Install on iPhone / iPad" : "Install from your browser"}</strong>
             <button type="button" className="pwa-close-btn" onClick={() => setShowGuide(false)} aria-label="Close install instructions">×</button>
           </div>
           <ol className="pwa-ios-steps">
-            {platform === "ios" ? (
+            {state.platform === "ios" ? (
               <>
                 <li>Open this page in <strong>Safari</strong>, then tap the <strong>Share</strong> button.</li>
                 <li>Choose <strong>&quot;Add to Home Screen&quot;</strong>.</li>

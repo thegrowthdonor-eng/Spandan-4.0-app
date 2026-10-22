@@ -2,17 +2,20 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  activationUpdateSchema,
   committeeRoleSchema,
   extractRollNumberInt,
   festivalSetupSchema,
+  fixtureCommandSchema,
   isValidRollNumber,
+  profileRemovalSchema,
   signUpSchema,
 } from "./contracts";
 
 const validSignup = {
   fullName: "Test Participant",
   batchId: "c0a80101-0000-4000-8000-000000000001",
-  rollNumber: "UG-001",
+  rollNumber: "1",
   phone: "9876543210",
   password: "strong-password",
 };
@@ -40,6 +43,17 @@ test("global registration window must close after it opens", () => {
   }).success, false);
 });
 
+test("fixture reschedules require reporting before match start", () => {
+  const base = {
+    action: "reschedule" as const,
+    fixtureId: "c0a80101-0000-4000-8000-000000000099",
+    venue: "Ground A",
+    reason: "Rain delay",
+  };
+  assert.equal(fixtureCommandSchema.safeParse({ ...base, reportingAt: "2026-10-22T09:00:00.000Z", startsAt: "2026-10-22T10:00:00.000Z" }).success, true);
+  assert.equal(fixtureCommandSchema.safeParse({ ...base, reportingAt: "2026-10-22T11:00:00.000Z", startsAt: "2026-10-22T10:00:00.000Z" }).success, false);
+});
+
 test("new events accept an explicit competition division", () => {
   assert.equal(festivalSetupSchema.safeParse({
     action: "createEvent",
@@ -53,6 +67,18 @@ test("new events accept an explicit competition division", () => {
     capacity: null,
     startsAt: null,
   }).success, true);
+});
+
+test("select application questions require a non-empty unique option set", () => {
+  const base = {
+    action: "updateEventFull" as const,
+    eventId: "c0a80101-0000-4000-8000-000000000003",
+    title: "Quiz", summary: "", rules: "", venue: "", capacity: null, waitlistEnabled: false,
+    startsAt: null, eligibility: {}, groupMinSize: null, groupMaxSize: null, batchRestricted: false, posterUrl: null,
+  };
+  assert.equal(festivalSetupSchema.safeParse({ ...base, applicationQuestions: [{ key: "hostel", label: "Hostel", type: "select", required: true, options: ["A", "B"] }] }).success, true);
+  assert.equal(festivalSetupSchema.safeParse({ ...base, applicationQuestions: [{ key: "hostel", label: "Hostel", type: "select", required: true, options: ["A", "A"] }] }).success, false);
+  assert.equal(festivalSetupSchema.safeParse({ ...base, applicationQuestions: [{ key: "hostel", label: "Hostel", type: "select", required: true }] }).success, false);
 });
 
 test("committeeRoleSchema validates event_coordinator role without eventId requirement", () => {
@@ -101,12 +127,12 @@ test("festivalSetupSchema validates setEventState action for lifecycle transitio
 
 test("roll number range strictly requires 1 to 100", () => {
   assert.equal(isValidRollNumber("1"), true);
-  assert.equal(isValidRollNumber("01"), true);
+  assert.equal(isValidRollNumber("01"), false);
   assert.equal(isValidRollNumber("89"), true);
-  assert.equal(isValidRollNumber("089"), true);
+  assert.equal(isValidRollNumber("089"), false);
   assert.equal(isValidRollNumber("100"), true);
-  assert.equal(isValidRollNumber("23MBBS045"), true);
-  assert.equal(isValidRollNumber("UG-001"), true);
+  assert.equal(isValidRollNumber("23MBBS045"), false);
+  assert.equal(isValidRollNumber("UG-001"), false);
 
   assert.equal(isValidRollNumber("0"), false);
   assert.equal(isValidRollNumber("000"), false);
@@ -116,21 +142,19 @@ test("roll number range strictly requires 1 to 100", () => {
   assert.equal(isValidRollNumber("random"), false);
 
   assert.equal(extractRollNumberInt("89"), 89);
-  assert.equal(extractRollNumberInt("089"), 89);
-  assert.equal(extractRollNumberInt("23MBBS045"), 45);
+  assert.equal(extractRollNumberInt("089"), null);
+  assert.equal(extractRollNumberInt("23MBBS045"), null);
   assert.equal(extractRollNumberInt("100"), 100);
 
   // Schema-level validation in signup
   assert.equal(signUpSchema.safeParse({ ...validSignup, gender: "female", rollNumber: "89" }).success, true);
-  assert.equal(signUpSchema.safeParse({ ...validSignup, gender: "female", rollNumber: "089" }).success, true);
+  assert.equal(signUpSchema.safeParse({ ...validSignup, gender: "female", rollNumber: "089" }).success, false);
   assert.equal(signUpSchema.safeParse({ ...validSignup, gender: "female", rollNumber: "100" }).success, true);
   assert.equal(signUpSchema.safeParse({ ...validSignup, gender: "female", rollNumber: "101" }).success, false);
   assert.equal(signUpSchema.safeParse({ ...validSignup, gender: "female", rollNumber: "0" }).success, false);
 });
 
 test("activationUpdateSchema and profileRemovalSchema enforce valid inputs", () => {
-  const { activationUpdateSchema, profileRemovalSchema } = require("./contracts");
-
   assert.equal(profileRemovalSchema.safeParse({ profileId: "c0a80101-0000-4000-8000-000000000001" }).success, true);
   assert.equal(profileRemovalSchema.safeParse({ profileId: "not-a-uuid" }).success, false);
   assert.equal(profileRemovalSchema.safeParse({}).success, false);

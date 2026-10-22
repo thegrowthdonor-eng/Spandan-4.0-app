@@ -21,7 +21,10 @@ export function SignInForm({
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.location.hash === "#recovery") {
-      setShowHelpModal(true);
+      // Defer until after hydration so the URL-driven dialog does not create
+      // an extra synchronous render during mount.
+      const timer = window.setTimeout(() => setShowHelpModal(true), 0);
+      return () => window.clearTimeout(timer);
     }
   }, []);
 
@@ -84,14 +87,17 @@ export function SignInForm({
         </div>}
         {mode === "ug" && <div className="field-group">
           <label htmlFor="signin-roll">
-            <span className="label-text">Roll Number</span>
-            <span className="label-hint">Official college roll number</span>
+            <span className="label-text">Roll Number (1–100)</span>
+            <span className="label-hint">Digits only, without leading zeroes</span>
           </label>
           <input
             id="signin-roll"
             name="rollNumber"
             disabled={!configured || pending}
-            placeholder="e.g. 23MBBS045"
+            inputMode="numeric"
+            pattern="(?:[1-9]|[1-9][0-9]|100)"
+            maxLength={3}
+            placeholder="e.g. 45"
             required
           />
         </div>}

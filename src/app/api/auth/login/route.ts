@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { signInSchema, normaliseIndianPhone } from "@/server/auth/contracts";
 import { hashRateLimitKey, toPrivateAuthEmail, canonicaliseBatchRoll } from "@/server/auth/identity";
+import { accessDeniedMessage } from "@/server/auth/access-status";
+import { authRateLimits, AUTH_RATE_LIMIT_WINDOW_SECONDS, getRequestNetworkKey, rateLimitHeaders } from "@/server/auth/rate-limit";
 import { hasSupabaseConfiguration, requiredServerEnv } from "@/server/env";
 import { createAdminClient } from "@/server/supabase/admin";
 
@@ -18,15 +20,22 @@ export async function POST(request: Request) {
   const parsed = signInSchema.safeParse(body);
   if (!parsed.success || !hasSupabaseConfiguration()) return NextResponse.json(genericFailure, { status: 401, headers: { "Cache-Control": "no-store" } });
   const pepper = requiredServerEnv("AUTH_IDENTITY_PEPPER");
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const networkKey = getRequestNetworkKey(request);
   let email: string;
   try {
     const admin = createAdminClient();
     const identity = parsed.data.mode === "senior" ? normaliseIndianPhone(parsed.data.phone) : canonicaliseBatchRoll(parsed.data);
-    const keys = [hashRateLimitKey(`account:${JSON.stringify(identity)}`, pepper), hashRateLimitKey(`ip:${forwardedFor}`, pepper)];
-    const checks = await Promise.all(keys.map((key) => admin.rpc("consume_auth_rate_limit", { p_key_hash: key, p_max_attempts: 10, p_window_seconds: 900 })));
+    const keys = [
+      { key: `account:${JSON.stringify(identity)}`, maxAttempts: authRateLimits.login.subjectAttempts },
+      { key: `login-ip:${networkKey}`, maxAttempts: authRateLimits.login.networkAttempts },
+    ];
+    const checks = await Promise.all(keys.map(({ key, maxAttempts }) => admin.rpc("consume_auth_rate_limit", {
+      p_key_hash: hashRateLimitKey(key, pepper),
+      p_max_attempts: maxAttempts,
+      p_window_seconds: AUTH_RATE_LIMIT_WINDOW_SECONDS,
+    })));
     if (checks.some((check) => check.error)) return NextResponse.json({ error: "Sign-in is temporarily unavailable." }, { status: 503, headers: { "Cache-Control": "no-store" } });
-    if (checks.some((check) => check.data !== true)) return NextResponse.json(genericFailure, { status: 429, headers: { "Cache-Control": "no-store" } });
+    if (checks.some((check) => check.data !== true)) return NextResponse.json(genericFailure, { status: 429, headers: rateLimitHeaders() });
     if (typeof identity === "string") {
       const { data, error } = await admin.rpc("senior_login_identity", { p_phone: identity });
       if (error) throw error;
@@ -54,14 +63,14 @@ export async function POST(request: Request) {
     .from("access_records")
     .select("state")
     .eq("profile_id", signInData.user.id)
-    .eq("state", "active")
+    .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (accessError || !access) {
+  if (accessError || access?.state !== "active") {
     response = NextResponse.json(
-      { error: "Your profile is awaiting Treasurer verification. Sign-in will unlock after activation." },
-      { status: 403, headers: { "Cache-Control": "no-store" } },
+      { error: accessError ? "Sign-in is temporarily unavailable." : accessDeniedMessage(access?.state) },
+      { status: accessError ? 503 : 403, headers: { "Cache-Control": "no-store" } },
     );
     await client.auth.signOut({ scope: "local" });
     return response;

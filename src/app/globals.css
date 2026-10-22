@@ -251,8 +251,10 @@ img, video { max-width: 100%; height: auto; }
 @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important; } }
 
 /* PWA Floating Install Banner */
-.pwa-install-banner { position:fixed;bottom:max(20px, env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(calc(100% - 32px),480px);background:#003438;color:#fffaf2;border:1px solid rgba(240,178,140,.45);border-radius:14px;padding:16px;box-shadow:0 16px 36px rgba(0,29,32,.42);z-index:9999;display:flex;flex-direction:column;gap:12px;animation:slideUpPwa 0.35s cubic-bezier(0.16,1,0.3,1); }
-@keyframes slideUpPwa { from { transform:translate(-50%,40px);opacity:0; } to { transform:translate(-50%,0);opacity:1; } }
+.pwa-install-banner { position:fixed;top:max(12px, env(safe-area-inset-top));bottom:auto;left:50%;transform:translateX(-50%);width:min(calc(100% - 32px),480px);background:#003438;color:#fffaf2;border:1px solid rgba(240,178,140,.45);border-radius:14px;padding:16px;box-shadow:0 16px 36px rgba(0,29,32,.42);z-index:900;display:flex;flex-direction:column;gap:12px;animation:slideDownPwa 0.35s cubic-bezier(0.16,1,0.3,1); }
+/* Reserve space for the fixed prompt so it cannot intercept the first mobile action. */
+body:has(.pwa-install-banner) { padding-top:calc(168px + env(safe-area-inset-top)); }
+@keyframes slideDownPwa { from { transform:translate(-50%,-40px);opacity:0; } to { transform:translate(-50%,0);opacity:1; } }
 .pwa-banner-content { display:flex;align-items:center;gap:12px; }
 .pwa-icon-box { width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 1px rgba(255,250,242,.3);flex-shrink:0; }
 .pwa-icon-box img { width:100%;height:100%;object-fit:cover; }
@@ -270,7 +272,7 @@ img, video { max-width: 100%; height: auto; }
 .pwa-ios-steps { margin:0;padding-left:18px;font-size:12px;line-height:1.6;color:#f5f0e8; }
 .pwa-ios-steps li { margin-bottom:4px; }
 .ios-icon { font-size:14px;color:#bc6256;font-weight:700; }
-@media (max-width: 420px) { .pwa-install-banner { bottom:max(12px, env(safe-area-inset-bottom));width:calc(100% - 24px);padding:14px; } }
+@media (max-width: 420px) { .pwa-install-banner { top:max(8px, env(safe-area-inset-top));width:calc(100% - 24px);padding:14px; } }
 
 /* Installed-app opening experience. #001a1e is sampled from the median colour
    of the crest's outer edge so the non-transparent PNG dissolves into the scene. */

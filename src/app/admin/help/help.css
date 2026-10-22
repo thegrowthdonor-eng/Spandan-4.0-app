@@ -126,6 +126,14 @@
   line-height: 1.7;
 }
 
+.help-conversation { margin: 16px 0; border-top: 1px solid #d8ccc3; border-bottom: 1px solid #d8ccc3; padding: 14px 0; }
+.help-conversation h3 { margin: 0 0 10px; font-size: 14px; }
+.help-message-list { display: grid; gap: 10px; max-height: 280px; overflow: auto; }
+.help-message { background: #faf6f0; border-left: 3px solid #bc6256; padding: 10px 12px; }
+.help-message header { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: #55444e; }
+.help-message time { font-size: 11px; color: #72685d; }
+.help-message p { margin: 6px 0 0; white-space: pre-wrap; }
+
 @media (max-width: 800px) {
   .help-page {
     padding: 28px 5vw 72px;

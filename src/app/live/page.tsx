@@ -17,6 +17,9 @@ type Match = {
 function score(match: Match): string {
   const p = match.score_payload;
   if (!p) return "Score update pending";
+  if (match.events?.score_template === "football" && (typeof p.teamA_goals === "string" || typeof p.teamA_goals === "number") && (typeof p.teamB_goals === "string" || typeof p.teamB_goals === "number")) return `${p.teamA_goals} – ${p.teamB_goals}`;
+  if (match.events?.score_template === "cricket" && typeof p.teamA_runs === "string" && typeof p.teamA_wickets === "string" && typeof p.teamA_overs === "string" && typeof p.teamB_runs === "string" && typeof p.teamB_wickets === "string" && typeof p.teamB_overs === "string") return `${p.teamA_runs}/${p.teamA_wickets} (${p.teamA_overs} ov) · ${p.teamB_runs}/${p.teamB_wickets} (${p.teamB_overs} ov)`;
+  if (match.events?.score_template === "badminton" && typeof p.set1 === "string") return [p.set1, p.set2, p.set3].filter((set): set is string => typeof set === "string" && Boolean(set)).join(" · ");
   if (match.events?.score_template === "football" && typeof p.teamAGoals === "number" && typeof p.teamBGoals === "number") return `${p.teamAGoals} – ${p.teamBGoals}`;
   if (match.events?.score_template === "cricket") {
     const a = p.teamA as Record<string, unknown> | undefined;

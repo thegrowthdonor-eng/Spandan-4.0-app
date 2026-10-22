@@ -453,6 +453,7 @@ export function ResultsClient({
               <p>Attach official trophy lifting, medal presentation photo, and victory caption for public standings and event showcase.</p>
               
               <ImageUploadWidget
+                eventId={event.id}
                 folder="podiums"
                 onUploadSuccess={(url) => setPodiumPhotoUrl(url)}
                 label="Upload Podium Photo (Auto-Compress to WebP)"

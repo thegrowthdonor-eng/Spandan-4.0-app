@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type Props = {
   isAuthenticated: boolean;
@@ -16,7 +16,7 @@ function urlBase64ToUint8Array(base64String: string) {
 export function InstalledAppNotificationPrompt({ isAuthenticated }: Props) {
   const [visible, setVisible] = useState(false);
 
-  async function activatePushSubscription() {
+  const activatePushSubscription = useCallback(async () => {
     if (!isAuthenticated || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
     try {
@@ -46,7 +46,7 @@ export function InstalledAppNotificationPrompt({ isAuthenticated }: Props) {
     } catch {
       // Permission and subscription errors can be retried from My Fest settings.
     }
-  }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
@@ -64,7 +64,7 @@ export function InstalledAppNotificationPrompt({ isAuthenticated }: Props) {
 
     const timer = window.setTimeout(() => setVisible(true), 1650);
     return () => window.clearTimeout(timer);
-  }, [isAuthenticated]);
+  }, [activatePushSubscription]);
 
   async function requestPermission() {
     const permission = await Notification.requestPermission();

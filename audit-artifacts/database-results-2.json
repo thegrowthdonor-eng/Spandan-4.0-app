@@ -1,0 +1,230 @@
+[
+  {
+    "label": "sport participant applies",
+    "expected": "submitted",
+    "observed": "submitted",
+    "passed": true
+  },
+  {
+    "label": "second sport participant applies",
+    "expected": "submitted",
+    "observed": "submitted",
+    "passed": true
+  },
+  {
+    "label": "bulk approve sport",
+    "expected": "2",
+    "observed": "2",
+    "passed": true
+  },
+  {
+    "label": "single solo selection refuses sport",
+    "expected": "22023",
+    "observed": "22023: Pair, group and sport selection requires a published participant group",
+    "passed": true
+  },
+  {
+    "label": "bulk solo selection refuses sport",
+    "expected": "22023",
+    "observed": "1",
+    "passed": false
+  },
+  {
+    "label": "add approved member",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "group minimum enforced",
+    "expected": "22023",
+    "observed": "22023: Group size does not meet event rules",
+    "passed": true
+  },
+  {
+    "label": "add second approved member",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "captain must belong",
+    "expected": "22023",
+    "observed": "22023: Captain must be a selected group member",
+    "passed": true
+  },
+  {
+    "label": "publish squad",
+    "expected": "published",
+    "observed": "published",
+    "passed": true
+  },
+  {
+    "label": "published squad cannot add members",
+    "expected": "22023",
+    "observed": "22023: Published groups cannot be silently edited",
+    "passed": true
+  },
+  {
+    "label": "withdraw approved unselected",
+    "expected": "approved",
+    "observed": "approved",
+    "passed": true
+  },
+  {
+    "label": "deselect group member via bulk should refuse",
+    "expected": "22023",
+    "observed": "1",
+    "passed": false
+  },
+  {
+    "label": "new timed fixture should be scheduled",
+    "expected": "scheduled",
+    "observed": "draft",
+    "passed": false
+  },
+  {
+    "label": "valid live score",
+    "expected": "1",
+    "observed": "1",
+    "passed": true
+  },
+  {
+    "label": "stale score version rejected",
+    "expected": "40001",
+    "observed": "40001: Score was updated elsewhere",
+    "passed": true
+  },
+  {
+    "label": "negative nonsense score rejected",
+    "expected": "22023",
+    "observed": "2",
+    "passed": false
+  },
+  {
+    "label": "live score should update fixture state",
+    "expected": "live",
+    "observed": "draft",
+    "passed": false
+  },
+  {
+    "label": "reschedule requires reason",
+    "expected": "22023",
+    "observed": "22023: A reschedule reason is required",
+    "passed": true
+  },
+  {
+    "label": "reporting after start refused",
+    "expected": "22023",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "reschedule valid",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "manual reminder generation",
+    "expected": "1",
+    "observed": "1",
+    "passed": true
+  },
+  {
+    "label": "participant vote",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "repeat vote stays one",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "treasurer assigns help",
+    "expected": "in_progress",
+    "observed": "in_progress",
+    "passed": true
+  },
+  {
+    "label": "treasurer resolves with reply",
+    "expected": "resolved",
+    "observed": "resolved",
+    "passed": true
+  },
+  {
+    "label": "owner can read support reply",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "notice publisher publishes",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "expired notice refused",
+    "expected": "22023",
+    "observed": "22023: Expiry must be in the future",
+    "passed": true
+  },
+  {
+    "label": "wrong gender blocked",
+    "expected": "42501",
+    "observed": "42501: This event is not available for your registered gender division",
+    "passed": true
+  },
+  {
+    "label": "capacity first applicant",
+    "expected": "submitted",
+    "observed": "submitted",
+    "passed": true
+  },
+  {
+    "label": "capacity full rejected",
+    "expected": "23505",
+    "observed": "23505: Event application capacity is full",
+    "passed": true
+  },
+  {
+    "label": "capacity waitlist",
+    "expected": "waitlisted",
+    "observed": "waitlisted",
+    "passed": true
+  },
+  {
+    "label": "approve waitlist",
+    "expected": "approved",
+    "observed": "approved",
+    "passed": true
+  },
+  {
+    "label": "approved but unselected withdrawal",
+    "expected": "withdrawn",
+    "observed": "23514: new row for relation \"applications\" violates check constraint \"applications_check\"",
+    "passed": false
+  },
+  {
+    "label": "fixture list RPC works",
+    "expected": "true",
+    "observed": "42702: column reference \"score_payload\" is ambiguous",
+    "passed": false
+  },
+  {
+    "label": "public can see live score while event open",
+    "expected": "true",
+    "observed": "false",
+    "passed": false
+  },
+  {
+    "label": "score visible after manually setting parent ongoing",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  }
+]

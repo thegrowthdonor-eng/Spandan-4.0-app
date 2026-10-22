@@ -1,0 +1,314 @@
+[
+  {
+    "label": "participant admin permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "participant activation permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "participant foreign event permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "participant notices permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "main_admin admin permission",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "main_admin activation permission",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "main_admin foreign event permission",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "main_admin notices permission",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "treasurer admin permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "treasurer activation permission",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "treasurer foreign event permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "treasurer notices permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "event_head admin permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "event_head activation permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "event_head foreign event permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "event_head notices permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "coordinator admin permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "coordinator activation permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "coordinator foreign event permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "coordinator notices permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "notice_publisher admin permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "notice_publisher activation permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "notice_publisher foreign event permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "notice_publisher notices permission",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "pending admin permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "pending activation permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "pending foreign event permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "pending notices permission",
+    "expected": "false",
+    "observed": "true",
+    "passed": false
+  },
+  {
+    "label": "pending cannot apply",
+    "expected": "42501",
+    "observed": "42501: Account is not active for registration",
+    "passed": true
+  },
+  {
+    "label": "treasurer activation requires ledger",
+    "expected": "22023",
+    "observed": "22023: Activation requires a ledger reference",
+    "passed": true
+  },
+  {
+    "label": "treasurer activate pending",
+    "expected": "active",
+    "observed": "active",
+    "passed": true
+  },
+  {
+    "label": "treasurer suspend active",
+    "expected": "suspended",
+    "observed": "suspended",
+    "passed": true
+  },
+  {
+    "label": "participant applies",
+    "expected": "submitted",
+    "observed": "submitted",
+    "passed": true
+  },
+  {
+    "label": "duplicate apply is one record",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "participant cannot self approve",
+    "expected": "42501",
+    "observed": "approved",
+    "passed": false
+  },
+  {
+    "label": "event head approve",
+    "expected": "approved",
+    "observed": "approved",
+    "passed": true
+  },
+  {
+    "label": "event head select",
+    "expected": "selected",
+    "observed": "selected",
+    "passed": true
+  },
+  {
+    "label": "selected participant cannot withdraw",
+    "expected": "22023",
+    "observed": "22023: You have been selected. Contact the organiser to withdraw.",
+    "passed": true
+  },
+  {
+    "label": "reject selected should clear selected state",
+    "expected": "true",
+    "observed": "false",
+    "passed": false
+  },
+  {
+    "label": "restore approved for results",
+    "expected": "approved",
+    "observed": "approved",
+    "passed": true
+  },
+  {
+    "label": "withdraw candidate applies",
+    "expected": "submitted",
+    "observed": "submitted",
+    "passed": true
+  },
+  {
+    "label": "withdraw candidate withdraws",
+    "expected": "withdrawn",
+    "observed": "withdrawn",
+    "passed": true
+  },
+  {
+    "label": "reapply after withdrawal should submit",
+    "expected": "submitted",
+    "observed": "withdrawn",
+    "passed": false
+  },
+  {
+    "label": "event ongoing lifecycle",
+    "expected": "ongoing",
+    "observed": "22023: Invalid event lifecycle action",
+    "passed": false
+  },
+  {
+    "label": "event completed lifecycle",
+    "expected": "completed",
+    "observed": "22023: Invalid event lifecycle action",
+    "passed": false
+  },
+  {
+    "label": "point rules configured",
+    "expected": "false",
+    "observed": "false",
+    "passed": true
+  },
+  {
+    "label": "publish selected solo winner",
+    "expected": "published",
+    "observed": "published",
+    "passed": true
+  },
+  {
+    "label": "correction requires reason",
+    "expected": "22023",
+    "observed": "22023: A correction reason is required",
+    "passed": true
+  },
+  {
+    "label": "same winner twice should be rejected",
+    "expected": "22023",
+    "observed": "23505: duplicate key value violates unique constraint \"result_unique_application\"",
+    "passed": false
+  },
+  {
+    "label": "coordinator proposal starts draft",
+    "expected": "draft",
+    "observed": "open",
+    "passed": false
+  },
+  {
+    "label": "global window must preserve draft",
+    "expected": "true",
+    "observed": "true",
+    "passed": true
+  },
+  {
+    "label": "draft remains draft",
+    "expected": "draft",
+    "observed": "open",
+    "passed": false
+  }
+]

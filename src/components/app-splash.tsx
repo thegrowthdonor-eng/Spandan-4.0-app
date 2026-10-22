@@ -7,14 +7,6 @@ export function AppSplash() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-
-    if (!isStandalone) {
-      setDismissed(true);
-      return;
-    }
-
     const timer = window.setTimeout(() => setDismissed(true), 1400);
     return () => window.clearTimeout(timer);
   }, []);

@@ -1,9 +1,10 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { z } from "zod";
+import { rollNumberSchema } from "./contracts";
 
 const batchRollSchema = z.object({
   batch: z.string().trim().min(1).max(80),
-  rollNumber: z.string().trim().min(1).max(80),
+  rollNumber: rollNumberSchema,
 });
 
 export type BatchRoll = z.infer<typeof batchRollSchema>;

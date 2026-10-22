@@ -1,0 +1,63 @@
+[
+  {
+    "label": "participant clicks Apply successfully",
+    "pass": true
+  },
+  {
+    "label": "admin clicks Approve then Selected",
+    "pass": true,
+    "detail": {
+      "id": "debd13c8-b1bb-4da7-94b2-ed41c2fd1338",
+      "review_state": "approved",
+      "selection_state": "selected"
+    }
+  },
+  {
+    "label": "participant sees selected event in My Fest",
+    "pass": true
+  },
+  {
+    "label": "CSV export",
+    "pass": false,
+    "detail": {
+      "status": 500,
+      "contentType": "application/json"
+    }
+  },
+  {
+    "label": "participant upload must be forbidden",
+    "pass": false,
+    "detail": {
+      "status": 200
+    }
+  },
+  {
+    "label": "senior pass renders after hydration",
+    "pass": true,
+    "detail": {
+      "url": "http://localhost:3000/my-fest",
+      "headings": [
+        "AUDIT CLICK faculty",
+        "My Event Registrations",
+        "Quick Navigation",
+        "Account Session"
+      ]
+    }
+  },
+  {
+    "label": "offline previously cached catalogue",
+    "pass": true
+  },
+  {
+    "cleanup": "user"
+  },
+  {
+    "cleanup": "user"
+  },
+  {
+    "cleanup": "user"
+  },
+  {
+    "cleanup": "edition"
+  }
+]

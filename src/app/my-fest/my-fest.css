@@ -780,6 +780,29 @@ body .my-fest-page .my-fest-hero p {
   color: #a2382c;
 }
 
+.section-empty-note { margin: 0; color: #72685d; font-size: 13px; }
+.reminder-list, .support-thread-list { display: grid; gap: 12px; }
+.reminder-card, .support-thread { background: #fff; border: 1px solid #e2dad1; border-radius: 14px; padding: 16px; }
+.reminder-card { display: flex; justify-content: space-between; gap: 16px; }
+.reminder-card h3, .support-thread h3 { margin: 0; color: #1e0d20; font: 700 16px/1.25 "DM Sans", sans-serif; }
+.reminder-card p, .support-message p { margin: 6px 0; color: #55444e; white-space: pre-wrap; }
+.reminder-card small, .reminder-card time { color: #72685d; font-size: 12px; }
+.support-thread header { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
+.support-state { border-radius: 999px; padding: 4px 8px; font: 700 10px/1 "DM Mono", monospace; text-transform: uppercase; background: #fdf6e9; color: #8c5b13; }
+.support-state.resolved, .support-state.closed { background: #eef7ed; color: #166534; }
+.support-messages { margin: 14px 0; display: grid; gap: 10px; }
+.support-message { border-left: 3px solid #e5a93c; padding: 8px 12px; background: #faf6f0; }
+.support-message strong { color: #345e50; font-size: 12px; }
+.support-reply { display: grid; gap: 8px; }
+.support-reply textarea, .support-form input, .support-form textarea { width: 100%; box-sizing: border-box; }
+.support-form { display: grid; gap: 12px; margin-top: 18px; }
+.support-form h3 { margin: 0; }
+.support-form label { display: grid; gap: 6px; font-size: 13px; font-weight: 700; color: #55444e; }
+.support-form input, .support-form textarea, .support-reply textarea { border: 1px solid #d8cec3; border-radius: 8px; padding: 10px; font: inherit; }
+.support-form button, .support-reply button { justify-self: start; border: 0; border-radius: 8px; background: #345e50; color: #fff; padding: 10px 14px; cursor: pointer; font-weight: 700; }
+.support-form button:disabled, .support-reply button:disabled { opacity: .55; cursor: not-allowed; }
+.support-status { margin: 12px 0 0; color: #345e50; font-size: 13px; }
+
 /* --------------------------------------------------------------------------
    ACCOUNT SESSION FOOTER
    -------------------------------------------------------------------------- */

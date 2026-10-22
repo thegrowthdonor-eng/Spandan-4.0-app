@@ -153,11 +153,13 @@ export function SignUpForm({
             name="rollNumber"
             disabled={!configured || pending}
             autoComplete="off"
-            placeholder="e.g. 89 or 23MBBS089"
-            maxLength={80}
+            inputMode="numeric"
+            pattern="(?:[1-9]|[1-9][0-9]|100)"
+            placeholder="e.g. 89"
+            maxLength={3}
             required
           />
-          <span className="label-hint">Valid range: 1 to 100</span>
+          <span className="label-hint">Digits only: 1 to 100, without leading zeroes</span>
         </div>
 
         <div className="field-group">

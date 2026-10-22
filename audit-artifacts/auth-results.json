@@ -1,0 +1,214 @@
+[
+  {
+    "label": "signup UG",
+    "status": 201,
+    "expected": 201,
+    "pass": true
+  },
+  {
+    "label": "pending login blocked",
+    "status": 403,
+    "expected": 403,
+    "pass": true,
+    "error": "Your profile is awaiting Treasurer verification. Sign-in will unlock after activation."
+  },
+  {
+    "label": "activate UG via HTTP",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "active exact-roll login",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "equivalent numeric-roll login",
+    "status": 401,
+    "expected": 200,
+    "pass": false,
+    "error": "Unable to sign in with those credentials."
+  },
+  {
+    "label": "UG browser pass",
+    "pass": true
+  },
+  {
+    "label": "admin recovery issue",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "recovery redemption",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "recovery token reuse denied",
+    "status": 400,
+    "expected": 400,
+    "pass": true,
+    "error": "Unable to reset this account. Ask the authorised fest help desk for a new recovery token."
+  },
+  {
+    "label": "old password rejected",
+    "status": 401,
+    "expected": 401,
+    "pass": true,
+    "error": "Unable to sign in with those credentials."
+  },
+  {
+    "label": "new password works",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "suspend UG via HTTP",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "existing suspended session blocked from admin",
+    "pass": false,
+    "status": 200
+  },
+  {
+    "label": "suspended login blocked",
+    "status": 403,
+    "expected": 403,
+    "pass": true,
+    "error": "Your profile is awaiting Treasurer verification. Sign-in will unlock after activation."
+  },
+  {
+    "label": "pg invite issue",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "pg invite redeem",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "pg gender captured",
+    "pass": false
+  },
+  {
+    "label": "pg invite replay denied",
+    "status": 400,
+    "expected": 400,
+    "pass": true,
+    "error": "This setup link is unavailable. Ask the committee to reissue it."
+  },
+  {
+    "label": "pg phone login",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "pg browser pass",
+    "pass": false
+  },
+  {
+    "label": "jr invite issue",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "jr invite redeem",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "jr gender captured",
+    "pass": false
+  },
+  {
+    "label": "jr invite replay denied",
+    "status": 400,
+    "expected": 400,
+    "pass": true,
+    "error": "This setup link is unavailable. Ask the committee to reissue it."
+  },
+  {
+    "label": "jr phone login",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "jr browser pass",
+    "pass": false
+  },
+  {
+    "label": "faculty invite issue",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "faculty invite redeem",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "faculty gender captured",
+    "pass": false
+  },
+  {
+    "label": "faculty invite replay denied",
+    "status": 429,
+    "expected": 400,
+    "pass": false,
+    "error": "Please try again later."
+  },
+  {
+    "label": "faculty phone login",
+    "status": 200,
+    "expected": 200,
+    "pass": true
+  },
+  {
+    "label": "faculty browser pass",
+    "pass": false
+  },
+  {
+    "cleanup": "user",
+    "rpcError": "update or delete on table \"profiles\" violates foreign key constraint \"senior_invites_profile_id_fkey\" on table \"senior_invites\"",
+    "authError": "Database error deleting user"
+  },
+  {
+    "cleanup": "user",
+    "rpcError": "update or delete on table \"profiles\" violates foreign key constraint \"senior_invites_profile_id_fkey\" on table \"senior_invites\"",
+    "authError": "Database error deleting user"
+  },
+  {
+    "cleanup": "user",
+    "rpcError": "update or delete on table \"profiles\" violates foreign key constraint \"senior_invites_profile_id_fkey\" on table \"senior_invites\"",
+    "authError": "Database error deleting user"
+  },
+  {
+    "cleanup": "user"
+  },
+  {
+    "cleanup": "user",
+    "rpcError": "update or delete on table \"profiles\" violates foreign key constraint \"senior_invites_issued_by_fkey\" on table \"senior_invites\"",
+    "authError": "Database error deleting user"
+  },
+  {
+    "cleanup": "edition",
+    "error": "update or delete on table \"editions\" violates foreign key constraint \"senior_invites_edition_id_fkey\" on table \"senior_invites\""
+  }
+]

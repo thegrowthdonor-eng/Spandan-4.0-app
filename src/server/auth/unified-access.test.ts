@@ -27,7 +27,7 @@ test("signInSchema parses both UG and Senior credentials backward-compatibly", (
   // UG credentials
   const ugValid = signInSchema.safeParse({
     batch: "2021",
-    rollNumber: "21MBBS001",
+    rollNumber: "1",
     password: "CorrectHorseBatteryStaple123!",
   });
   assert.equal(ugValid.success, true);
@@ -36,7 +36,7 @@ test("signInSchema parses both UG and Senior credentials backward-compatibly", (
   const ugExplicit = signInSchema.safeParse({
     mode: "ug",
     batch: "2023",
-    rollNumber: "23MBBS045",
+    rollNumber: "45",
     password: "CorrectHorseBatteryStaple123!",
   });
   assert.equal(ugExplicit.success, true);
@@ -60,7 +60,7 @@ test("signInSchema parses both UG and Senior credentials backward-compatibly", (
   // 8-character password boundary test
   const eightCharPass = signInSchema.safeParse({
     batch: "2023",
-    rollNumber: "23MBBS045",
+    rollNumber: "45",
     password: "12345678",
   });
   assert.equal(eightCharPass.success, true);
@@ -68,7 +68,7 @@ test("signInSchema parses both UG and Senior credentials backward-compatibly", (
   // Rejection: 7-character password (below 8 minimum)
   const sevenCharPass = signInSchema.safeParse({
     batch: "2023",
-    rollNumber: "23MBBS045",
+    rollNumber: "45",
     password: "1234567",
   });
   assert.equal(sevenCharPass.success, false);
@@ -153,6 +153,7 @@ test("seniorRedeemSchema validates single-use invite tokens", () => {
   const redeemParsed = seniorRedeemSchema.safeParse({
     token: validToken,
     password: "SecureSeniorPassword2026!",
+    gender: "female",
   });
   assert.equal(redeemParsed.success, true);
 
@@ -160,6 +161,7 @@ test("seniorRedeemSchema validates single-use invite tokens", () => {
   const badToken = seniorRedeemSchema.safeParse({
     token: "too-short-token",
     password: "SecureSeniorPassword2026!",
+    gender: "female",
   });
   assert.equal(badToken.success, false);
 });
