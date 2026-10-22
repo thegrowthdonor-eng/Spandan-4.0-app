@@ -4,11 +4,20 @@ import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import styles from "./share-feedback-modal.module.css";
 
-type Props = {
-  authStatus: {
-    loggedIn: boolean;
-    name: string;
-  };
+export type FeedbackAuthStatus = {
+  loggedIn: boolean;
+  name: string;
+};
+
+type ModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  authStatus: FeedbackAuthStatus;
+  editionId?: string;
+};
+
+type ButtonProps = {
+  authStatus: FeedbackAuthStatus;
   editionId?: string;
 };
 
@@ -29,8 +38,7 @@ const CATEGORIES = [
   "Schedule & Timings",
 ];
 
-export function ShareFeedbackButton({ authStatus, editionId }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
+export function ShareFeedbackModal({ isOpen, onClose, authStatus, editionId }: ModalProps) {
   const [rating, setRating] = useState(5);
   const [category, setCategory] = useState("General Fest");
   const [comment, setComment] = useState("");
@@ -41,7 +49,7 @@ export function ShareFeedbackButton({ authStatus, editionId }: Props) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape" && isOpen) {
-        setIsOpen(false);
+        onClose();
       }
     }
     if (isOpen) {
@@ -54,7 +62,7 @@ export function ShareFeedbackButton({ authStatus, editionId }: Props) {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -88,6 +96,11 @@ export function ShareFeedbackButton({ authStatus, editionId }: Props) {
           ok: true,
           message: `Thank you, ${authStatus.name || "Student"}! Your feedback has been sent to the organizing council.`,
         });
+        try {
+          localStorage.setItem("spandan_feedback_submitted", "true");
+        } catch {
+          // ignore localStorage errors
+        }
       } else {
         setStatus({
           ok: false,
@@ -102,9 +115,149 @@ export function ShareFeedbackButton({ authStatus, editionId }: Props) {
   }
 
   function handleClose() {
-    setIsOpen(false);
+    onClose();
     setStatus(null);
   }
+
+  if (!isOpen) return null;
+
+  return (
+    <div className={styles.modalBackdrop} onClick={handleClose}>
+      <div
+        className={styles.modalContent}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-dialog-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          className={styles.closeBtn}
+          onClick={handleClose}
+          aria-label="Close feedback dialog"
+        >
+          ✕
+        </button>
+
+        <div className={styles.modalHeader}>
+          <p className={styles.modalSubtitle}>ASMC Firozabad · Council Desk</p>
+          <h3 id="feedback-dialog-title">Festival Feedback</h3>
+        </div>
+
+        {!authStatus.loggedIn ? (
+          <div>
+            <p className={styles.unauthBody}>
+              Feedback is open to all enrolled ASMC Firozabad students. Sign in with your MBBS batch and roll number to share suggestions, rate festival fixtures, and help the council improve Spandan 4.0.
+            </p>
+            <div className={styles.actionRow}>
+              <button
+                type="button"
+                onClick={handleClose}
+                className={styles.secondaryBtn}
+              >
+                Cancel
+              </button>
+              <Link href="/account" className={styles.primaryBtn}>
+                Sign In to Spandan →
+              </Link>
+            </div>
+          </div>
+        ) : status?.ok ? (
+          <div>
+            <div className={`${styles.statusMessage} ${styles.statusSuccess}`}>
+              {status.message}
+            </div>
+            <div className={styles.actionRow}>
+              <button
+                type="button"
+                onClick={handleClose}
+                className={styles.primaryBtn}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            {status && !status.ok && (
+              <div className={`${styles.statusMessage} ${styles.statusError}`}>
+                {status.message}
+              </div>
+            )}
+
+            <div className={styles.ratingGroup}>
+              <span className={styles.fieldLabel}>Festival Experience</span>
+              <div className={styles.starRow}>
+                {RATING_OPTIONS.map((opt) => (
+                  <button
+                    type="button"
+                    key={opt.value}
+                    className={`${styles.starBtn} ${rating === opt.value ? styles.starBtnSelected : ""}`}
+                    onClick={() => setRating(opt.value)}
+                  >
+                    <span>{opt.value}★</span>
+                    <span className={styles.starLabel}>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.categoryGroup}>
+              <span className={styles.fieldLabel}>Topic / Category</span>
+              <div className={styles.categoryPills}>
+                {CATEGORIES.map((cat) => (
+                  <button
+                    type="button"
+                    key={cat}
+                    className={`${styles.catPill} ${category === cat ? styles.catPillActive : ""}`}
+                    onClick={() => setCategory(cat)}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.commentGroup}>
+              <label htmlFor="feedback-comment" className={styles.fieldLabel}>
+                Comments or Suggestions (Optional)
+              </label>
+              <textarea
+                id="feedback-comment"
+                className={styles.commentTextarea}
+                placeholder="Tell us what you liked or how we can improve venues, sound, scheduling or coordination..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                maxLength={1000}
+              />
+            </div>
+
+            <div className={styles.actionRow}>
+              <button
+                type="button"
+                onClick={handleClose}
+                className={styles.secondaryBtn}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={styles.primaryBtn}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting…" : "Submit Feedback"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function ShareFeedbackButton({ authStatus, editionId }: ButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
@@ -131,139 +284,12 @@ export function ShareFeedbackButton({ authStatus, editionId }: Props) {
         <span>Share Feedback</span>
       </button>
 
-      {isOpen && (
-        <div className={styles.modalBackdrop} onClick={handleClose}>
-          <div
-            className={styles.modalContent}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="feedback-dialog-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className={styles.closeBtn}
-              onClick={handleClose}
-              aria-label="Close feedback dialog"
-            >
-              ✕
-            </button>
-
-            <div className={styles.modalHeader}>
-              <p className={styles.modalSubtitle}>ASMC Firozabad · Council Desk</p>
-              <h3 id="feedback-dialog-title">Festival Feedback</h3>
-            </div>
-
-            {!authStatus.loggedIn ? (
-              <div>
-                <p className={styles.unauthBody}>
-                  Feedback is open to all enrolled ASMC Firozabad students. Sign in with your MBBS batch and roll number to share suggestions, rate festival fixtures, and help the council improve Spandan 4.0.
-                </p>
-                <div className={styles.actionRow}>
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className={styles.secondaryBtn}
-                  >
-                    Cancel
-                  </button>
-                  <Link href="/account" className={styles.primaryBtn}>
-                    Sign In to Spandan →
-                  </Link>
-                </div>
-              </div>
-            ) : status?.ok ? (
-              <div>
-                <div className={`${styles.statusMessage} ${styles.statusSuccess}`}>
-                  {status.message}
-                </div>
-                <div className={styles.actionRow}>
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className={styles.primaryBtn}
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                {status && !status.ok && (
-                  <div className={`${styles.statusMessage} ${styles.statusError}`}>
-                    {status.message}
-                  </div>
-                )}
-
-                <div className={styles.ratingGroup}>
-                  <span className={styles.fieldLabel}>Festival Experience</span>
-                  <div className={styles.starRow}>
-                    {RATING_OPTIONS.map((opt) => (
-                      <button
-                        type="button"
-                        key={opt.value}
-                        className={`${styles.starBtn} ${rating === opt.value ? styles.starBtnSelected : ""}`}
-                        onClick={() => setRating(opt.value)}
-                      >
-                        <span>{opt.value}★</span>
-                        <span className={styles.starLabel}>{opt.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.categoryGroup}>
-                  <span className={styles.fieldLabel}>Topic / Category</span>
-                  <div className={styles.categoryPills}>
-                    {CATEGORIES.map((cat) => (
-                      <button
-                        type="button"
-                        key={cat}
-                        className={`${styles.catPill} ${category === cat ? styles.catPillActive : ""}`}
-                        onClick={() => setCategory(cat)}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.commentGroup}>
-                  <label htmlFor="feedback-comment" className={styles.fieldLabel}>
-                    Comments or Suggestions (Optional)
-                  </label>
-                  <textarea
-                    id="feedback-comment"
-                    className={styles.commentTextarea}
-                    placeholder="Tell us what you liked or how we can improve venues, sound, scheduling or coordination..."
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    maxLength={1000}
-                  />
-                </div>
-
-                <div className={styles.actionRow}>
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className={styles.secondaryBtn}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className={styles.primaryBtn}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Submitting…" : "Submit Feedback"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+      <ShareFeedbackModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        authStatus={authStatus}
+        editionId={editionId}
+      />
     </>
   );
 }

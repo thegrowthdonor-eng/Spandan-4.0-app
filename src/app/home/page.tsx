@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { HappeningNowRadar } from "@/components/happening-now-radar";
 import { SpandanLogo } from "@/components/spandan-branding";
 import { ShareFeedbackButton } from "@/components/share-feedback-modal";
+import { AutomatedFeedbackBanner } from "@/components/automated-feedback-banner";
 import { hasPublicSupabaseConfiguration, hasSupabaseConfiguration } from "@/server/env";
 import { createPublicClient } from "@/server/supabase/public";
 import { createAdminClient } from "@/server/supabase/admin";
@@ -168,10 +169,14 @@ export default async function HomePage() {
               Out of the ordinary.<br />
               <em>Into the fest.</em>
             </p>
-            <p className={styles.description}>
-              The stage. The field. The memories.<br />
-              Make this one yours.
-            </p>
+            <div className={styles.heroActions}>
+              <Link href="/events" className={styles.heroPrimaryBtn}>
+                Explore Events →
+              </Link>
+              <Link href="/live" className={styles.heroSecondaryBtn}>
+                Live Match Pitch
+              </Link>
+            </div>
           </div>
           <div className={styles.festivalPrint}>
             <div className={styles.printHeader}>
@@ -193,9 +198,12 @@ export default async function HomePage() {
         <SponsorStrip sponsors={stripSponsors.filter((sponsor) => sponsorTier(sponsor.tier) === 0)} variant="title" placement="home-title" />
 
         <div className={styles.festivalStrip}>
-          <span>A little competition.</span>
-          <span>A lot of campus spirit.</span>
-          <span className={styles.campusEditionNote}>ASMC Firozabad Inter-Batch Festival</span>
+          <span className={styles.stripEditionBadge}>EDITION 04</span>
+          <span className={styles.stripCampusName}>ASMC Firozabad Inter-Batch Championship</span>
+          <span className={styles.stripDot}>•</span>
+          <span>34 Official Events</span>
+          <span className={styles.stripDot}>•</span>
+          <span>Sports · Cultural · Literary</span>
         </div>
 
         {latestNotice && (
@@ -268,13 +276,13 @@ export default async function HomePage() {
           </div>
           <div className={styles.footerActions}>
             <ShareFeedbackButton authStatus={authStatus} editionId={editionId} />
-            <Link href="/guest">Guest Directory</Link>
             <Link href="/sponsors">Sponsors &amp; Partners</Link>
-            <Link href="/faqs">Help &amp; FAQs</Link>
             {authStatus.isOrganiser && <Link href="/admin">Organiser portal <span aria-hidden>↗</span></Link>}
           </div>
         </footer>
       </div>
+
+      <AutomatedFeedbackBanner authStatus={authStatus} editionId={editionId} />
     </main>
   );
 }
