@@ -269,6 +269,7 @@ export default async function HomePage() {
           <div className={styles.footerActions}>
             <ShareFeedbackButton authStatus={authStatus} editionId={editionId} />
             <Link href="/sponsors">Sponsors &amp; Partners</Link>
+            <Link href="/privacy">Privacy Policy</Link>
             {authStatus.isOrganiser && <Link href="/admin">Organiser portal <span aria-hidden>↗</span></Link>}
           </div>
         </footer>

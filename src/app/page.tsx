@@ -106,6 +106,8 @@ export default async function RootGatewayPage({
           </span>
         </div>
         <div className={homeStyles.footerActions}>
+          <Link href="/sponsors">Sponsors &amp; Partners</Link>
+          <Link href="/privacy">Privacy Policy</Link>
           <Link href="/admin">Organiser portal ↗</Link>
         </div>
       </footer>

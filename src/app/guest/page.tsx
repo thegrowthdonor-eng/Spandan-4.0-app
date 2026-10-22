@@ -67,6 +67,7 @@ export default function GuestDirectoryPage() {
           <div className={homeStyles.footerBrand}><strong>Spandan 4.0 · ASMC Firozabad</strong></div>
           <div className={homeStyles.footerActions}>
             <Link href="/sponsors">Sponsors &amp; partners</Link>
+            <Link href="/privacy">Privacy Policy</Link>
             <Link href="/account">Student portal</Link>
           </div>
         </footer>
