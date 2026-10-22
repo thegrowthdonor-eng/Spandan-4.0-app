@@ -44,12 +44,10 @@ export function BottomNav({ isAuthenticated }: { isAuthenticated: boolean }) {
 
       <Link href="/feed" className={`bnav-item bnav-feed ${isFeed ? "active" : ""}`} aria-current={isFeed ? "page" : undefined}>
         <span className="bnav-feed-icon-wrap" aria-hidden="true">
-          <span className="bnav-feed-glow-ring" />
-          <span className="bnav-feed-live-dot" />
-          <svg className="bnav-feed-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="bnav-feed-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3.5" width="18" height="17" rx="5" />
             <circle cx="12" cy="12" r="3.2" />
-            <circle cx="16.5" cy="7.5" r="0.9" fill="currentColor" stroke="none" />
+            <circle cx="16.5" cy="7.5" r="0.8" fill="currentColor" stroke="none" />
           </svg>
         </span>
         <span className="bnav-label bnav-feed-label">Feed</span>

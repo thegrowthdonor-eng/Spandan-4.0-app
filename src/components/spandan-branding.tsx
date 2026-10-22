@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { HeaderBackButton } from "./header-back-button";
+import { FestivalNotificationBell } from "./festival-notification-bell";
 
 export function SpandanLogo({
   variant = "dark",
@@ -64,6 +65,10 @@ export function FestTopNav({
           Council
         </Link>
       </nav>
+
+      <div className="fest-header-actions">
+        <FestivalNotificationBell />
+      </div>
     </header>
   );
 }

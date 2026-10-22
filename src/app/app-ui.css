@@ -24,20 +24,15 @@ body .bnav-item { color: var(--ui-muted); }
 body .bnav-item.active, body .bnav-item.active .bnav-label { color: var(--ui-accent); }
 body .bnav-icon svg { width: 21px; height: 21px; display: block; }
 body .bnav-label { font-size: 11px; }
-body .bnav-feed { position: relative; overflow: visible; }
-body .bnav-feed-icon-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 28px; border-radius: 14px; background: linear-gradient(135deg, rgba(235, 120, 60, 0.16) 0%, rgba(229, 169, 60, 0.24) 50%, rgba(53, 87, 71, 0.16) 100%); border: 1px solid rgba(229, 169, 60, 0.55); box-shadow: 0 0 12px rgba(229, 169, 60, 0.38), 0 2px 6px rgba(0, 0, 0, 0.06); transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); animation: bnavFeedAestheticGlow 2.5s ease-in-out infinite; }
-@keyframes bnavFeedAestheticGlow { 0%, 100% { box-shadow: 0 0 8px rgba(229, 169, 60, 0.35), 0 0 2px rgba(246, 198, 103, 0.6), inset 0 0 4px rgba(229, 169, 60, 0.15); border-color: rgba(229, 169, 60, 0.5); transform: translateY(0); } 50% { box-shadow: 0 0 18px rgba(229, 169, 60, 0.7), 0 0 8px rgba(246, 198, 103, 0.95), 0 3px 10px rgba(230, 81, 0, 0.3), inset 0 0 8px rgba(229, 169, 60, 0.35); border-color: rgba(229, 169, 60, 0.95); transform: translateY(-2px); } }
-body .bnav-feed-glow-ring { position: absolute; inset: -4px; border-radius: 18px; background: radial-gradient(circle, rgba(229, 169, 60, 0.4) 0%, rgba(229, 169, 60, 0) 72%); opacity: 0.8; pointer-events: none; animation: bnavFeedHaloPulse 2.5s ease-in-out infinite; }
-@keyframes bnavFeedHaloPulse { 0%, 100% { transform: scale(0.92); opacity: 0.45; } 50% { transform: scale(1.2); opacity: 0.9; } }
-body .bnav-feed-live-dot { position: absolute; top: -2px; right: -2px; width: 8px; height: 8px; background: #ff5722; border: 1.5px solid #ffffff; border-radius: 50%; box-shadow: 0 0 8px #ff5722, 0 0 4px #ff9800; z-index: 2; animation: bnavFeedDotPulse 1.8s ease-in-out infinite; }
-@keyframes bnavFeedDotPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 6px #ff5722; } 50% { transform: scale(1.35); box-shadow: 0 0 12px #ff7043, 0 0 4px #ffeb3b; } }
-body .bnav-feed .bnav-feed-svg { width: 19px; height: 19px; color: #92542b; display: block; transition: transform 0.2s ease, color 0.2s ease; z-index: 1; }
-body .bnav-feed:hover .bnav-feed-svg, body .bnav-feed:active .bnav-feed-svg { transform: scale(1.1); }
-body .bnav-feed.active .bnav-feed-icon-wrap { background: linear-gradient(135deg, #355747 0%, #223c30 100%); border-color: #f6c667; box-shadow: 0 0 16px rgba(246, 198, 103, 0.55), 0 3px 8px rgba(34, 60, 48, 0.35); animation: none; transform: translateY(0); }
+body .bnav-feed { position: relative; }
+body .bnav-feed-icon-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 26px; border-radius: 13px; background: rgba(53, 87, 71, 0.07); border: 1px solid rgba(53, 87, 71, 0.16); box-shadow: 0 0 8px rgba(229, 169, 60, 0.14); transition: all 0.2s ease; }
+body .bnav-feed:hover .bnav-feed-icon-wrap { background: rgba(53, 87, 71, 0.12); border-color: rgba(53, 87, 71, 0.28); box-shadow: 0 0 12px rgba(229, 169, 60, 0.22); }
+body .bnav-feed .bnav-feed-svg { width: 18px; height: 18px; color: #4d6b5e; display: block; transition: color 0.2s ease, transform 0.15s ease; }
+body .bnav-feed:hover .bnav-feed-svg { transform: scale(1.05); }
+body .bnav-feed.active .bnav-feed-icon-wrap { background: #355747; border-color: #355747; box-shadow: 0 2px 8px rgba(53, 87, 71, 0.25); }
 body .bnav-feed.active .bnav-feed-svg { color: #f6c667; }
-body .bnav-feed.active .bnav-feed-glow-ring { background: radial-gradient(circle, rgba(246, 198, 103, 0.45) 0%, rgba(246, 198, 103, 0) 70%); }
-body .bnav-feed .bnav-feed-label { font-weight: 700; color: #92542b; letter-spacing: 0.02em; }
-body .bnav-feed.active .bnav-feed-label { color: #355747; text-shadow: 0 0 10px rgba(53, 87, 71, 0.2); }
+body .bnav-feed .bnav-feed-label { font-size: 11px; color: var(--ui-muted); }
+body .bnav-feed.active .bnav-feed-label { color: #355747; font-weight: 700; }
 body :is(.public-hero,.events-hero,.event-detail-hero) { padding: 26px max(20px,6vw); background: var(--ui-peach); color: var(--ui-ink); border-bottom: 1px solid #ead8ca; }
 body :is(.public-hero,.events-hero,.event-detail-hero) h1 { font: 600 clamp(25px,3.5vw,38px)/1.18 "DM Sans",sans-serif; color: var(--ui-ink); letter-spacing: -.035em; margin: 8px 0 10px; }
 body :is(.public-hero,.events-hero,.event-detail-hero) h1 em { color: #98513d; font-style: normal; }

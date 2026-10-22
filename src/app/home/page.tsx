@@ -5,6 +5,7 @@ import { HappeningNowRadar } from "@/components/happening-now-radar";
 import { SpandanLogo } from "@/components/spandan-branding";
 import { ShareFeedbackButton } from "@/components/share-feedback-modal";
 import { AutomatedFeedbackBanner } from "@/components/automated-feedback-banner";
+import { FestivalNotificationBell } from "@/components/festival-notification-bell";
 import { hasPublicSupabaseConfiguration, hasSupabaseConfiguration } from "@/server/env";
 import { createPublicClient } from "@/server/supabase/public";
 import { createAdminClient } from "@/server/supabase/admin";
@@ -145,15 +146,18 @@ export default async function HomePage() {
     <main className={styles.page}>
       <header className={styles.header}>
         <SpandanLogo variant="light" />
-        <nav aria-label="Festival navigation">
-          <Link href="/events">Events</Link>
-          <Link href="/schedule">Schedule</Link>
-          <Link href="/notices">Notices</Link>
-          {authStatus.isOrganiser && <Link href="/admin" className={styles.headerCta}>Organiser portal →</Link>}
-          <Link href="/my-fest" className={styles.headerCta}>
-            My Fest ({authStatus.name}) →
-          </Link>
-        </nav>
+        <div className={styles.headerRight}>
+          <nav aria-label="Festival navigation">
+            <Link href="/events">Events</Link>
+            <Link href="/schedule">Schedule</Link>
+            <Link href="/notices">Notices</Link>
+            {authStatus.isOrganiser && <Link href="/admin" className={styles.headerCta}>Organiser portal →</Link>}
+            <Link href="/my-fest" className={styles.headerCta}>
+              My Fest ({authStatus.name}) →
+            </Link>
+          </nav>
+          <FestivalNotificationBell />
+        </div>
       </header>
 
       <div className={styles.content}>

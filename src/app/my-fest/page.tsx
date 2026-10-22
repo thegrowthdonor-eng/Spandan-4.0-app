@@ -7,6 +7,7 @@ import { createRequestClient } from "@/server/supabase/server";
 import { createAdminClient } from "@/server/supabase/admin";
 import { SpandanLogo } from "@/components/spandan-branding";
 import { SignOutForm } from "@/components/sign-out-form";
+import { FestivalNotificationBell } from "@/components/festival-notification-bell";
 import { PollWidget } from "./poll-widget";
 import { HelpDesk, type HelpThread } from "./support-tools";
 import "./my-fest.css";
@@ -178,6 +179,7 @@ export default async function MyFestPage() {
       <header className="my-fest-header">
         <SpandanLogo size="medium" variant="light" />
         <div className="my-fest-header-actions">
+          <FestivalNotificationBell />
           <Link href="/home" className="header-home-btn">
             ← Home
           </Link>
