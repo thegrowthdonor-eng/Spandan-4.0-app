@@ -169,14 +169,6 @@ export default async function HomePage() {
               Out of the ordinary.<br />
               <em>Into the fest.</em>
             </p>
-            <div className={styles.heroActions}>
-              <Link href="/events" className={styles.heroPrimaryBtn}>
-                Explore Events →
-              </Link>
-              <Link href="/live" className={styles.heroSecondaryBtn}>
-                Live Match Pitch
-              </Link>
-            </div>
           </div>
           <div className={styles.festivalPrint}>
             <div className={styles.printHeader}>
