@@ -38,7 +38,15 @@ export async function proxy(request: NextRequest) {
   }
 
   // 2. Intercept un-bypassed requests during maintenance mode
-  if (IS_MAINTENANCE_MODE) {
+  // Local development / localhost is ALWAYS exempt so you can work freely without maintenance lock
+  const isLocalEnvironment =
+    process.env.NODE_ENV === "development" ||
+    request.nextUrl.hostname === "localhost" ||
+    request.nextUrl.hostname === "127.0.0.1" ||
+    request.nextUrl.hostname === "::1" ||
+    request.nextUrl.hostname.endsWith(".local");
+
+  if (IS_MAINTENANCE_MODE && !isLocalEnvironment) {
     const hasBypassCookie = request.cookies.get("spandan_maintenance_bypass")?.value === "1";
     const isAllowedPath = ALLOWED_PATHS.some((path) => pathname === path || pathname.startsWith(path + "/"));
 
