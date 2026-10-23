@@ -21,6 +21,7 @@ export function BottomNav({ isAuthenticated }: { isAuthenticated: boolean }) {
   if (
     !isAuthenticated ||
     pathname === "/" ||
+    pathname.startsWith("/maintenance") ||
     pathname.startsWith("/account") ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/setup")
