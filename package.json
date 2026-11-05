@@ -8,7 +8,14 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test src/**/*.test.ts",
+    "qa:seed": "node --env-file=.env.qa.local --import tsx scripts/seed-qa.ts",
+    "qa:events": "node --env-file=.env.qa.local --import tsx scripts/sync-qa-events.ts",
+    "qa:requests": "node --env-file=.env.qa.local --import tsx scripts/sync-qa-event-requests.ts",
+    "qa:reset": "node --env-file=.env.qa.local --import tsx scripts/seed-qa.ts",
+    "qa:verify": "node --env-file=.env.qa.local --import tsx scripts/verify-qa.ts",
+    "dev:qa": "node scripts/run-qa-next.mjs dev",
+    "build:qa": "node scripts/run-qa-next.mjs build"
   },
   "dependencies": {
     "@supabase/ssr": "latest",

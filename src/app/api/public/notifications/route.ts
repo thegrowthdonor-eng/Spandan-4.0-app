@@ -52,7 +52,7 @@ export async function GET() {
       // 2. Published tournament & stage results
       client
         .from("result_publications")
-        .select("id, published_at, events(title, slug), result_positions(placing, batches(name))")
+        .select("id, published_at, events(title, slug), result_positions(placing, batches(name:label))")
         .eq("state", "published")
         .order("published_at", { ascending: false })
         .limit(8),
@@ -68,8 +68,8 @@ export async function GET() {
       // 4. Live or imminent match fixtures
       client
         .from("fixtures")
-        .select("id, participant_a_label, participant_b_label, starts_at, state, venue, events(title, slug)")
-        .in("state", ["live", "scheduled"])
+        .select("id, participant_a_label, participant_b_label, starts_at, state, venue, events(title, slug), score_snapshots(version,status)")
+        .in("state", ["scheduled", "ongoing"])
         .order("starts_at", { ascending: true })
         .limit(6),
     ]);
@@ -142,7 +142,8 @@ export async function GET() {
       for (const f of fixturesRes.data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fix = f as any;
-        const isLive = fix.state === "live";
+        const latestSnapshot = (fix.score_snapshots ?? []).reduce((latest: { version: number; status: string } | null, snapshot: { version: number; status: string }) => !latest || snapshot.version > latest.version ? snapshot : latest, null);
+        const isLive = latestSnapshot?.status === "live" || latestSnapshot?.status === "paused";
         items.push({
           id: `fixture-${fix.id}`,
           type: "fixture",

@@ -32,6 +32,7 @@ export function BottomNav({ isAuthenticated }: { isAuthenticated: boolean }) {
   const isHome = pathname === "/home";
   const isEvents = pathname.startsWith("/events") || pathname.startsWith("/explore");
   const isFeed = pathname.startsWith("/feed");
+  const isLive = pathname.startsWith("/live");
   const isMyFest = pathname.startsWith("/my-fest");
 
   const homeHref = "/home";
@@ -52,6 +53,11 @@ export function BottomNav({ isAuthenticated }: { isAuthenticated: boolean }) {
           </svg>
         </span>
         <span className="bnav-label bnav-feed-label">Feed</span>
+      </Link>
+
+      <Link href="/live" className={`bnav-item ${isLive ? "active" : ""}`} aria-current={isLive ? "page" : undefined}>
+        <NavIcon path="M4 12h3l2-6 4 12 2-6h5M4 20h16M4 4h16" />
+        <span className="bnav-label">Live</span>
       </Link>
 
       <Link href="/events" className={`bnav-item ${isEvents ? "active" : ""}`} aria-current={isEvents ? "page" : undefined}>

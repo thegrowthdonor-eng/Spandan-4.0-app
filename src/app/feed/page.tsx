@@ -28,7 +28,7 @@ export default async function FeedPage() {
       const client = createPublicClient();
       const [fixtureRes, resultRes, mediaRes] = await Promise.all([
         client.from("fixtures").select("id,participant_a_label,participant_b_label,venue,starts_at,state,events(title,slug,score_template),score_snapshots(version,status,updated_at,score_payload)").neq("state", "cancelled").order("starts_at", { ascending: true }).limit(12),
-        client.from("result_publications").select("id,published_at,events(title,slug),result_positions(placing,batches(name))").eq("state", "published").order("published_at", { ascending: false }).limit(6),
+        client.from("result_publications").select("id,published_at,events(title,slug),result_positions(placing,batches(name:label))").eq("state", "published").order("published_at", { ascending: false }).limit(10),
         client.from("media_items").select("id,title,thumbnail_url,asset_url,alt_text,caption").limit(6),
       ]);
       fixtures = (fixtureRes.data ?? []) as unknown as Fixture[]; results = (resultRes.data ?? []) as unknown as Result[]; media = (mediaRes.data ?? []) as Media[];

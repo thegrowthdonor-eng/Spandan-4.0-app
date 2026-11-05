@@ -61,6 +61,10 @@ const EVENT_CATEGORIES = [
 ] as const;
 type EventCategoryKey = typeof EVENT_CATEGORIES[number]["key"];
 
+function eventCategoryFromQuery(value: string | null | undefined): EventCategoryKey | null {
+  return EVENT_CATEGORIES.some((item) => item.key === value) ? value as EventCategoryKey : null;
+}
+
 function normaliseCategory(category: string): EventCategoryKey {
   const value = category.toLowerCase().trim();
   if (value === "sport" || value === "sports") return "sport";
@@ -278,12 +282,30 @@ function EventCardItem({ event, now }: { event: EventCard; now: Date }) {
   );
 }
 
-export function EventCatalogue({ events }: { events: EventCard[] }) {
-  const [selectedCategory, setSelectedCategory] = useState<EventCategoryKey | null>(() => {
-    if (typeof window === "undefined") return null;
-    const category = new URLSearchParams(window.location.search).get("category");
-    return EVENT_CATEGORIES.some((item) => item.key === category) ? category as EventCategoryKey : null;
-  });
+export function EventsLandingHero({ eventCount }: { eventCount: number }) {
+  return (
+    <section className="events-hero">
+      <div className="events-hero-content">
+        <div className="hero-eyebrow-row">
+          <span className="college-affil-pill">&#127963;&#65039; SPANDAN 4.0 &middot; ASMC FIROZABAD</span>
+          <span className="hero-status-pill">&#9679; REGISTRATIONS LIVE</span>
+        </div>
+        <h1>
+          Find your <span className="gold-accent">festival arena</span>
+        </h1>
+        <p>From the field to the stage, discover every official Spandan event in one place.</p>
+        <div className="hero-stats-row">
+          <span className="hero-stat-badge">&#10022; <b>{eventCount}</b> Official Events</span>
+          <span className="hero-stat-badge">&#9678; Sports &middot; Culture &middot; Arts</span>
+          <span className="hero-stat-badge">&#9001; Easy category navigation</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function EventCatalogue({ events, initialCategory = null }: { events: EventCard[]; initialCategory?: string | null }) {
+  const [selectedCategory, setSelectedCategory] = useState<EventCategoryKey | null>(() => eventCategoryFromQuery(initialCategory));
   const [query, setQuery] = useState("");
   const [division, setDivision] = useState<DivisionKey>("all");
   const [discipline, setDiscipline] = useState<DisciplineKey>("all");
@@ -294,7 +316,7 @@ export function EventCatalogue({ events }: { events: EventCard[] }) {
   useEffect(() => {
     function syncCategoryFromHistory() {
       const category = new URLSearchParams(window.location.search).get("category");
-      setSelectedCategory(EVENT_CATEGORIES.some((item) => item.key === category) ? category as EventCategoryKey : null);
+      setSelectedCategory(eventCategoryFromQuery(category));
     }
     window.addEventListener("popstate", syncCategoryFromHistory);
     return () => window.removeEventListener("popstate", syncCategoryFromHistory);
@@ -387,22 +409,25 @@ export function EventCatalogue({ events }: { events: EventCard[] }) {
 
   if (!selectedCategory) {
     return (
-      <section className="category-gateway" aria-label="Festival event categories">
-        <div className="category-card-grid">
-          {EVENT_CATEGORIES.map((category) => {
-            const count = categoryCounts[category.key];
-            return (
-              <button key={category.key} type="button" className={`category-card category-card-${category.tone}`} onClick={() => openCategory(category.key)}>
-                <span className="category-card-icon"><EventGlyph name={category.icon} /></span>
-                <span className="category-card-topline"><span>{category.eyebrow}</span><span>{count} {count === 1 ? "event" : "events"}</span></span>
-                <strong>{category.label}</strong>
-                <span className="category-card-copy">{category.description}</span>
-                <span className="category-card-action">Explore {category.label} <EventGlyph name="arrow" /></span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      <>
+        <EventsLandingHero eventCount={events.length} />
+        <section className="category-gateway" aria-label="Festival event categories">
+          <div className="category-card-grid">
+            {EVENT_CATEGORIES.map((category) => {
+              const count = categoryCounts[category.key];
+              return (
+                <button key={category.key} type="button" className={`category-card category-card-${category.tone}`} onClick={() => openCategory(category.key)}>
+                  <span className="category-card-icon"><EventGlyph name={category.icon} /></span>
+                  <span className="category-card-topline"><span>{category.eyebrow}</span><span>{count} {count === 1 ? "event" : "events"}</span></span>
+                  <strong>{category.label}</strong>
+                  <span className="category-card-copy">{category.description}</span>
+                  <span className="category-card-action">Explore {category.label} <EventGlyph name="arrow" /></span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </>
     );
   }
 

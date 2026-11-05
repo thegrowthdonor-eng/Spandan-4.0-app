@@ -24,6 +24,7 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       { name: "Explore events", short_name: "Events", url: "/events" },
       { name: "Festival schedule", short_name: "Schedule", url: "/schedule" },
+      { name: "Offline scorer", short_name: "Scorer", url: "/scorer" },
     ],
   };
 }

@@ -51,7 +51,7 @@ export async function GET() {
     // 1. Fetch relevant fixtures
     const { data: fixtures } = await client
       .from("fixtures")
-      .select("id,stage,participant_a_label,participant_b_label,venue,starts_at,reporting_at,state,score_status,score_payload,events(id,title,category,score_template,slug)")
+      .select("id,stage,participant_a_label,participant_b_label,venue,starts_at,reporting_at,state,events(id,title,category,score_template,slug),score_snapshots(version,status,score_payload,updated_at)")
       .neq("state", "cancelled")
       .order("starts_at", { ascending: true })
       .limit(30);
@@ -73,7 +73,10 @@ export async function GET() {
         const ev = f.events as unknown as { id: string; title: string; category: string; score_template: string; slug: string } | null;
         const starts = f.starts_at ? new Date(f.starts_at) : null;
         
-        let isLive = f.score_status === "live" || f.score_status === "paused";
+        const snapshot = (f.score_snapshots ?? []).reduce<{
+          version: number; status: string; score_payload: unknown;
+        } | null>((latest, item) => !latest || item.version > latest.version ? item : latest, null);
+        let isLive = snapshot?.status === "live" || snapshot?.status === "paused";
         if (!isLive && starts) {
           const diffMs = now.getTime() - starts.getTime();
           // Active within 2.5 hours of start time
@@ -83,8 +86,8 @@ export async function GET() {
         }
 
         let scoreSummary: string | null = null;
-        if (f.score_payload && typeof f.score_payload === "object") {
-          const p = f.score_payload as Record<string, unknown>;
+        if (snapshot?.score_payload && typeof snapshot.score_payload === "object") {
+          const p = snapshot.score_payload as Record<string, unknown>;
           if (ev?.score_template === "cricket") {
             scoreSummary = `${String(p.teamA_runs ?? 0)}/${String(p.teamA_wickets ?? 0)} vs ${String(p.teamB_runs ?? 0)}/${String(p.teamB_wickets ?? 0)}`;
           } else if (ev?.score_template === "football") {
@@ -104,7 +107,7 @@ export async function GET() {
             starts_at: f.starts_at,
             reporting_at: f.reporting_at,
             status: "live",
-            score_status: f.score_status,
+            score_status: snapshot?.status ?? null,
             score_summary: scoreSummary,
             score_template: ev?.score_template,
             event_slug: ev?.slug,

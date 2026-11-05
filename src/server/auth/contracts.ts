@@ -259,7 +259,7 @@ export const festivalSetupSchema = z.discriminatedUnion("action", [
     action: z.literal("createEvent"), editionId: z.string().uuid(), title: z.string().trim().min(1).max(160),
     category: z.enum(["sport", "cultural", "literary", "creative", "other"]), format: z.enum(["solo", "pair", "group", "sport"]),
     division: z.enum(["boys", "girls", "open"]).default("open"),
-    scoreTemplate: z.enum(["generic", "cricket", "football", "badminton"]), summary: z.string().trim().max(600), venue: z.string().trim().max(160).optional(),
+    scoreTemplate: z.enum(["generic", "cricket", "football", "badminton", "basketball", "set_based"]), summary: z.string().trim().max(600), venue: z.string().trim().max(160).optional(),
     capacity: z.number().int().positive().nullable(), startsAt: optionalDateTime,
     posterUrl: optionalWebUrl,
   }),

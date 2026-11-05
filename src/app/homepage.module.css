@@ -112,13 +112,13 @@
 .scheduleLink > span { color: var(--muted); font-size: 12px; }
 .scheduleLink strong { color: var(--accent); font-size: 14px; font-weight: 600; }
 .scheduleLink strong span { margin-left: 20px; }
-.radar :global(.radar-strip) { background: #ecefe9; border: 1px solid #dce2d8; border-radius: 5px; box-shadow: none; min-height: 48px; padding: 12px 16px; }
+.radar :global(.radar-strip) { background: #123f40; color:#fffaf2; border: 1px solid #123f40; border-radius: 16px; box-shadow: 0 12px 28px rgba(18,63,64,.14); min-height: 112px; padding: 22px 24px; }
 .radar :global(.radar-strip-content) { white-space: normal; gap: 12px; }
-.radar :global(.radar-chip-text) { white-space: normal; overflow: visible; color: #505e55; line-height: 1.5; font-size: 12px; }
-.radar :global(.radar-chip-text) strong { color: #263d30; }
-.radar :global(.radar-idle-pill), .radar :global(.radar-next-badge), .radar :global(.radar-live-badge) { background: transparent; color: #345e50; padding: 0; font-size: 9px; }
-.radar :global(.radar-chip-link) { color: #345e50; font: 600 12px/1.4 "DM Sans", sans-serif; text-decoration: none; padding: 4px 0; }
-.radar :global(.radar-pulse-dot) { animation: none; background: #345e50; }
+.radar :global(.radar-chip-text) { white-space: normal; overflow: visible; color: #c8dad6; line-height: 1.5; font-size: 12px; display:grid; gap:5px; }
+.radar :global(.radar-chip-text) strong { color: #fffaf2; font:600 clamp(22px,3vw,32px)/1.1 "Playfair Display",serif; }
+.radar :global(.radar-idle-pill), .radar :global(.radar-next-badge), .radar :global(.radar-live-badge) { background: transparent; color: #f0b28c; padding: 0; font-size: 9px; }
+.radar :global(.radar-chip-link) { color: #123f40; background:#fffaf2; border-radius:8px; font: 700 12px/1.4 "DM Sans", sans-serif; text-decoration: none; padding: 11px 14px; }
+.radar :global(.radar-pulse-dot) { background: #f0b28c; }
 .explore { margin-top: 36px; }
 .sectionHeading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .sectionHeading h2 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }

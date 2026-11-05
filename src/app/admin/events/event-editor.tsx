@@ -299,7 +299,7 @@ export function EventEditor({ events, editions, isAdmin = true }: { events: Even
           </div>
           <div className="field-pair">
             <label>Division<select value={newEvent.division} onChange={(event) => setNewEvent({ ...newEvent, division: event.target.value })}><option value="open">Open / mixed</option><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
-            <label>Score template<select value={newEvent.scoreTemplate} onChange={(event) => setNewEvent({ ...newEvent, scoreTemplate: event.target.value })}><option value="generic">Generic</option><option value="cricket">Cricket</option><option value="football">Football</option><option value="badminton">Badminton</option></select></label>
+            <label>Score template<select value={newEvent.scoreTemplate} onChange={(event) => setNewEvent({ ...newEvent, scoreTemplate: event.target.value })}><option value="generic">Generic counters</option><option value="cricket">Cricket</option><option value="football">Football</option><option value="basketball">Basketball</option><option value="set_based">Set sport</option><option value="badminton">Badminton (legacy)</option></select></label>
           </div>
           <button type="button" className="primary-control" disabled={pending || !newEvent.title.trim() || !editionId} onClick={() => void createEvent()}>
             {pending ? "Creating…" : isAdmin ? "Create event" : "Propose event (Draft)"}

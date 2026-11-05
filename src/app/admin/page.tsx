@@ -57,13 +57,14 @@ export default async function AdminPage() {
   const client = await createRequestClient();
   if (!(await client.auth.getUser()).data.user) redirect("/account");
 
-  const [accessCheck, eventsResult, activationResult, noticeCheck, mainAdminCheck, canCreateCheck] = await Promise.all([
+  const [accessCheck, eventsResult, activationResult, noticeCheck, mainAdminCheck, canCreateCheck, liveDeskCheck] = await Promise.all([
     client.rpc("can_manage_access"),
     client.rpc("list_managed_events"),
     client.rpc("list_activation_queue"),
     client.rpc("can_publish_notices"),
     client.rpc("is_main_admin"),
     client.rpc("can_create_events"),
+    client.rpc("can_manage_live_desk"),
   ]);
 
   const events = (eventsResult.data ?? []) as ManagedEvent[];
@@ -71,6 +72,7 @@ export default async function AdminPage() {
   const canPublishNotices = noticeCheck.data === true;
   const isMainAdmin = mainAdminCheck.data === true;
   const canCreateEvents = canCreateCheck.data === true;
+  const canManageLiveDesk = liveDeskCheck.data === true;
   const activationQueue = (activationResult.data ?? []) as ActivationRow[];
 
   if (!canActivate && !events.length && !canPublishNotices && !isMainAdmin && !canCreateEvents) {
@@ -78,7 +80,7 @@ export default async function AdminPage() {
   }
 
   const pendingCount = activationResult.error ? null : activationQueue.filter((row) => row.access_state === "pending").length;
-  const hasLoadError = Boolean(accessCheck.error || eventsResult.error || noticeCheck.error || mainAdminCheck.error || canCreateCheck.error);
+  const hasLoadError = Boolean(accessCheck.error || eventsResult.error || noticeCheck.error || mainAdminCheck.error || canCreateCheck.error || liveDeskCheck.error);
 
   const tools: Tool[] = [
     // PRIORITY 1: GROUND & COUNTER OPERATIONS
@@ -95,6 +97,18 @@ export default async function AdminPage() {
         icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
       }
     ] : []),
+    ...(canManageLiveDesk ? [
+      {
+        href: "/admin/live",
+        title: "Central Live Desk",
+        subtitle: "Start, pause and complete every ground or stage programme",
+        badge: "LIVE CONTROL",
+        actionText: "Open Live Desk",
+        accent: "cyan" as const,
+        group: "ground",
+        icon: "M4 12h3l2-6 4 12 2-6h5M4 20h16M4 4h16"
+      }
+    ] : []),
     ...(events.length || isMainAdmin ? [
       {
         href: "/admin/fixtures",
@@ -105,7 +119,7 @@ export default async function AdminPage() {
         accent: "gold" as const,
         group: "ground",
         icon: "M8 2v4m8-4v4M4 9h16M4 4h16v17H4V4Zm4 9h2m4 0h2m-8 4h2m4 0h2"
-      },
+      }
     ] : []),
     ...(canPublishNotices ? [
       {

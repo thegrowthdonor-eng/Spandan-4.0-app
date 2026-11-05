@@ -31,7 +31,7 @@ export function FestTopNav({
   showBack = false,
   backFallbackHref = "/home",
 }: {
-  activePage?: "events" | "schedule" | "standings" | "notices" | "merchandise" | "committee" | "gallery" | "faqs" | "sponsors" | "";
+  activePage?: "live" | "events" | "schedule" | "standings" | "notices" | "merchandise" | "committee" | "gallery" | "faqs" | "sponsors" | "";
   showBack?: boolean;
   backFallbackHref?: string;
 }) {
@@ -43,6 +43,9 @@ export function FestTopNav({
       </div>
 
       <nav className="fest-nav" aria-label="Festival Navigation">
+        <Link href="/live" className={activePage === "live" ? "nav-link active" : "nav-link"}>
+          Live Ground
+        </Link>
         <Link href="/events" className={activePage === "events" ? "nav-link active" : "nav-link"}>
           Events
         </Link>

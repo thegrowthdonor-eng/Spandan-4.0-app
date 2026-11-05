@@ -11,9 +11,6 @@ import { createPublicClient } from "@/server/supabase/public";
 import { createAdminClient } from "@/server/supabase/admin";
 import { createRequestClient } from "@/server/supabase/server";
 import styles from "../homepage.module.css";
-import { getPublishedSponsors } from "@/server/sponsors";
-import { groupSponsors, sponsorTier } from "@/lib/sponsors";
-import { SponsorStrip } from "@/components/sponsor-strip";
 
 export const metadata = {
   title: "SPANDAN 4.0 | ASMC Firozabad Official Festival Space",
@@ -126,12 +123,11 @@ const secondaryDestinations = [
 ];
 
 export default async function HomePage() {
-  const [topBatches, authStatus, latestNotice, editionId, sponsors] = await Promise.all([
+  const [topBatches, authStatus, latestNotice, editionId] = await Promise.all([
     getTopBatches(),
     getAuthStatus(),
     getLatestNotice(),
     getActiveEditionId(),
-    getPublishedSponsors(),
   ]);
 
   // If not logged in, redirect to auth gateway
@@ -139,15 +135,13 @@ export default async function HomePage() {
     redirect("/?next=/home");
   }
 
-  const stripSponsors = groupSponsors(sponsors).flatMap((group) => group.items)
-    .map(({ id, name, tier, logo_url, logo_alt }) => ({ id, name, tier, logo_url, logo_alt }));
-
   return (
     <main className={styles.page}>
       <header className={styles.header}>
         <SpandanLogo variant="light" />
         <div className={styles.headerRight}>
           <nav aria-label="Festival navigation">
+            <Link href="/live">Live Ground</Link>
             <Link href="/events">Events</Link>
             <Link href="/schedule">Schedule</Link>
             <Link href="/notices">Notices</Link>
@@ -190,8 +184,6 @@ export default async function HomePage() {
             <div className={styles.printFooter}>SPORTS / CULTURE / LITERARY</div>
           </div>
         </section>
-
-        <SponsorStrip sponsors={stripSponsors.filter((sponsor) => sponsorTier(sponsor.tier) === 0)} variant="title" placement="home-title" />
 
         <div className={styles.festivalStrip}>
           <span className={styles.stripEditionBadge}>EDITION 04</span>
@@ -245,8 +237,6 @@ export default async function HomePage() {
             ))}
           </div>
         </section>
-
-        <SponsorStrip sponsors={stripSponsors.filter((sponsor) => sponsorTier(sponsor.tier) !== 0)} placement="home-partners" />
 
         {topBatches.length > 0 && (
           <section className={styles.standings} aria-labelledby="standings-title">

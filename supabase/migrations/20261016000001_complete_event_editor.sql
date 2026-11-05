@@ -208,6 +208,10 @@ revoke all on function public.export_event_participants(uuid) from public, anon;
 grant execute on function public.export_event_participants(uuid) to authenticated;
 
 -- Score entry status for admin fixtures view
+-- PostgreSQL cannot replace a function when its OUT-column row type changes.
+-- The earlier fixture operation exposes a wider return shape, so remove that
+-- signature before installing the streamlined admin projection below.
+drop function if exists public.list_event_fixtures(uuid);
 create or replace function public.list_event_fixtures(p_event_id uuid)
 returns table (
   fixture_id uuid, stage text, participant_a_label text, participant_b_label text,

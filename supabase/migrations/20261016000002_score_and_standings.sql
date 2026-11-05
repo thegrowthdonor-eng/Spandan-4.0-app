@@ -33,9 +33,9 @@ begin
     if points_val is null or points_val < 0 then
       raise exception 'Points must be a non-negative integer' using errcode = '22023';
     end if;
-    insert into public.point_rules(event_id, placing, points, configured_by)
+    insert into public.point_rules(event_id, "placing", points, configured_by)
     values (p_event_id, placing_val, points_val, auth.uid())
-    on conflict (event_id, placing) do update set points = excluded.points, configured_by = excluded.configured_by, configured_at = now();
+    on conflict (event_id, "placing") do update set points = excluded.points, configured_by = excluded.configured_by, configured_at = now();
   end loop;
   insert into public.audit_log(actor_id, action, object_type, object_id, change_summary)
   values (auth.uid(), 'event.point_rules_set', 'event', p_event_id,
@@ -101,12 +101,12 @@ begin
       coalesce(
         jsonb_agg(
           jsonb_build_object(
-            'placing', pos.placing,
+            'placing', pos."placing",
             'batch_id', pos.batch_id,
             'batch_label', b.label,
             'points', pr.points,
             'note', pos.note
-          ) order by pos.placing
+          ) order by pos."placing"
         ) filter (where pos.id is not null),
         '[]'::jsonb
       )
@@ -114,7 +114,7 @@ begin
     left join public.profiles p on p.id = rp.published_by
     left join public.result_positions pos on pos.publication_id = rp.id
     left join public.batches b on b.id = pos.batch_id
-    left join public.point_rules pr on pr.event_id = p_event_id and pr.placing = pos.placing
+    left join public.point_rules pr on pr.event_id = p_event_id and pr."placing" = pos."placing"
     where rp.event_id = p_event_id
     group by rp.id, rp.version, rp.state, rp.reason, p.full_name, rp.published_at
     order by rp.version desc;

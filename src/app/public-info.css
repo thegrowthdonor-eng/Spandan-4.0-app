@@ -222,6 +222,8 @@
 .merch-card { background:#fffaf2;border:1px solid #c9bdb4;padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 4px 14px rgba(38,25,35,0.04);transition:transform .15s ease,box-shadow .15s ease; }
 .merch-card:hover { transform:translateY(-2px);box-shadow:0 8px 24px rgba(38,25,35,0.08); }
 .merch-img-box { height:200px;background:#261923;color:#f5f0e8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border-radius:4px;overflow:hidden;position:relative;padding:16px;text-align:center; }
+.merch-img-box img { width:100%;height:100%;object-fit:cover;position:absolute;inset:0; }
+.merch-img-box .merch-img-label { position:relative;z-index:1;background:rgba(38,25,35,.72);padding:7px 10px; }
 .merch-tag { position:absolute;top:12px;left:12px;background:#bc6256;color:#fff;font:700 9px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.1em;padding:4px 8px;border-radius:2px; }
 .merch-icon { font-size:44px; }
 .merch-img-label { font:600 13px/1.3 "DM Sans",sans-serif;color:#f5f0e8; }
@@ -253,6 +255,9 @@
 .committee-card { background:#fffaf2;border:1px solid #c9bdb4;padding:24px;display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 14px rgba(38,25,35,0.04); }
 .committee-role-badge { font:700 10px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.1em;color:#bc6256;background:rgba(188,98,86,0.1);padding:4px 8px;border-radius:2px;align-self:start; }
 .committee-avatar { width:64px;height:64px;border-radius:50%;background:#261923;color:#f5f0e8;display:flex;align-items:center;justify-content:center;font:600 20px/1 "Playfair Display",serif;margin-bottom:4px; }
+.committee-avatar img { width:100%;height:100%;object-fit:cover;border-radius:inherit; }
+.schedule-day { display:grid;gap:16px;margin:0 0 46px; }
+.schedule-subheading { margin:0;font:700 11px/1 "DM Mono",monospace;text-transform:uppercase;letter-spacing:.11em;color:#80524d; }
 .committee-name { margin:0;font:600 20px/1.2 "Playfair Display",serif;color:#261923; }
 .committee-title { margin:0;font:600 12px/1.3 "DM Sans",sans-serif;color:#80524d;text-transform:uppercase;letter-spacing:.05em; }
 .committee-desc { margin:4px 0 0;font-size:13px;line-height:1.55;color:#55444e; }

@@ -45,6 +45,9 @@ export default async function RootGatewayPage({
       <header className={homeStyles.header}>
         <SpandanLogo variant="light" />
         <nav aria-label="Festival options">
+          <Link href="/live" className={homeStyles.headerCta}>
+            Live Ground →
+          </Link>
           <Link href="/guest" className={homeStyles.headerCta}>
             Guest Preview →
           </Link>
@@ -106,6 +109,7 @@ export default async function RootGatewayPage({
           </span>
         </div>
         <div className={homeStyles.footerActions}>
+          <Link href="/live">Live Ground</Link>
           <Link href="/sponsors">Sponsors &amp; Partners</Link>
           <Link href="/privacy">Privacy Policy</Link>
           <Link href="/admin">Organiser portal ↗</Link>

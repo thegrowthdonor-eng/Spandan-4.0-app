@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useRef, useState } from "react";
 
 type Question = {
@@ -18,6 +19,7 @@ export function ApplyButton({
   eventId: string;
   questions?: Question[];
 }) {
+  const router = useRouter();
   const idempotencyKey = useRef(crypto.randomUUID());
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -54,6 +56,7 @@ export function ApplyButton({
           ? "Your application was added to the waitlist. Check My Fest for updates."
           : "Application submitted. Check My Fest for review updates."
       );
+      router.refresh();
     } catch {
       setMessage("Unable to submit this application. Please try again.");
     } finally {
@@ -121,6 +124,7 @@ export function ApplyButton({
 }
 
 export function WithdrawButton({ applicationId }: { applicationId: string }) {
+  const router = useRouter();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [withdrawn, setWithdrawn] = useState(false);
@@ -144,6 +148,7 @@ export function WithdrawButton({ applicationId }: { applicationId: string }) {
       }
       setWithdrawn(true);
       setMessage("Application withdrawn. Contact the organiser if you change your mind after the roster lock.");
+      router.refresh();
     } catch {
       setMessage("Unable to withdraw. Please try again.");
     } finally {

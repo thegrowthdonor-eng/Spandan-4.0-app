@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { hasPublicSupabaseConfiguration, hasSupabaseConfiguration } from "@/server/env";
+import { createAdminClient } from "@/server/supabase/admin";
 import { createPublicClient } from "@/server/supabase/public";
 import { createRequestClient } from "@/server/supabase/server";
-import { ApplyButton, WithdrawButton } from "../apply-button";
+import { ApplyButton } from "../apply-button";
+import { EventRegistrationDock } from "../event-registration-dock";
+import { EventParticipantsDialog } from "../event-participants-dialog";
 import { FestTopNav } from "@/components/spandan-branding";
 import "../events.css";
 
@@ -50,6 +52,18 @@ type PublishedResult = {
     points: number;
     note: string | null;
   }>;
+};
+
+type EventManager = {
+  profile_id: string;
+  full_name: string;
+  batch_label: string | null;
+};
+
+type PublicParticipant = {
+  profile_id: string;
+  full_name: string;
+  batch_label: string;
 };
 
 function datetime(value: string | null) {
@@ -112,6 +126,74 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
     return fallback.data ? { ...fallback.data, poster_url: null } as EventDetail : null;
   } catch {
     return null;
+  }
+}
+
+async function getEventManagers(eventId: string): Promise<EventManager[]> {
+  if (!hasSupabaseConfiguration()) return [];
+  try {
+    const admin = createAdminClient();
+    const { data: assignments, error: assignmentError } = await admin
+      .from("staff_assignments")
+      .select("profile_id")
+      .eq("event_id", eventId)
+      .eq("role", "event_head")
+      .is("revoked_at", null);
+
+    if (assignmentError || !assignments?.length) return [];
+    const profileIds = [...new Set(assignments.map((assignment) => assignment.profile_id))];
+    const { data: profiles, error: profileError } = await admin
+      .from("profiles")
+      .select("id,full_name,batches(label)")
+      .in("id", profileIds)
+      .order("full_name");
+
+    if (profileError || !profiles) return [];
+    return profiles.map((profile) => {
+      const batch = profile.batches as unknown as { label?: string | null } | null;
+      return {
+        profile_id: profile.id,
+        full_name: profile.full_name,
+        batch_label: batch?.label ?? null,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function getPublicParticipants(eventId: string): Promise<PublicParticipant[]> {
+  if (!hasSupabaseConfiguration()) return [];
+  try {
+    const admin = createAdminClient();
+    const { data: applications, error: applicationError } = await admin
+      .from("applications")
+      .select("student_id")
+      .eq("event_id", eventId)
+      .eq("review_state", "approved")
+      .eq("selection_state", "selected");
+
+    if (applicationError || !applications?.length) return [];
+    const profileIds = [...new Set(applications.map((application) => application.student_id))];
+    const { data: profiles, error: profileError } = await admin
+      .from("profiles")
+      .select("id,full_name,participant_category,batches(label)")
+      .in("id", profileIds)
+      .order("full_name");
+
+    if (profileError || !profiles) return [];
+    return profiles
+      .map((profile) => {
+        const batch = profile.batches as unknown as { label?: string | null } | null;
+        return {
+          profile_id: profile.id,
+          full_name: profile.full_name,
+          batch_label: batch?.label ?? profile.participant_category?.toUpperCase() ?? "Participant",
+        };
+      })
+      .sort((a, b) => a.batch_label.localeCompare(b.batch_label) || a.full_name.localeCompare(b.full_name));
+  } catch {
+    return [];
   }
 }
 
@@ -197,7 +279,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   const event = await getEvent((await params).slug);
   if (!event) notFound();
 
-  const eventResult = await getEventResult(event.id);
+  const [eventResult, eventManagers, publicParticipants] = await Promise.all([
+    getEventResult(event.id),
+    getEventManagers(event.id),
+    getPublicParticipants(event.id),
+  ]);
 
   const now = new Date();
   const appOpen = event.state === "open"
@@ -248,104 +334,54 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
 
   const questions: Question[] = Array.isArray(event.application_questions) ? event.application_questions : [];
   const division = event.eligibility?.division?.toLowerCase() ?? "open";
+  const requiredProfileGender = division === "boys" ? "male" : division === "girls" ? "female" : null;
   const divisionTitle = division === "boys" ? "👦 Boys Division" : division === "girls" ? "👧 Girls Division" : "👥 Open / Mixed";
+  const showFormatBadge = event.format.trim().toLowerCase() !== event.category.trim().toLowerCase();
 
-  function applicationGuidance(evt: EventDetail): React.ReactNode {
-    if (evt.state === "cancelled") {
-      return (
-        <aside className="event-apply-note">
-          <strong>This event has been cancelled.</strong>
-          <p>No further applications or changes are possible. Contact the organiser for information about affected registrations.</p>
-        </aside>
-      );
-    }
-    if (evt.state === "completed") {
-      return (
-        <aside className="event-apply-note">
-          <strong>This event has concluded.</strong>
-          <p>Results and standings will be published by the organiser. Check the public standings page.</p>
-          <Link href="/standings">View results &amp; standings →</Link>
-        </aside>
-      );
-    }
-    if (!isAuthenticated) {
-      return (
-        <aside className="event-apply-note">
-          <strong>{appOpen ? "Applications are open." : "Applications are not open."}</strong>
-          <p>Sign in with your fest account to apply. Registration requires an active student account verified by the organiser.</p>
-          <Link href={`/account?next=/events/${evt.slug}`}>Sign in / Register →</Link>
-        </aside>
-      );
-    }
-    if (userAccessState === "pending") {
-      return (
-        <aside className="event-apply-note">
-          <strong>Account verification pending.</strong>
-          <p>Your account is awaiting verification by the organiser. You cannot apply until your account is activated. Check My Fest for your current status.</p>
-          <Link href="/my-fest">My Fest →</Link>
-        </aside>
-      );
-    }
-    if (userAccessState === "rejected" || userAccessState === "suspended") {
-      return (
-        <aside className="event-apply-note">
-          <strong>Registration access restricted.</strong>
-          <p>Your account access has been restricted. Contact the organiser through the help desk in My Fest for assistance.</p>
-          <Link href="/my-fest">My Fest →</Link>
-        </aside>
-      );
-    }
-    const requiredGender = division === "boys" ? "male" : division === "girls" ? "female" : null;
-    if (requiredGender && userGender !== requiredGender) {
-      return <aside className="event-apply-note"><strong>This event is outside your registered division.</strong><p>Your verified profile gender does not match this event&apos;s eligibility. Open and mixed events remain available.</p><Link href="/events">Browse eligible events →</Link></aside>;
-    }
-    if (existingApplication) {
-      if (existingApplication.review_state === "withdrawn") {
-        return <aside className="event-apply-note"><strong>Your previous application was withdrawn.</strong><p>You may submit a new application if registration is still open.</p>{appOpen && <ApplyButton eventId={evt.id} questions={questions} />}</aside>;
-      }
-      if (existingApplication.review_state === "rejected") {
-        return <aside className="event-apply-note"><strong>This application was not approved.</strong><p>Check My Fest for the organiser&apos;s update. Contact the help desk only if you need clarification.</p><Link href="/my-fest">View in My Fest →</Link></aside>;
-      }
-      return (
-        <aside className="event-apply-note">
-          <strong>You have already applied to this event.</strong>
-          <p>Your application is {existingApplication.review_state.replaceAll("_", " ")}. Selection status: {existingApplication.selection_state.replaceAll("_", " ")}.</p>
-          <Link href="/my-fest">View in My Fest →</Link>
-          <WithdrawButton applicationId={existingApplication.id} />
-        </aside>
-      );
-    }
-    if (!appOpen) {
-      return (
-        <aside className="event-apply-note">
-          <strong>Applications are not currently open.</strong>
-          <p>
-            {evt.application_opens_at && now < new Date(evt.application_opens_at)
-              ? `Registration opens on ${datetime(evt.application_opens_at)}.`
-              : evt.state === "closed"
-                ? "Registration for this event has closed."
-                : "Check back once the organiser opens registration."}
-          </p>
-          <Link href="/my-fest">My Fest →</Link>
-        </aside>
-      );
-    }
-    return (
-      <aside className="event-apply-note">
-        <strong>Applications are open{evt.waitlist_enabled ? " (waitlist available if full)" : ""}.</strong>
-        <p>
-          Applying does not guarantee approval or final selection. The organiser reviews all applications.
-          {evt.application_closes_at && ` Registration closes ${datetime(evt.application_closes_at)}.`}
-          {evt.application_capacity && ` Capacity: ${evt.application_capacity} applicants.`}
-        </p>
-        {clashWarning && (
-          <div style={{ background: "rgba(246, 198, 103, 0.12)", border: "1px solid #f6c667", color: "#f5f0e8", padding: "12px 14px", borderRadius: "4px", margin: "14px 0", fontSize: "13px", lineHeight: "1.5" }}>
-            {clashWarning}
-          </div>
-        )}
-        <ApplyButton eventId={evt.id} questions={questions} />
-      </aside>
-    );
+  let dockStatus = "Applications open";
+  let dockLabel = "Register now";
+  let dockHref: string | null = "#event-registration";
+  let dockTone = "open";
+
+  if (event.state === "cancelled") {
+    dockStatus = "Programme update";
+    dockLabel = "Event cancelled";
+    dockHref = null;
+    dockTone = "inactive";
+  } else if (event.state === "completed") {
+    dockStatus = "Event completed";
+    dockLabel = eventResult ? "View results" : "Browse events";
+    dockHref = eventResult ? "#event-results" : "/events";
+    dockTone = "status";
+  } else if (existingApplication && existingApplication.review_state !== "withdrawn") {
+    dockStatus = `Application ${existingApplication.review_state.replaceAll("_", " ")}`;
+    dockLabel = "View application";
+    dockHref = "/my-fest";
+    dockTone = "status";
+  } else if (!appOpen) {
+    dockStatus = event.state === "closed" ? "Registration closed" : "Registration unavailable";
+    dockLabel = event.state === "closed" ? "Registration closed" : "Not open yet";
+    dockHref = null;
+    dockTone = "inactive";
+  } else if (!isAuthenticated) {
+    dockStatus = "Applications open";
+    dockLabel = "Sign in to register";
+    dockHref = `/account?next=/events/${event.slug}`;
+  } else if (userAccessState === "pending" || userAccessState == null) {
+    dockStatus = "Account verification pending";
+    dockLabel = "Check verification";
+    dockHref = "/my-fest";
+    dockTone = "status";
+  } else if (userAccessState === "rejected" || userAccessState === "suspended") {
+    dockStatus = "Registration restricted";
+    dockLabel = "Get help";
+    dockHref = "/my-fest";
+    dockTone = "inactive";
+  } else if (requiredProfileGender && userGender !== requiredProfileGender) {
+    dockStatus = "Outside your division";
+    dockLabel = "Browse eligible events";
+    dockHref = "/events";
+    dockTone = "inactive";
   }
 
   return (
@@ -372,13 +408,15 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       )}
 
       <section className="event-detail-hero">
-        {/* Badges strip */}
-        <div className="event-detail-badge-strip">
-          <span className={`division-pill division-pill-${division}`}>
-            {divisionTitle}
-          </span>
-          <span className="event-category-pill">{event.category}</span>
-          <span className="event-format-pill">{event.format}</span>
+        <div className="event-detail-hero-topline">
+          <div className="event-detail-badge-strip">
+            <span className={`division-pill division-pill-${division}`}>
+              {divisionTitle}
+            </span>
+            <span className="event-category-pill">{event.category}</span>
+            {showFormatBadge && <span className="event-format-pill">{event.format}</span>}
+          </div>
+          <EventParticipantsDialog eventTitle={event.title} participants={publicParticipants} />
         </div>
 
         <h1>{event.title}</h1>
@@ -440,7 +478,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
 
       {/* Official Results & Podium Showcase */}
       {eventResult && (eventResult.positions.length > 0 || eventResult.podium_photo_url) && (
-        <section className="event-results-showcase">
+        <section className="event-results-showcase" id="event-results">
           <div className="results-showcase-header">
             <p className="eyebrow">Official Competition Results</p>
             <h2>🏆 Champions &amp; Podium Placements</h2>
@@ -483,8 +521,48 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         <div className="rules-copy-container">
           {renderMarkdownRules(event.rules_markdown)}
         </div>
-        {applicationGuidance(event)}
       </section>
+
+      {eventManagers.length > 0 && (
+        <section className="event-managed-by" aria-labelledby="event-managed-by-title">
+          <div className="event-managed-by-heading">
+            <p className="eyebrow">Managed by</p>
+            <h2 id="event-managed-by-title">Your event coordinators.</h2>
+          </div>
+          <ul className="event-manager-list">
+            {eventManagers.map((manager) => (
+              <li key={manager.profile_id}>
+                <span className="event-manager-monogram" aria-hidden="true">
+                  {manager.full_name.trim().charAt(0).toUpperCase()}
+                </span>
+                <span className="event-manager-copy">
+                  <strong>{manager.full_name}</strong>
+                  <small>Event Coordinator{manager.batch_label ? ` · Batch ${manager.batch_label}` : ""}</small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <EventRegistrationDock
+        eventTitle={event.title}
+        status={dockStatus}
+        label={dockLabel}
+        href={dockHref}
+        tone={dockTone}
+        questionCount={questions.length}
+      >
+        {dockHref === "#event-registration" && (
+          <>
+            <p className="event-registration-sheet-note">
+              Applying does not guarantee approval or final selection. Review your answers carefully before submitting.
+            </p>
+            {clashWarning && <div className="event-registration-sheet-warning">{clashWarning}</div>}
+            <ApplyButton eventId={event.id} questions={questions} />
+          </>
+        )}
+      </EventRegistrationDock>
     </main>
   );
 }

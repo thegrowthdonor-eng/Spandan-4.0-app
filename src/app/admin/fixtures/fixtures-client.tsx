@@ -63,9 +63,11 @@ function toLocalInput(iso: string | null) {
 export function FixturesClient({
   event,
   fixtures,
+  isMainAdmin,
 }: {
   event: EventMeta;
   fixtures: FixtureItem[];
+  isMainAdmin: boolean;
 }) {
   const router = useRouter();
   const scoreTemplate = event.score_template || "generic";
@@ -107,6 +109,15 @@ export function FixturesClient({
   // Messages
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError?: boolean } | null>(null);
 
+  async function forceReleaseScorer(fixtureId: string) {
+    if (!window.confirm("Release the current scoring device? Its unsynced local score will not be published automatically.")) return;
+    try {
+      const response = await fetch("/api/admin/fixtures/release-device", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fixtureId, deviceId: crypto.randomUUID(), force: true }) });
+      const body = await response.json() as { error?: string };
+      setStatusMessage(response.ok ? { text: "Scoring device released. The replacement can now prepare this fixture." } : { text: body.error ?? "Unable to release scorer.", isError: true });
+    } catch { setStatusMessage({ text: "Network error releasing scorer.", isError: true }); }
+  }
+
   // Open Reschedule Modal
   function openReschedule(f: FixtureItem) {
     setRescheduleFixture(f);
@@ -114,17 +125,6 @@ export function FixturesClient({
     setRescheduleStarts(toLocalInput(f.starts_at));
     setRescheduleVenue(f.venue ?? "");
     setRescheduleReason("");
-    setStatusMessage(null);
-  }
-
-  // Open Score Modal
-  function openScore(f: FixtureItem) {
-    setScoreFixture(f);
-    const allowedStatuses = ["scheduled", "live", "paused", "final", "cancelled"] as const;
-    setScoreStatus(allowedStatuses.includes(f.score_status as typeof allowedStatuses[number]) ? f.score_status as typeof allowedStatuses[number] : "live");
-    // Preload existing score payload if available
-    const existing = (f.score_payload || {}) as Record<string, string>;
-    setScoreForm({ ...existing });
     setStatusMessage(null);
   }
 
@@ -509,13 +509,13 @@ export function FixturesClient({
 
                   {/* Fixture Operational Actions */}
                   <div className="fixture-control-buttons">
-                    <button
-                      type="button"
+                    <Link
                       className="btn-action score-btn"
-                      onClick={() => openScore(f)}
+                      href={`/scorer?fixture=${encodeURIComponent(f.fixture_id)}`}
                     >
-                      Enter Score
-                    </button>
+                      Prepare Offline Scorer
+                    </Link>
+                    {isMainAdmin && <button type="button" className="btn-action history-btn" onClick={() => void forceReleaseScorer(f.fixture_id)}>Transfer Scorer</button>}
                     <button
                       type="button"
                       className="btn-action reschedule-btn"

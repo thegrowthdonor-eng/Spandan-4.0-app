@@ -63,7 +63,10 @@ export default async function FixturesPage({
   const wanted = (await searchParams).event;
   const selected = events.find((event) => event.id === wanted) ?? events[0];
 
-  const { data, error } = await client.rpc("list_event_fixtures", { p_event_id: selected.id });
+  const [{ data, error }, mainAdmin] = await Promise.all([
+    client.rpc("list_event_fixtures", { p_event_id: selected.id }),
+    client.rpc("is_main_admin"),
+  ]);
   const fixtures = (data ?? []) as FixtureItem[];
 
   return (
@@ -93,7 +96,7 @@ export default async function FixturesPage({
       {error ? (
         <p className="fixture-empty">Fixtures are temporarily unavailable.</p>
       ) : (
-        <FixturesClient event={selected} fixtures={fixtures} />
+        <FixturesClient event={selected} fixtures={fixtures} isMainAdmin={mainAdmin.data === true} />
       )}
     </main>
   );

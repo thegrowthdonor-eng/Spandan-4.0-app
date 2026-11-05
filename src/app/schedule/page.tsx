@@ -1,128 +1,56 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import { HappeningNowRadar } from "@/components/happening-now-radar";
-import { SponsorPlacement } from "@/components/sponsor-placement";
-import { FestTopNav } from "@/components/spandan-branding";
+import { SpandanLogo } from "@/components/spandan-branding";
+import { FestivalNotificationBell } from "@/components/festival-notification-bell";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createPublicClient } from "@/server/supabase/public";
-import "../public-info.css";
+import { scheduleDay, type ScheduleEntry } from "@/lib/schedule";
+import { ScheduleExplorer } from "./schedule-explorer";
+import home from "../homepage.module.css";
 
 export const revalidate = 30;
-
-type Fixture = {
-  id: string;
-  stage: string;
-  participant_a_label: string;
-  participant_b_label: string;
-  venue: string | null;
-  reporting_at: string | null;
-  starts_at: string | null;
-  state: string;
-  events: { title: string; slug: string } | null;
-};
-
-function time(value: string | null) {
-  return value
-    ? new Intl.DateTimeFormat("en-IN", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Asia/Kolkata",
-      }).format(new Date(value))
-    : "Time to be announced";
-}
+export const metadata = { title: "Schedule | SPANDAN 4.0", description: "Explore Spandan 4.0 day by day, 3–8 December 2026. Sports, cultural programmes and festival nights at ASMC Firozabad." };
 
 export default async function SchedulePage() {
-  let fixtures: Fixture[] = [];
+  let entries: ScheduleEntry[] = [];
   let unavailable = !hasPublicSupabaseConfiguration();
-
+  let partial = false;
+  let official = false;
   if (!unavailable) {
-    const { data, error } = await createPublicClient()
-      .from("fixtures")
-      .select(
-        "id,stage,participant_a_label,participant_b_label,venue,reporting_at,starts_at,state,events(title,slug)",
-      )
-      .order("starts_at", { ascending: true, nullsFirst: false })
-      .order("created_at");
-
-    unavailable = Boolean(error);
-    fixtures = (data ?? []) as unknown as Fixture[];
+    const db = createPublicClient();
+    const [programme, fixtures, events] = await Promise.all([
+      db.from("schedule_entries").select("id,edition_id,day,title,category,venue,starts_at,ends_at,notes,sort_order").eq("published", true).gte("day", "2026-12-03").lte("day", "2026-12-08").order("sort_order"),
+      db.from("fixtures").select("id,stage,participant_a_label,participant_b_label,venue,reporting_at,starts_at,state,events(title,slug,edition_id)").order("starts_at"),
+      db.from("events").select("id,title,slug,category,venue,reporting_at,starts_at,ends_at,state").neq("state", "draft").order("starts_at"),
+    ]);
+    official = Boolean(programme.data?.length);
+    unavailable = Boolean(programme.error && fixtures.error && events.error);
+    const programmeFailure = programme.error && !["42P01", "PGRST205"].includes(programme.error.code);
+    partial = official ? Boolean(fixtures.error) : Boolean(programmeFailure || fixtures.error || events.error);
+    const fixtureRows = (fixtures.data ?? []) as unknown as Array<{ id: string; stage: string; participant_a_label: string; participant_b_label: string; venue: string | null; reporting_at: string | null; starts_at: string | null; state: string; events: { title: string; slug: string; edition_id: string } | null }>;
+    const officialEditions = new Set(programme.data?.map(row => row.edition_id));
+    entries = (programme.data ?? []).map(row => ({ ...row }));
+    entries.push(...fixtureRows.filter(row => !official || (row.events && officialEditions.has(row.events.edition_id))).map((row, index) => ({
+      id: row.id, day: scheduleDay(row.starts_at), title: `${row.participant_a_label} vs ${row.participant_b_label}`,
+      category: "fixture", venue: row.venue, starts_at: row.starts_at, reporting_at: row.reporting_at,
+      notes: [row.events?.title, row.stage].filter(Boolean).join(" · "), sort_order: index, state: row.state,
+      href: row.events?.slug ? `/events/${row.events.slug}` : undefined,
+    })));
+    if (!official) {
+      const fixtureSlugs = new Set(fixtureRows.map(row => row.events?.slug));
+      entries.push(...(events.data ?? []).filter(row => !fixtureSlugs.has(row.slug)).map((row, index) => ({
+        ...row, day: scheduleDay(row.starts_at), category: row.category === "sport" ? "sport" : "cultural",
+        notes: "", sort_order: index, href: `/events/${row.slug}`,
+      })));
+    }
   }
-
-  return (
-    <main className="public-page">
-      <FestTopNav activePage="schedule" />
-      <section className="public-hero">
-        <span className="fest-hero-badge">📅 Official Timetable &amp; Fixtures</span>
-        <h1>
-          Festival Schedule &amp; <em>Campus Feed</em>
-        </h1>
-        <p>Match fixtures, reporting times, live ground radar, and stage line-ups in IST.</p>
-      </section>
-
-      <section className="public-content">
-        <HappeningNowRadar />
-        <div className="public-section-heading">
-          <h2>Programme</h2>
-          <p>Confirm reporting time before leaving for the venue.</p>
-        </div>
-
-        {fixtures.length ? (
-          <ol className="fixture-list">
-            {fixtures.map((fixture) => (
-              <li className="fixture-row" key={fixture.id}>
-                <div className="fixture-when">
-                  <span>{time(fixture.starts_at)}</span>
-                  {fixture.reporting_at && (
-                    <>
-                      <br />
-                      Report: {time(fixture.reporting_at)}
-                    </>
-                  )}
-                </div>
-                <div className="fixture-main">
-                  <h2>
-                    {fixture.participant_a_label} <em>vs</em> {fixture.participant_b_label}
-                  </h2>
-                  <p>
-                    {fixture.events?.slug ? (
-                      <Link href={`/events/${fixture.events.slug}`}>
-                        {fixture.events.title} · {fixture.stage}
-                      </Link>
-                    ) : (
-                      `${fixture.events?.title ?? "Festival fixture"} · ${fixture.stage}`
-                    )}
-                  </p>
-                </div>
-                <div className="fixture-meta">
-                  <span>{fixture.venue ?? "Venue TBA"}</span>
-                  <span>{fixture.state.replaceAll("_", " ")}</span>
-                </div>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <div className="empty-public">
-            <p className="eyebrow">
-              {unavailable ? "Connection pending" : "Schedule being prepared"}
-            </p>
-            <h2>The programme will land here.</h2>
-            <p>
-              {unavailable
-                ? "The public programme service is not configured, so no unverified timetable is displayed."
-                : "Organisers have not published a fixture yet. Please check back after the programme is confirmed."}
-            </p>
-          </div>
-        )}
-
-        <Suspense fallback={null}>
-          <SponsorPlacement placement="schedule-footer" />
-        </Suspense>
-      </section>
-
-      <footer className="public-footer">
-        <span>ASMC Firozabad · SPANDAN 4.0</span>
-        <Link href="/my-fest">Go to My Fest →</Link>
-      </footer>
-    </main>
-  );
+  return <main className={home.page}>
+    <header className={home.header}>
+      <SpandanLogo variant="light" />
+      <div className={home.headerRight}><nav aria-label="Festival navigation"><Link href="/home">Home</Link><Link href="/events">Events</Link><Link href="/schedule" aria-current="page">Schedule</Link><Link href="/my-fest" className={home.headerCta}>My Fest →</Link></nav><FestivalNotificationBell /></div>
+    </header>
+    <div className={home.content}>
+      <ScheduleExplorer entries={entries} unavailable={unavailable} partial={partial} official={official} />
+      <footer className={home.footer}><span>ASMC Firozabad · SPANDAN 4.0</span><div className={home.footerActions}><Link href="/notices">Latest notices ↗</Link><Link href="/my-fest">My Fest →</Link></div></footer>
+    </div>
+  </main>;
 }
