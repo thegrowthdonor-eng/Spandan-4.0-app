@@ -20,7 +20,7 @@
   "dependencies": {
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
-    "next": "latest",
+    "next": "16.4.5",
     "react": "latest",
     "react-dom": "latest",
     "web-push": "3.6.7",
