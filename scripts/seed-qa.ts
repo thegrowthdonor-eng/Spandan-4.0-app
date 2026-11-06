@@ -202,7 +202,9 @@ async function main() {
     const rows = eventParticipants.map((participant, participantIndex) => ({
       event_id: event.id, student_id: participant.id, idempotency_key: randomUUID(), answers: { qa_note: "Fictional visual-QA registration" },
       review_state: participantIndex >= 5 ? "submitted" : participantIndex === 4 ? "rejected" : participantIndex === 3 ? "waitlisted" : "approved",
-      selection_state: participantIndex >= 5 ? "unselected" : participantIndex === 0 ? "selected" : participantIndex === 1 ? "reserve" : "unselected",
+      selection_state: event.slug === "100m-sprint-boys" && participantIndex < 3
+        ? "selected"
+        : participantIndex >= 5 ? "unselected" : participantIndex === 0 ? "selected" : participantIndex === 1 ? "reserve" : "unselected",
       reviewed_by: participantIndex >= 5 ? null : mainAdmin.id,
       reviewed_at: participantIndex >= 5 ? null : now,
       review_reason: participantIndex === 4 ? "Fictional QA rejection example" : null,

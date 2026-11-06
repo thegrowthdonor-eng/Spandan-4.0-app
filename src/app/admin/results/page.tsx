@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
-import { ResultsClient, PointRule, EligibleBatch, ResultPublication } from "./results-client";
+import { ResultsClient, PointRule, ResultPublication, ResultParticipant } from "./results-client";
 import { AdminEventPicker } from "@/components/admin/event-picker";
 import "./results.css";
 
@@ -66,23 +66,15 @@ export default async function AdminResultsPage({
   const wanted = (await searchParams).event;
   const selected = events.find((event) => event.id === wanted) ?? events[0];
 
-  const [{ data: batchData }, { data: ruleData }, { data: resultData }, { data: participantData }] = await Promise.all([
-    client.rpc("list_event_eligible_batches", { p_event_id: selected.id }),
+  const [{ data: ruleData }, { data: resultData }, { data: participantData }] = await Promise.all([
     client.rpc("list_event_point_rules", { p_event_id: selected.id }),
     client.rpc("list_event_results", { p_event_id: selected.id }),
     client.rpc("list_result_participants", { p_event_id: selected.id }),
   ]);
 
-  const batches = (batchData ?? []) as EligibleBatch[];
   const pointRules = (ruleData ?? []) as PointRule[];
   const results = (resultData ?? []) as ResultPublication[];
-  const participants = (participantData ?? []) as Array<{
-    target_id: string;
-    target_kind: "application" | "group";
-    label: string;
-    category: string;
-    batch_id: string | null;
-  }>;
+  const participants = (participantData ?? []) as ResultParticipant[];
 
   return (
     <main className="results-page">
@@ -111,7 +103,6 @@ export default async function AdminResultsPage({
 
       <ResultsClient
         event={selected}
-        batches={batches}
         pointRules={pointRules}
         results={results}
         participants={participants}

@@ -37,14 +37,14 @@ export async function GET(request: Request) {
 
   if (!(await client.auth.getUser()).data.user) return denied;
 
-  const [{ data: rules, error: rulesErr }, { data: results, error: resultsErr }, { data: participants }] = await Promise.all([
+  const [{ data: rules, error: rulesErr }, { data: results, error: resultsErr }, { data: participants, error: participantsErr }] = await Promise.all([
     client.rpc("list_event_point_rules", { p_event_id: eventId }),
     client.rpc("list_event_results", { p_event_id: eventId }),
     client.rpc("list_result_participants", { p_event_id: eventId }),
   ]);
 
-  if (rulesErr || resultsErr) {
-    if (rulesErr?.code === "42501" || resultsErr?.code === "42501") return denied;
+  if (rulesErr || resultsErr || participantsErr) {
+    if (rulesErr?.code === "42501" || resultsErr?.code === "42501" || participantsErr?.code === "42501") return denied;
     return NextResponse.json({ error: "Unable to load event results data." }, { status: 500, headers });
   }
 
@@ -104,6 +104,9 @@ export async function POST(request: Request) {
 
     if (error) {
       if (error.code === "42501") return denied;
+      if (error.code === "55000") {
+        return NextResponse.json({ error: "Point rules are locked after the first official result." }, { status: 409, headers });
+      }
       if (error.code === "22023") {
         return NextResponse.json({ error: "Point rules must contain valid non-negative placings and points." }, { status: 400, headers });
       }

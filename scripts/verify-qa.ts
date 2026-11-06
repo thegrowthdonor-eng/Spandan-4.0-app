@@ -20,7 +20,7 @@ async function main() {
   const publicClient = requireQaPublicEnvironment();
   const expected = new Map([
     ["editions", 1], ["batches", 6], ["events", QA_EVENT_SLUGS.length], ["applications", QA_EVENT_SLUGS.length * 10],
-    ["application_history", 408], ["participant_groups", 6], ["group_memberships", 18],
+    ["application_history", 409], ["participant_groups", 6], ["group_memberships", 18],
     ["fixtures", 12], ["fixture_history", 12], ["score_snapshots", 12],
     ["result_publications", 10], ["result_positions", 30], ["point_rules", 30], ["points_ledger", 30],
     ["notices", 6], ["polls", 3], ["poll_options", 10], ["poll_votes", 15], ["reminders", 6],
@@ -58,8 +58,11 @@ async function main() {
   const eventBySlug = new Map((eventRows.data ?? []).map((row: { id: string; slug: string; category: string; created_by: string | null }) => [row.slug, row]));
   const quiz = eventBySlug.get("quiz-bowl");
   const cricket = eventBySlug.get("box-cricket-boys");
+  const soloResultEvent = eventBySlug.get("100m-sprint-boys");
+  const teamResultEvent = eventBySlug.get("carrom-doubles-open");
+  const editablePointEvent = eventBySlug.get("debate");
   const culture = [...eventBySlug.values()].find((event) => event.category === "cultural");
-  if (!quiz || !cricket || !culture) throw new Error("QA role-scope events are missing");
+  if (!quiz || !cricket || !soloResultEvent || !teamResultEvent || !editablePointEvent || !culture) throw new Error("QA role-scope events are missing");
   for (const eventId of eventIds) {
     const pending = (applicationRows.data ?? []).filter((row: { event_id: string; review_state: string }) => row.event_id === eventId && row.review_state === "submitted").length;
     if (pending < 5) throw new Error(`QA event ${eventId} has ${pending} pending requests; expected at least 5`);
@@ -113,6 +116,35 @@ async function main() {
   assertEqual(invitedCount, 0, "Auth invite count");
   const pepper = process.env.AUTH_IDENTITY_PEPPER;
   if (!pepper) throw new Error("AUTH_IDENTITY_PEPPER is required for QA login verification");
+  const { error: resultAdminLoginError } = await publicClient.auth.signInWithPassword({
+    email: toPrivateAuthEmail({ batch: "2023", rollNumber: "91" }, pepper),
+    password: QA_PASSWORD,
+  });
+  failIfError(resultAdminLoginError, "Sign in Main Admin for results contract verification");
+  const [soloCandidates, teamCandidates] = await Promise.all([
+    publicClient.rpc("list_result_participants", { p_event_id: soloResultEvent.id }),
+    publicClient.rpc("list_result_participants", { p_event_id: teamResultEvent.id }),
+  ]);
+  failIfError(soloCandidates.error, "List selected solo result participants");
+  failIfError(teamCandidates.error, "List published result teams");
+  assertEqual(soloCandidates.data?.length ?? 0, 3, "Selected solo result participants");
+  const soloCandidate = soloCandidates.data?.[0] as { target_kind?: string; label?: string; roll_canonical?: string | null; batch_label?: string | null } | undefined;
+  const teamCandidate = teamCandidates.data?.[0] as { target_kind?: string; label?: string; roll_canonical?: string | null; batch_label?: string | null } | undefined;
+  if (soloCandidate?.target_kind !== "application" || !soloCandidate.label || !soloCandidate.roll_canonical || !soloCandidate.batch_label) throw new Error("Solo results roster omits winner name, roll, or batch");
+  if (teamCandidate?.target_kind !== "group" || !teamCandidate.label || !teamCandidate.batch_label || teamCandidate.roll_canonical != null) throw new Error("Team results roster does not expose team name and batch only");
+  const { error: editableRulesError } = await publicClient.rpc("set_event_point_rules", {
+    p_event_id: editablePointEvent.id,
+    p_rules: [{ placing: 1, points: 12 }, { placing: 2, points: 8 }, { placing: 3, points: 4 }],
+  });
+  failIfError(editableRulesError, "Set points before first official result");
+  const { error: lockedRulesError } = await publicClient.rpc("set_event_point_rules", {
+    p_event_id: soloResultEvent.id,
+    p_rules: [{ placing: 1, points: 99 }],
+  });
+  if (!lockedRulesError || lockedRulesError.code !== "55000") throw new Error("Published event point rules are not locked");
+  await publicClient.auth.signOut({ scope: "local" });
+  const { error: pointCleanupError } = await admin.from("point_rules").delete().eq("event_id", editablePointEvent.id);
+  failIfError(pointCleanupError, "Clean up editable point-rule probe");
   for (const account of [{ batch: "2021", rollNumber: "1" }, { batch: "2023", rollNumber: "91" }]) {
     const { error: loginError } = await publicClient.auth.signInWithPassword({
       email: toPrivateAuthEmail(account, pepper),
@@ -167,6 +199,13 @@ async function main() {
     if (deniedAccess !== false) throw new Error(`Unexpected event access for ${account.rollNumber}`);
     const { error: publishError } = await publicClient.rpc("set_admin_event_state", { p_event_id: account.publishTarget, p_state: "draft" });
     if (!publishError || publishError.code !== "42501") throw new Error(`Non-admin ${account.rollNumber} can publish or change event state`);
+    if (account.rollNumber === "95") {
+      const { error: pointsError } = await publicClient.rpc("set_event_point_rules", {
+        p_event_id: cricket.id,
+        p_rules: [{ placing: 1, points: 10 }],
+      });
+      if (!pointsError || pointsError.code !== "42501") throw new Error("Event Coordinator can modify point rules");
+    }
     await publicClient.auth.signOut({ scope: "local" });
   }
   const { error: editorLoginError } = await publicClient.auth.signInWithPassword({ email: toPrivateAuthEmail({ batch: "2023", rollNumber: "100" }, pepper), password: QA_PASSWORD });

@@ -10,12 +10,6 @@ export type PointRule = {
   points: number;
 };
 
-export type EligibleBatch = {
-  batch_id: string;
-  label: string;
-  course_label: string | null;
-};
-
 export type ResultPublication = {
   publication_id: string;
   version: number;
@@ -44,6 +38,8 @@ export type ResultParticipant = {
   label: string;
   category: string;
   batch_id: string | null;
+  roll_canonical: string | null;
+  batch_label: string | null;
 };
 
 type EventMeta = {
@@ -55,14 +51,12 @@ type EventMeta = {
 
 export function ResultsClient({
   event,
-  batches,
   pointRules,
   results,
   participants = [],
   isMainAdmin,
 }: {
   event: EventMeta;
-  batches: EligibleBatch[];
   pointRules: PointRule[];
   results: ResultPublication[];
   participants?: ResultParticipant[];
@@ -85,12 +79,27 @@ export function ResultsClient({
   // Result publication form state
   const currentPublished = results.find((r) => r.state === "published");
   const isCorrection = Boolean(currentPublished);
+  const pointsLocked = results.length > 0;
+  const rosterHref = event.format === "solo" ? `/admin/selection?event=${event.id}` : `/admin/groups?event=${event.id}`;
+  const winnerKind = event.format === "solo" ? "participant" : "team";
 
   const defaultTarget = (idx: number) => {
     if (participants[idx]) return `${participants[idx].target_kind}:${participants[idx].target_id}`;
-    if (batches[idx]) return `batch:${batches[idx].batch_id}`;
     return "";
   };
+
+  function participantLabel(participant: ResultParticipant) {
+    if (participant.target_kind === "group") {
+      return [participant.label, participant.batch_label ? `Batch ${participant.batch_label}` : null]
+        .filter(Boolean)
+        .join(" · ");
+    }
+    return [
+      participant.label,
+      participant.roll_canonical ? `Roll No. ${participant.roll_canonical}` : participant.category.toUpperCase(),
+      participant.batch_label ? `Batch ${participant.batch_label}` : null,
+    ].filter(Boolean).join(" · ");
+  }
 
   const [positions, setPositions] = useState<Array<{ placing: number; targetKey: string; note: string }>>(
     currentPublished && currentPublished.positions.length > 0
@@ -147,7 +156,7 @@ export function ResultsClient({
   // Save point rules
   async function handleSavePointRules(e: React.FormEvent) {
     e.preventDefault();
-    if (rulesPending) return;
+    if (rulesPending || pointsLocked) return;
     setRulesPending(true);
     setStatusMessage(null);
     try {
@@ -193,7 +202,7 @@ export function ResultsClient({
         return;
       }
       if (usedWinners.has(pos.targetKey)) {
-        setStatusMessage({ text: "Each placing must be awarded to a distinct participant, team, or batch.", isError: true });
+        setStatusMessage({ text: "Each placing must be awarded to a distinct participant or team.", isError: true });
         return;
       }
       usedWinners.add(pos.targetKey);
@@ -285,13 +294,15 @@ export function ResultsClient({
         <section className="results-panel point-rules-panel">
           <div className="panel-header">
             <h2>Point Rules Configuration</h2>
-            <span className="panel-subtitle">Mandatory points per finish</span>
+            <span className="panel-subtitle">Points for this event only</span>
           </div>
+
+          {pointsLocked && <p className="points-lock-badge">Locked after first official result</p>}
 
           <form onSubmit={handleSavePointRules} className="point-rules-form">
             <p className="rules-note">
-              Points are credited to the batch leaderboard when official results are published. Every placing in the final
-              lineup must have configured points.
+              These points apply only to {event.title}. They can be adjusted until the first official result is published,
+              then they are permanently locked.
             </p>
 
             <div className="point-rules-list">
@@ -304,14 +315,14 @@ export function ResultsClient({
                       type="number"
                       min={0}
                       value={rule.points}
-                      disabled={rulesPending || !isMainAdmin}
+                      disabled={rulesPending || !isMainAdmin || pointsLocked}
                       onChange={(e) => {
                         const val = parseInt(e.target.value, 10);
                         setRules(rules.map((r, i) => (i === idx ? { ...r, points: isNaN(val) ? 0 : val } : r)));
                       }}
                     />
                   </label>
-                  {isMainAdmin && rules.length > 1 && (
+                  {isMainAdmin && !pointsLocked && rules.length > 1 && (
                     <button
                       type="button"
                       className="remove-btn"
@@ -326,7 +337,7 @@ export function ResultsClient({
               ))}
             </div>
 
-            {isMainAdmin && (
+            {isMainAdmin && !pointsLocked && (
               <div className="rules-actions">
                 <button
                   type="button"
@@ -343,6 +354,9 @@ export function ResultsClient({
             )}
             {!isMainAdmin && (
               <p className="admin-only-note">Point rules can only be modified by the Main Admin.</p>
+            )}
+            {isMainAdmin && pointsLocked && (
+              <p className="admin-only-note">Published results and future corrections will continue using these locked values.</p>
             )}
           </form>
         </section>
@@ -364,9 +378,26 @@ export function ResultsClient({
           )}
 
           <form onSubmit={handlePublishResults} className="publish-form">
+            {participants.length === 0 && (
+              <div className="roster-empty" role="status">
+                <strong>No selected {winnerKind}s are ready for results.</strong>
+                <span>
+                  {event.format === "solo"
+                    ? "Approve applications and select the final participant roster first."
+                    : "Build and publish the final team roster first."}
+                </span>
+                <Link href={rosterHref}>Open {event.format === "solo" ? "participant selection" : "team builder"} →</Link>
+              </div>
+            )}
             <div className="positions-list">
-              {positions.map((pos, idx) => (
-                <div key={idx} className="position-card">
+              {positions.map((pos, idx) => {
+                const publishedPosition = currentPublished?.positions.find((item) => item.placing === pos.placing);
+                const legacyBatch = publishedPosition?.batch_id && !publishedPosition.application_id && !publishedPosition.group_id
+                  ? publishedPosition
+                  : null;
+                const hasWinnerOptions = participants.length > 0 || Boolean(legacyBatch);
+                return (
+                <div key={pos.placing} className="position-card">
                   <div className="position-place-col">
                     <span className="medal-icon">
                       {pos.placing === 1 ? "🥇 1st" : pos.placing === 2 ? "🥈 2nd" : pos.placing === 3 ? "🥉 3rd" : `#${pos.placing}`}
@@ -378,7 +409,7 @@ export function ResultsClient({
 
                   <div className="position-inputs">
                     <label>
-                      Winner (Participant, Team, or Batch)
+                      Winner ({event.format === "solo" ? "Selected Participant" : "Published Team"})
                       <select
                         value={pos.targetKey}
                         onChange={(e) =>
@@ -388,25 +419,23 @@ export function ResultsClient({
                         }
                         className="batch-select"
                         required
+                        disabled={!hasWinnerOptions || publishPending}
                       >
-                        <option value="">Select Winner</option>
+                        <option value="">{hasWinnerOptions ? "Select Winner" : `No selected ${winnerKind}s available`}</option>
                         {participants.length > 0 && (
-                          <optgroup label="Selected Participants / Teams">
+                          <optgroup label={event.format === "solo" ? "Selected Participants" : "Published Teams"}>
                             {participants.map((item) => (
-                              <option key={item.target_id} value={`${item.target_kind}:${item.target_id}`}>
-                                {item.label} ({item.category.toUpperCase()})
+                              <option key={`${item.target_kind}:${item.target_id}`} value={`${item.target_kind}:${item.target_id}`}>
+                                {participantLabel(item)}
                               </option>
                             ))}
                           </optgroup>
                         )}
-                        <optgroup label="Batches (General)">
-                          {batches.map((b) => (
-                            <option key={b.batch_id} value={`batch:${b.batch_id}`}>
-                              Batch {b.label}
-                              {b.course_label ? ` (${b.course_label})` : ""}
-                            </option>
-                          ))}
-                        </optgroup>
+                        {legacyBatch && (
+                          <option value={`batch:${legacyBatch.batch_id}`}>
+                            Legacy result · Batch {legacyBatch.batch_label}
+                          </option>
+                        )}
                       </select>
                     </label>
 
@@ -436,14 +465,14 @@ export function ResultsClient({
                     </button>
                   )}
                 </div>
-              ))}
+              )})}
             </div>
 
             <button
               type="button"
               className="secondary-btn"
               onClick={addPositionRow}
-              disabled={publishPending}
+              disabled={publishPending || participants.length === 0}
             >
               + Add Another Placement
             </button>
@@ -458,17 +487,6 @@ export function ResultsClient({
                 onUploadSuccess={(url) => setPodiumPhotoUrl(url)}
                 label="Upload Podium Photo (Auto-Compress to WebP)"
               />
-
-              <label>
-                Podium Photo Link
-                <input
-                  type="url"
-                  value={podiumPhotoUrl}
-                  onChange={(e) => setPodiumPhotoUrl(e.target.value)}
-                  maxLength={1000}
-                  placeholder="https://... or paste external link"
-                />
-              </label>
 
               {podiumPhotoUrl && (
                 <div className="podium-preview-container">
@@ -505,7 +523,7 @@ export function ResultsClient({
             </div>
 
             {isCorrection && (
-              <label className="modal-label mandatory" style={{ marginTop: 16 }}>
+              <label className="modal-label mandatory correction-reason">
                 Reason for Results Correction (Mandatory)
                 <textarea
                   required
@@ -518,7 +536,7 @@ export function ResultsClient({
               </label>
             )}
 
-            <div className="publish-actions" style={{ marginTop: 20 }}>
+            <div className="publish-actions">
               <button
                 type="submit"
                 className="primary-btn publish-submit"

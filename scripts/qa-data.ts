@@ -23,6 +23,12 @@ const TITLES: Record<(typeof QA_EVENT_SLUGS)[number], string> = {
 
 const SPORTS = new Set<string>(QA_EVENT_SLUGS.filter((slug) => /sprint|badminton|cricket|carrom|chess|football|relay|shot-put|table-tennis|throwball|tug-of-war|volleyball/.test(slug)));
 const GROUPS = new Set(["group-dance", "nukkad-natak", "fashion-show"]);
+const SOLO_SPORTS = new Set([
+  "100m-sprint-boys", "100m-sprint-girls", "badminton-singles-boys", "badminton-singles-girls",
+  "chess-championship-open", "shot-put-boys", "shot-put-girls", "table-tennis-singles-boys",
+  "table-tennis-singles-girls",
+]);
+const PAIRS = new Set(["badminton-doubles-boys", "badminton-doubles-girls", "badminton-mixed-doubles", "carrom-doubles-open"]);
 const COMPLETED = new Set([
   "100m-sprint-boys", "100m-sprint-girls", "badminton-singles-boys", "badminton-singles-girls",
   "carrom-doubles-open", "chess-championship-open", "creative-writing", "poetry-slam",
@@ -51,11 +57,12 @@ export function qaEventDefinition(slug: (typeof QA_EVENT_SLUGS)[number], index: 
         : CLOSED.has(slug)
           ? "closed"
           : "open";
+  const format = SOLO_SPORTS.has(slug) ? "solo" : PAIRS.has(slug) ? "pair" : sport ? "sport" : GROUPS.has(slug) ? "group" : "solo";
   return {
     title: TITLES[slug], slug, category: sport ? "sport" : ["creative-writing", "debate", "poetry-slam", "quiz-bowl"].includes(slug) ? "literary" : "cultural",
-    format: sport ? "sport" : GROUPS.has(slug) ? "group" : "solo", score_template: slug.includes("cricket") ? "cricket" : slug.includes("football") ? "football" : slug.includes("badminton") ? "badminton" : "generic",
+    format, score_template: slug.includes("cricket") ? "cricket" : slug.includes("football") ? "football" : slug.includes("badminton") ? "badminton" : "generic",
     state, venue: sport ? "Sports Ground" : "Main Auditorium", starts_at: `2026-12-${day}T${String(hour).padStart(2, "0")}:00:00+05:30`, ends_at: `2026-12-${day}T${String(hour + 1).padStart(2, "0")}:30:00+05:30`, reporting_at: `2026-12-${day}T${String(hour - 1).padStart(2, "0")}:30:00+05:30`,
-    summary: `Fictional visual-QA entry for ${TITLES[slug]}.`, rules_markdown: "QA-only rules: arrive on time, follow the organiser briefing, and use this entry only for interface review.", application_capacity: sport ? 24 : 60, waitlist_enabled: true, eligibility: { division: slug.includes("girls") ? "girls" : slug.includes("boys") ? "boys" : "open", ...(sport ? { sub_category: qaSportSubCategory(slug) } : {}) }, application_questions: [{ key: "qa_note", label: "QA preference", required: false }], group_min_size: sport || GROUPS.has(slug) ? 2 : null, group_max_size: sport || GROUPS.has(slug) ? 15 : null, batch_restricted: false,
+    summary: `Fictional visual-QA entry for ${TITLES[slug]}.`, rules_markdown: "QA-only rules: arrive on time, follow the organiser briefing, and use this entry only for interface review.", application_capacity: sport ? 24 : 60, waitlist_enabled: true, eligibility: { division: slug.includes("girls") ? "girls" : slug.includes("boys") ? "boys" : "open", ...(sport ? { sub_category: qaSportSubCategory(slug) } : {}) }, application_questions: [{ key: "qa_note", label: "QA preference", required: false }], group_min_size: format === "solo" ? null : 2, group_max_size: format === "solo" ? null : 15, batch_restricted: false,
   };
 }
 
