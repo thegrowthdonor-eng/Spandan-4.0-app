@@ -96,15 +96,6 @@ export const bulkSoloSelectionSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
 
-export const groupCommandSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("publishTeam"), eventId: z.string().uuid(), name: z.string().trim().min(1).max(160),
-    batchId: z.string().uuid().nullable(), applicationIds: z.array(z.string().uuid()).min(1).max(200).refine(ids => new Set(ids).size === ids.length),
-    captainId: z.string().uuid().nullable() }),
-  z.object({ action: z.literal("create"), eventId: z.string().uuid(), name: z.string().trim().min(1).max(160), batchId: z.string().uuid().nullable() }),
-  z.object({ action: z.literal("add"), groupId: z.string().uuid(), applicationId: z.string().uuid() }),
-  z.object({ action: z.literal("publish"), groupId: z.string().uuid(), captainId: z.string().uuid().nullable() }),
-]);
-
 export const fixtureCommandSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("create"),

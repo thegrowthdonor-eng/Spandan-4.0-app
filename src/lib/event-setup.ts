@@ -24,6 +24,7 @@ export const eventDetailsSchema = z.object({
   if (v.reportingAt && v.startsAt && v.reportingAt > v.startsAt) issue("reportingAt","Reporting must be before the start.");
   if (v.endsAt && v.startsAt && v.endsAt <= v.startsAt) issue("endsAt","End time must be after the start.");
   if (v.groupMinSize && v.groupMaxSize && v.groupMaxSize < v.groupMinSize) issue("groupMaxSize","Maximum size must be at least minimum size.");
+  if (v.format === "pair" && (v.groupMinSize !== 2 || v.groupMaxSize !== 2)) issue("groupMinSize","Pair events require exactly two partners.");
   if (new Set(v.applicationQuestions.map(q => q.key)).size !== v.applicationQuestions.length) issue("applicationQuestions","Question keys must be unique.");
   for (const q of v.applicationQuestions) {
     if (q.type === "select" && (!q.options?.length || new Set(q.options).size !== q.options.length)) issue("applicationQuestions","Choice questions need unique, non-empty options.");

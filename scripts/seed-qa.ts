@@ -22,7 +22,7 @@ async function resetQaProject(admin: ReturnType<typeof requireQaEnvironment>) {
   for (const table of [
     "push_subscriptions", "help_messages", "help_threads", "feedback_responses",
     "poll_votes", "poll_options", "polls", "reminders", "points_ledger",
-    "result_positions", "result_publications", "group_memberships",
+    "result_positions", "result_publications", "pair_invitations", "group_memberships",
     "participant_groups", "application_history", "applications", "fixture_history",
     "score_snapshots",
     "point_rules", "fixtures", "notices", "content_banners", "sponsors",
@@ -243,10 +243,11 @@ async function main() {
   for (const [slug, groupName, batchLabel] of groupSpecs) {
     const groupEvent = events.get(slug);
     if (!groupEvent) continue;
-    const groupApps = applicationRows.filter((application) => application.event_id === groupEvent.id).slice(0, 3);
+    const pair = slug === "carrom-doubles-open";
+    const groupApps = applicationRows.filter((application) => application.event_id === groupEvent.id).slice(0, pair ? 2 : 3);
     const captain = groupApps[0];
     if (!captain) continue;
-    const { data: group, error } = await admin.from("participant_groups").insert({ event_id: groupEvent.id, batch_id: batches.get(batchLabel), name: groupName, captain_id: captain.student_id, state: "published", published_at: now, created_by: mainAdmin.id }).select("id").single();
+    const { data: group, error } = await admin.from("participant_groups").insert({ event_id: groupEvent.id, batch_id: batches.get(batchLabel), name: groupName, captain_id: pair ? null : captain.student_id, state: "published", published_at: now, created_by: mainAdmin.id, proposal_state: "published", proposal_ready: true, proposed_application_ids: groupApps.map(a => a.id) }).select("id").single();
     failIfError(error, `Create QA participant group for ${slug}`);
     groups.set(slug, { id: group.id, name: groupName, batchLabel });
     const { error: membershipError } = await admin.from("group_memberships").insert(groupApps.map((application) => ({ group_id: group.id, application_id: application.id, added_by: mainAdmin.id })));

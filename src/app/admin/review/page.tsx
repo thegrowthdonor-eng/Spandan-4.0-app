@@ -78,7 +78,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
         <p className="eyebrow">Participant management</p>
         <h1>Application review</h1>
         <p>
-          You can review applications only for events assigned to you. For solo events, approval also adds the student to the final roster. Team events need team publication after approval.
+          You can review applications only for events assigned to you. Solo approval adds the student to the final roster. Pairs need mutual invitations; group/team leaders propose members for your final approval.
         </p>
       </section>
 

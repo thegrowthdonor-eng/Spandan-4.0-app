@@ -19,6 +19,10 @@ test("IST event input round-trips independently of device timezone",()=>{
   assert.equal(toIstInput("2026-12-01T04:00:00.000Z"),"2026-12-01T09:30");
   assert.equal(fromIstInput(""),null);
 });
+test("pair setup has exactly two partners, without configurable team sizes",()=>{
+  assert.equal(eventDetailsSchema.safeParse({...draft,format:"pair",groupMinSize:2,groupMaxSize:2}).success,true);
+  assert.equal(eventDetailsSchema.safeParse({...draft,format:"pair",groupMinSize:2,groupMaxSize:3}).success,false);
+});
 test("management navigation exposes the union of responsibilities without editor operations",()=>{
   const base:ManagementSummary={isAdmin:false,canVerify:false,canCreate:false,canNotice:false,canGallery:false,canLive:false,canHelp:false,roles:[],events:[],editableEvents:[],pendingVerification:null};
   assert.equal(canEnterManagement(base),false);
@@ -27,5 +31,5 @@ test("management navigation exposes the union of responsibilities without editor
   assert.ok(managementLinks(mixed).some(v=>v.label==="Participants"));
   assert.ok(managementLinks(mixed).some(v=>v.label==="Notices"));
   assert.equal(managementLinks(mixed).some(v=>v.label==="Administration"),false);
-  assert.equal(managementLinks(mixed).some(v=>v.label==="Teams"),false);
+  assert.equal(managementLinks(mixed).some(v=>v.href==="/admin/groups"),false);
 });

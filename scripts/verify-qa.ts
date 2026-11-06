@@ -5,6 +5,7 @@ import { toPrivateAuthEmail } from "../src/server/auth/identity";
 import { buildFestivalFeed } from "../src/lib/feed";
 import { getPublishedResults } from "../src/lib/published-results";
 import { verifyManagement } from "./verify-management";
+import { verifyTeamWorkflows } from "./verify-team-workflows";
 
 async function count(admin: ReturnType<typeof requireQaEnvironment>, table: string) {
   const { count: total, error } = await admin.from(table).select("*", { count: "exact", head: true });
@@ -21,7 +22,7 @@ async function main() {
   const publicClient = requireQaPublicEnvironment();
   const expected = new Map([
     ["editions", 1], ["batches", 6], ["events", QA_EVENT_SLUGS.length], ["applications", QA_EVENT_SLUGS.length * 10],
-    ["application_history", 409], ["participant_groups", 6], ["group_memberships", 18],
+    ["application_history", 409], ["participant_groups", 6], ["group_memberships", 17],
     ["fixtures", 12], ["fixture_history", 12], ["score_snapshots", 12],
     ["result_publications", 10], ["result_positions", 30], ["point_rules", 30], ["points_ledger", 30],
     ["notices", 6], ["polls", 3], ["poll_options", 10], ["poll_votes", 15], ["reminders", 6],
@@ -235,6 +236,7 @@ async function main() {
   assertEqual(probeCount ?? 0, 0, "Deleted Event Editor ownership probe");
   await publicClient.auth.signOut({ scope: "local" });
   await verifyManagement();
+  await verifyTeamWorkflows();
   console.log("QA verification passed: expected counts, role coverage, public content, FK presence, and zero PG/JR/Faculty profiles or invites.");
 }
 

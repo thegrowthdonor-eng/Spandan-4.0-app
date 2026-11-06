@@ -81,7 +81,7 @@ export function ResultsClient({
   const isCorrection = Boolean(currentPublished);
   const pointsLocked = results.length > 0;
   const rosterHref = event.format === "solo" ? `/admin/selection?event=${event.id}` : `/admin/groups?event=${event.id}`;
-  const winnerKind = event.format === "solo" ? "participant" : "team";
+  const winnerKind = event.format === "solo" ? "participant" : event.format === "pair" ? "pair" : event.format === "group" ? "group" : "team";
 
   const defaultTarget = (idx: number) => {
     if (participants[idx]) return `${participants[idx].target_kind}:${participants[idx].target_id}`;
@@ -384,9 +384,9 @@ export function ResultsClient({
                 <span>
                   {event.format === "solo"
                     ? "Approve applications and select the final participant roster first."
-                    : "Build and publish the final team roster first."}
+                    : event.format === "pair" ? "Review and publish a mutually confirmed pair first." : "Review the appointed leader's proposal and publish the final roster first."}
                 </span>
-                <Link href={rosterHref}>Open {event.format === "solo" ? "participant selection" : "team builder"} →</Link>
+                <Link href={rosterHref}>Open {event.format === "solo" ? "participant selection" : `${winnerKind} review`} →</Link>
               </div>
             )}
             <div className="positions-list">
@@ -409,7 +409,7 @@ export function ResultsClient({
 
                   <div className="position-inputs">
                     <label>
-                      Winner ({event.format === "solo" ? "Selected Participant" : "Published Team"})
+                      Winner ({event.format === "solo" ? "Selected Participant" : `Published ${winnerKind}`})
                       <select
                         value={pos.targetKey}
                         onChange={(e) =>
@@ -423,7 +423,7 @@ export function ResultsClient({
                       >
                         <option value="">{hasWinnerOptions ? "Select Winner" : `No selected ${winnerKind}s available`}</option>
                         {participants.length > 0 && (
-                          <optgroup label={event.format === "solo" ? "Selected Participants" : "Published Teams"}>
+                          <optgroup label={event.format === "solo" ? "Selected Participants" : `Published ${winnerKind}s`}>
                             {participants.map((item) => (
                               <option key={`${item.target_kind}:${item.target_id}`} value={`${item.target_kind}:${item.target_id}`}>
                                 {participantLabel(item)}

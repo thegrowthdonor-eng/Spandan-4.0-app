@@ -92,6 +92,13 @@ const POLICY_SECTIONS = [
             <strong>Roster Integrity:</strong> Once a fixture roster locks, entries cannot be silently modified, ensuring
             fairness across all collegiate batches.
           </li>
+          <li>
+            <strong>Team Selection &amp; Partner Invitations:</strong> Appointed captains and group leaders can see
+            approved event applicants&apos; names, roll numbers and batches to propose their squad; they do not receive
+            phone numbers or private registration answers. Coordinators confirm team/group membership without a
+            separate member-acceptance step. Pairs require both partners&apos; consent, and pending invitations do not
+            reserve a student. Official roster corrections are recorded in the audit history.
+          </li>
         </ul>
       </>
     ),

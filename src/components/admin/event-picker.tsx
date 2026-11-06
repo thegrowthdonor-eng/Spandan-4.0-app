@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { participationTools } from "@/lib/event-participation";
 import styles from "./event-picker.module.css";
 
 type PickableEvent = {
@@ -27,6 +28,7 @@ export function AdminEventPicker({ events, selectedId, basePath, label = "Manage
   }, [category, events, query]);
 
   const selected = events.find(event => event.id === selectedId);
+  const participation = participationTools(selected?.format);
   return <section className={styles.picker} aria-label={label}>
     <div className={styles.searchRow}>
       <label><span>Find event</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, format or status" /></label>
@@ -35,7 +37,7 @@ export function AdminEventPicker({ events, selectedId, basePath, label = "Manage
     <label className={styles.eventSelect}><span>Selected event</span><select value={selectedId} onChange={(event) => router.push(`${basePath}?event=${encodeURIComponent(event.target.value)}`)}>{!visible.some(event => event.id === selectedId) && selected && <option value={selected.id}>{selected.title} · current event</option>}{visible.map((event) => <option key={event.id} value={event.id}>{event.title}{event.state ? ` · ${event.state}` : ""}</option>)}</select></label>
     <small>{visible.length} of {events.length} events shown</small>
     <nav className="portal-event-actions" aria-label="Selected event tools">
-      {[["/admin/review","Requests"],[selected?.format === "solo" ? "/admin/selection" : "/admin/groups",selected?.format === "solo" ? "Roster" : "Teams"],["/admin/fixtures","Fixtures & scores"],["/admin/results","Results"]].map(([href,title]) =>
+      {[["/admin/review","Requests"],...(participation ? [[participation.href,participation.label]] : []),["/admin/fixtures","Fixtures & scores"],["/admin/results","Results"]].map(([href,title]) =>
         <Link key={href} href={href+"?event="+encodeURIComponent(selectedId)} aria-current={basePath===href?"page":undefined}>{title}</Link>)}
     </nav>
   </section>;

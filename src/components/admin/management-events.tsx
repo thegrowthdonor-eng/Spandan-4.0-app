@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { WorkspaceEvent } from "@/lib/management";
+import { participationTools } from "@/lib/event-participation";
 
 export function ManagementEvents({events,editableIds=[],editing=false}:{events:WorkspaceEvent[];editableIds?:string[];editing?:boolean}){
   const [query,setQuery]=useState("");
@@ -14,10 +15,10 @@ export function ManagementEvents({events,editableIds=[],editing=false}:{events:W
     <div className="portal-list-controls"><input type="search" aria-label={editing?"Search editable events":"Search managed events"} placeholder="Find your event" value={query} onChange={e=>{setQuery(e.target.value);setLimit(6);}}/>{categories.length>1&&<select aria-label="Filter event category" value={category} onChange={e=>{setCategory(e.target.value);setLimit(6);}}><option value="all">All categories</option>{categories.map(c=><option value={c} key={c}>{c==="creative"?"Arts & Creative":c==="sport"?"Sports":c}</option>)}</select>}</div>
     <div className="portal-event-grid">{filtered.slice(0,limit).map(event=><article key={event.id} className="portal-event">
       <span className="portal-badge">{event.state}</span><h3>{event.title}</h3>
-      {!editing&&<p>{event.pending??0} pending requests · {event.format==="solo"?"Individual":"Team"} participation</p>}
+      {!editing&&<p>{event.pending??0} pending requests · {event.format==="solo"?"Individual":event.format==="pair"?"Pair":event.format==="group"?"Group":"Team"} participation</p>}
       <div className="portal-event-actions">{editing?<Link href={"/admin/events?event="+event.id}>Edit event →</Link>:<>
         <Link href={"/admin/review?event="+event.id}>Participants →</Link>
-        {event.format!=="solo"&&<Link href={"/admin/groups?event="+event.id}>Teams</Link>}
+        {participationTools(event.format) && <Link href={participationTools(event.format)!.href+"?event="+event.id}>{participationTools(event.format)!.label}</Link>}
         <Link href={"/admin/fixtures?event="+event.id}>Fixtures</Link><Link href={"/admin/results?event="+event.id}>Results</Link>
         {editableIds.includes(event.id)&&<Link href={"/admin/events?event="+event.id}>Edit event</Link>}
       </>}</div>

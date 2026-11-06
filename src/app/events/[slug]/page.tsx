@@ -5,6 +5,7 @@ import { createAdminClient } from "@/server/supabase/admin";
 import { createPublicClient } from "@/server/supabase/public";
 import { createRequestClient } from "@/server/supabase/server";
 import { ApplyButton } from "../apply-button";
+import Link from "next/link";
 import { EventRegistrationDock } from "../event-registration-dock";
 import { EventParticipantsDialog } from "../event-participants-dialog";
 import { FestTopNav } from "@/components/spandan-branding";
@@ -545,6 +546,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         </section>
       )}
 
+      {event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
+      {(["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Your squad</p><p>Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster.</p><Link href={`/my-fest/teams?event=${event.id}`}>My team / Leader workspace →</Link></div></section>}
       <EventRegistrationDock
         eventTitle={event.title}
         status={dockStatus}

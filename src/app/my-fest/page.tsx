@@ -347,6 +347,9 @@ export default async function MyFestPage() {
         {/* ------------------------------------------------------------------
             MY EVENT APPLICATIONS & PARTICIPATION
             ------------------------------------------------------------------ */}
+        <section className="section-block" aria-label="Teams and partner invitations">
+          <Link href="/my-fest/teams" className="quick-nav-card"><div className="quick-nav-info"><h3>My Teams &amp; Invitations</h3><p>Accept partner invitations, manage your appointed squad, and view your official team.</p></div><span className="quick-nav-arrow">→</span></Link>
+        </section>
         <section className="section-block" aria-labelledby="applications-title">
           <div className="section-head">
             <h2 id="applications-title">My Event Registrations</h2>

@@ -57,12 +57,12 @@ export async function verifyManagement() {
     }
     const teamArgs={p_event_id:teamEvent.data.id,p_name:"QA Pair",p_batch_id:null,p_captain_id:null};
     const failedTeam=await client.rpc("publish_management_team",{...teamArgs,p_application_ids:[teamApps[0].id]});
-    assert.ok(failedTeam.error);
+    assert.equal(failedTeam.error?.code,"42501");
     assert.equal((await admin.from("participant_groups").select("*",{head:true,count:"exact"}).eq("event_id",teamEvent.data.id)).count,0);
     const published=await client.rpc("publish_management_team",{...teamArgs,p_application_ids:teamApps.map(a=>a.id)});
-    failIfError(published.error,"Atomic team publication");assert.equal(published.data.state,"published");
+    assert.equal(published.error?.code,"42501","Legacy direct creation cannot bypass pair consent");
     const teams=await client.rpc("get_management_teams",{p_event_id:teamEvent.data.id});
-    failIfError(teams.error,"Read managed team members");assert.equal(teams.data[0].members.length,2);
+    failIfError(teams.error,"Read managed team members");assert.equal(teams.data.length,0);
     await login("95");
     assert.equal((await client.rpc("save_management_event",{p_event_id:created.data.id,p_edition_id:null,p_details:details})).error?.code,"42501");
     assert.equal((await client.rpc("get_management_teams",{p_event_id:teamEvent.data.id})).error?.code,"42501");

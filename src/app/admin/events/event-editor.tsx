@@ -22,7 +22,7 @@ function detailsFrom(e?: EventData): EventDetails {
     summary:e?.summary??"", rules:e?.rules_markdown??"",venue:e?.venue??"",capacity:e?.application_capacity??null,
     waitlistEnabled:e?.waitlist_enabled??false,reportingAt:e?.reporting_at??null,startsAt:e?.starts_at??null,
     endsAt:e?.ends_at??null,rosterLockAt:e?.roster_lock_at??null,eligibility:e?.eligibility??{division:"open"},
-    applicationQuestions:e?.application_questions??[],groupMinSize:e?.group_min_size??null,groupMaxSize:e?.group_max_size??null,
+    applicationQuestions:e?.application_questions??[],groupMinSize:e?.format==="pair"?2:e?.group_min_size??null,groupMaxSize:e?.format==="pair"?2:e?.group_max_size??null,
     batchRestricted:e?.batch_restricted??false,posterUrl:e?.poster_url??null };
 }
 const steps = ["Basics","Participation","Schedule & photo","Review"];
@@ -53,7 +53,7 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
     window.addEventListener("beforeunload",leave);document.addEventListener("click",links,true);
     return()=>{window.removeEventListener("beforeunload",leave);document.removeEventListener("click",links,true);};
   },[dirty]);
-  function change<K extends keyof EventDetails>(key:K,value:EventDetails[K]) {setDetails(v=>({...v,[key]:value}));setDirty(true);}
+  function change<K extends keyof EventDetails>(key:K,value:EventDetails[K]) {setDetails(v=>({...v,[key]:value,...(key==="format"&&value==="pair"?{groupMinSize:2,groupMaxSize:2}:key==="format"&&value==="solo"?{groupMinSize:null,groupMaxSize:null}:{})}));setDirty(true);}
   function numeric(value:string){return value?Number(value):null;}
   async function save(){
     if(pending)return;
@@ -120,7 +120,9 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
           <label>Official rules<textarea rows={8} maxLength={20000} value={details.rules} onChange={e=>change("rules",e.target.value)}/></label>
           <label>Registration capacity<input type="number" min={1} value={details.capacity??""} onChange={e=>change("capacity",numeric(e.target.value))}/><small>Leave blank for unlimited registrations.</small></label>
           <label className="portal-check"><input type="checkbox" checked={details.waitlistEnabled} onChange={e=>change("waitlistEnabled",e.target.checked)}/>Enable waitlist</label>
-          {details.format!=="solo"&&<><div className="field-pair"><label>Minimum team size<input type="number" min={1} value={details.groupMinSize??""} onChange={e=>change("groupMinSize",numeric(e.target.value))}/></label><label>Maximum team size<input type="number" min={1} value={details.groupMaxSize??""} onChange={e=>change("groupMaxSize",numeric(e.target.value))}/></label></div><label className="portal-check"><input type="checkbox" checked={details.batchRestricted} onChange={e=>change("batchRestricted",e.target.checked)}/>Members must be from the same batch</label></>}
+          {details.format==="pair"&&<p className="portal-message">Exactly two partners. Pairing requires an invitation and the other student&apos;s acceptance; no captain is appointed.</p>}
+          {(["group","sport"].includes(details.format))&&<div className="field-pair"><label>Minimum {details.format==="group"?"group":"team"} size<input type="number" min={1} value={details.groupMinSize??""} onChange={e=>change("groupMinSize",numeric(e.target.value))}/></label><label>Maximum {details.format==="group"?"group":"team"} size<input type="number" min={1} value={details.groupMaxSize??""} onChange={e=>change("groupMaxSize",numeric(e.target.value))}/></label></div>}
+          {details.format!=="solo"&&<label className="portal-check"><input type="checkbox" checked={details.batchRestricted} onChange={e=>change("batchRestricted",e.target.checked)}/>Members must be from the same batch</label>}
           {details.category==="sport"&&<><label>Match format<input maxLength={160} value={String(details.eligibility.match_format??"")} onChange={e=>change("eligibility",{...details.eligibility,match_format:e.target.value})} placeholder="e.g. 7-a-side · 20 minutes each half"/></label><label>Squad / participation notes<textarea maxLength={1000} rows={3} value={String(details.eligibility.squad_details??"")} onChange={e=>change("eligibility",{...details.eligibility,squad_details:e.target.value})}/></label></>}
           <h2>Registration questions</h2><small>Name, roll, batch and other identity details are already collected.</small>
           {details.applicationQuestions.map((q,i)=><div key={q.key} className="portal-question">

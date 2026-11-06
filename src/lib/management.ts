@@ -9,7 +9,7 @@ export function managementLinks(s: ManagementSummary) {
     { href: "/admin", label: "Overview", show: true },
     { href: "/admin/events", label: "Events", show: s.canCreate },
     { href: "/admin/review", label: "Participants", show: s.events.length > 0 },
-    { href: "/admin/groups", label: "Teams", show: s.events.some(e => e.format !== "solo") },
+    { href: "/admin/groups", label: "Pairs, groups & teams", show: s.events.some(e => ["pair","group","sport"].includes(e.format)) },
     { href: "/admin/fixtures", label: "Fixtures & scores", show: s.events.length > 0 },
     { href: "/admin/results", label: "Results", show: s.events.length > 0 },
     { href: "/admin/activation", label: "Student verification", show: s.canVerify },

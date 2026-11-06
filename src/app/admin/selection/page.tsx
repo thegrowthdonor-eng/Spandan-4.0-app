@@ -43,10 +43,10 @@ export default async function SelectionPage({ searchParams }: { searchParams: Pr
         <section className="review-empty-state">
           <p className="eyebrow">Solo Selection Desk</p>
           <h3>No Assigned Solo Events</h3>
-          <p>No assigned solo events are available for this account. Pair, group and sport selection is handled through squad and group publishing.</p>
+          <p>No assigned solo events are available for this account. Pairs use mutual invitations; groups and sports teams use leader proposals and coordinator approval.</p>
           <div className="empty-actions">
             <Link href="/admin" className="empty-action-primary">← Return to Organiser Hub</Link>
-            <Link href="/admin/groups" className="empty-action-secondary">Squads & Captains →</Link>
+            <Link href="/admin/groups" className="empty-action-secondary">Pairs, groups &amp; teams →</Link>
           </div>
         </section>
       </main>
