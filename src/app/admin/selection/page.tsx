@@ -54,6 +54,7 @@ export default async function SelectionPage({ searchParams }: { searchParams: Pr
   }
 
   const wanted = (await searchParams).event;
+  if (wanted && !events.some(event => event.id === wanted)) return <main className="portal-unavailable"><h1>Event unavailable</h1><p>This event is outside your responsibility or has been removed.</p><Link href="/admin">Back to my workspace</Link></main>;
   const selected = events.find((event) => event.id === wanted) ?? events[0];
 
   const { data, error } = await client.rpc("list_event_selection_queue", { p_event_id: selected.id });
@@ -74,10 +75,9 @@ export default async function SelectionPage({ searchParams }: { searchParams: Pr
 
       <section className="review-intro">
         <p className="eyebrow">Event-head workspace</p>
-        <h1>Participant selection</h1>
+        <h1>Participant roster</h1>
         <p>
-          Only approved solo applications appear here. This changes final selection into the official festival lineup
-          without altering the prior approval record. Bulk selection is supported.
+          New solo approvals are added to the roster automatically. Manage reserves, remove participants or add previously approved students here.
         </p>
       </section>
 
@@ -86,7 +86,7 @@ export default async function SelectionPage({ searchParams }: { searchParams: Pr
       {error ? (
         <p className="review-empty">The selection queue is temporarily unavailable.</p>
       ) : (
-        <SelectionClient event={selected} candidates={queue} />
+        <SelectionClient key={selected.id} event={selected} candidates={queue} />
       )}
     </main>
   );

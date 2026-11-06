@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { getActiveSession } from "@/server/auth/access";
+import { hasManagementAccess } from "@/server/management";
 import "./globals.css";
 import "./app-ui.css";
 
@@ -48,6 +49,7 @@ async function hasAuthenticatedSession() {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const isAuthenticated = await hasAuthenticatedSession();
+  const canManage = isAuthenticated && await hasManagementAccess();
 
   return (
     <html lang="en-IN">
@@ -58,7 +60,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <InstalledAppNotificationPrompt isAuthenticated={isAuthenticated} />
         <PwaInstallPrompt />
         {children}
-        <BottomNav isAuthenticated={isAuthenticated} />
+        <BottomNav isAuthenticated={isAuthenticated} canManage={canManage} />
       </body>
     </html>
   );

@@ -68,6 +68,10 @@ export async function POST(request: Request) {
   } else if (data.action === "deleteEvent") {
     result = await client.rpc("delete_owned_event", { p_event_id: data.eventId });
   } else {
+    const { data: editorEvents, error: editorError } = await client.rpc("list_admin_event_editor_data");
+    const previous = editorEvents?.find((event: { event_id: string }) => event.event_id === data.eventId);
+    if (editorError) return NextResponse.json({ error: "Unable to load this event. Try again." }, { status: 503, headers });
+    if (!previous) return denied;
     result = await client.rpc("update_admin_event_full", {
       p_event_id: data.eventId,
       p_title: data.title,
@@ -78,10 +82,10 @@ export async function POST(request: Request) {
       p_waitlist_enabled: data.waitlistEnabled,
       p_application_opens_at: null,
       p_application_closes_at: null,
-      p_roster_lock_at: null,
-      p_reporting_at: null,
+      p_roster_lock_at: data.rosterLockAt === undefined ? previous.roster_lock_at : data.rosterLockAt,
+      p_reporting_at: data.reportingAt === undefined ? previous.reporting_at : data.reportingAt,
       p_starts_at: data.startsAt,
-      p_ends_at: null,
+      p_ends_at: data.endsAt === undefined ? previous.ends_at : data.endsAt,
       p_eligibility: data.eligibility,
       p_application_questions: data.applicationQuestions,
       p_group_min_size: data.groupMinSize,
@@ -107,5 +111,5 @@ export async function POST(request: Request) {
     const { error: cleanupError } = paths.length ? await createAdminClient().storage.from("fest-media").remove(paths) : { error: null };
     return NextResponse.json({ ok: true, cleanupPending: Boolean(cleanupError) }, { headers });
   }
-  return NextResponse.json({ ok: true }, { headers });
+  return NextResponse.json({ ok: true, eventId: result.data?.id }, { headers });
 }

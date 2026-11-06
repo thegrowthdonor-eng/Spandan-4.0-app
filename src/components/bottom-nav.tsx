@@ -13,7 +13,7 @@ function NavIcon({ path }: { path: string }) {
   );
 }
 
-export function BottomNav({ isAuthenticated }: { isAuthenticated: boolean }) {
+export function BottomNav({ isAuthenticated, canManage = false }: { isAuthenticated: boolean; canManage?: boolean }) {
   const pathname = usePathname() || "";
 
   // Guests only have the curated public directory. Protected destinations
@@ -38,6 +38,8 @@ export function BottomNav({ isAuthenticated }: { isAuthenticated: boolean }) {
   const homeHref = "/home";
 
   return (
+    <>
+    {canManage && <Link href="/admin" className="festival-manage-shortcut">Manage <span aria-hidden>↗</span></Link>}
     <nav className="mobile-bottom-nav" aria-label="Quick mobile navigation">
       <Link href={homeHref} className={`bnav-item ${isHome ? "active" : ""}`} aria-current={isHome ? "page" : undefined}>
         <NavIcon path="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9" />
@@ -70,5 +72,6 @@ export function BottomNav({ isAuthenticated }: { isAuthenticated: boolean }) {
         <span className="bnav-label">My Fest</span>
       </Link>
     </nav>
+    </>
   );
 }

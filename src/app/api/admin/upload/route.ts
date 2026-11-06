@@ -48,7 +48,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A valid event is required." }, { status: 400, headers: noStoreHeaders });
     }
 
-    const { data: canManageEvent, error: permissionError } = await authClient.rpc("can_manage_event", {
+    if (!["posters", "podiums"].includes(folder)) {
+      return NextResponse.json({ error: "Choose poster or podium media." }, { status: 400, headers: noStoreHeaders });
+    }
+    const { data: canManageEvent, error: permissionError } = await authClient.rpc(folder === "posters" ? "can_edit_event_definition" : "can_manage_event", {
       p_event_id: eventId,
     });
     if (permissionError || canManageEvent !== true) {
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
       .upload(storagePath, buffer, {
         contentType: file.type,
         cacheControl: "31536000", // 1 year immutable CDN cache — student devices never re-fetch
-        upsert: true,
+        upsert: false,
       });
 
     if (uploadError) {

@@ -1,5 +1,7 @@
 "use client";
 
+import { PortalDialog } from "@/components/admin/portal-dialog";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -206,7 +208,7 @@ export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
 
       {/* Action Modal */}
       {activeThread && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="help-action-title">
+        <PortalDialog labelledBy="help-action-title" onClose={() => setActiveThread(null)} busy={pending}>
           <div className="modal-card wide">
             <h2 id="help-action-title">Manage Help Request</h2>
             <p>
@@ -272,7 +274,7 @@ export function HelpStaffClient({ threads }: { threads: HelpThreadStaff[] }) {
               </div>
             </form>
           </div>
-        </div>
+        </PortalDialog>
       )}
     </div>
   );

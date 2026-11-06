@@ -1,5 +1,7 @@
 "use client";
 
+import { PortalDialog } from "@/components/admin/portal-dialog";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -559,7 +561,7 @@ export function FixturesClient({
 
       {/* Reschedule Modal */}
       {rescheduleFixture && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reschedule-modal-title">
+        <PortalDialog labelledBy="reschedule-modal-title" onClose={() => setRescheduleFixture(null)} busy={reschedulePending}>
           <div className="modal-card wide">
             <h2 id="reschedule-modal-title">Reschedule Fixture</h2>
             <p>
@@ -633,12 +635,12 @@ export function FixturesClient({
               </div>
             </form>
           </div>
-        </div>
+        </PortalDialog>
       )}
 
       {/* Score Entry Modal */}
       {scoreFixture && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="score-modal-title">
+        <PortalDialog labelledBy="score-modal-title" onClose={() => setScoreFixture(null)} busy={scorePending}>
           <div className="modal-card wide">
             <h2 id="score-modal-title">
               Score Entry: {scoreFixture.participant_a_label} vs {scoreFixture.participant_b_label}
@@ -817,12 +819,12 @@ export function FixturesClient({
               </div>
             </form>
           </div>
-        </div>
+        </PortalDialog>
       )}
 
       {/* History Modal */}
       {historyFixture && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title">
+        <PortalDialog labelledBy="history-modal-title" onClose={() => setHistoryFixture(null)} busy={false}>
           <div className="modal-card wide">
             <h2 id="history-modal-title">Schedule Audit History</h2>
             <p>
@@ -865,12 +867,12 @@ export function FixturesClient({
               </button>
             </div>
           </div>
-        </div>
+        </PortalDialog>
       )}
 
       {/* Reminder Modal */}
       {reminderFixture && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reminder-modal-title">
+        <PortalDialog labelledBy="reminder-modal-title" onClose={() => setReminderFixture(null)} busy={reminderPending}>
           <div className="modal-card">
             <h2 id="reminder-modal-title">Send In-App Fixture Reminder</h2>
             <p>
@@ -907,7 +909,7 @@ export function FixturesClient({
               </div>
             </form>
           </div>
-        </div>
+        </PortalDialog>
       )}
     </div>
   );

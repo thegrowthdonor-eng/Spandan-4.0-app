@@ -1,5 +1,7 @@
 "use client";
 
+import { PortalDialog } from "@/components/admin/portal-dialog";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -406,7 +408,7 @@ export function ActivationClient({
 
       {/* Recovery Token Modal */}
       {recoveryRecord && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="recovery-modal-title">
+        <PortalDialog labelledBy="recovery-modal-title" onClose={() => setRecoveryRecord(null)} busy={recoveryPending}>
           <div className="modal-card wide">
             <h2 id="recovery-modal-title">Issue Account Recovery Token</h2>
             <p>
@@ -482,7 +484,7 @@ export function ActivationClient({
               </form>
             )}
           </div>
-        </div>
+        </PortalDialog>
       )}
     </div>
   );

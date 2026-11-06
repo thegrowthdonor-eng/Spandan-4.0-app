@@ -1,7 +1,8 @@
 "use client";
 
+import { PortalDialog } from "@/components/admin/portal-dialog";
+
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export type ApplicationRow = {
@@ -35,7 +36,8 @@ export function ReviewClient({
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [reviewFilter, setReviewFilter] = useState<string>("all");
+  const [reviewFilter, setReviewFilter] = useState<string>("submitted");
+  const [limit, setLimit] = useState(40);
   const [batchFilter, setBatchFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -49,6 +51,7 @@ export function ReviewClient({
   const [bulkPending, setBulkPending] = useState(false);
   const [bulkReason, setBulkReason] = useState("");
   const [showBulkRejectModal, setShowBulkRejectModal] = useState(false);
+  const [rejectId, setRejectId] = useState<string | null>(null);
 
   // Batches present in the list
   const batches = useMemo(() => {
@@ -75,13 +78,17 @@ export function ReviewClient({
     });
   }, [applications, reviewFilter, batchFilter, search]);
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every((app) => selectedIds.has(app.application_id));
+  const visible = filtered.slice(0,limit);
+  const eligible = visible.filter(app => app.review_state !== "withdrawn");
+  const activeIds = new Set(eligible.filter(app => selectedIds.has(app.application_id)).map(app => app.application_id));
+  const busy = pendingId !== null || bulkPending;
+  const allFilteredSelected = eligible.length > 0 && eligible.every(app => activeIds.has(app.application_id));
 
   function toggleSelectAll() {
     if (allFilteredSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map((app) => app.application_id)));
+      setSelectedIds(new Set(eligible.map((app) => app.application_id)));
     }
   }
 
@@ -105,6 +112,7 @@ export function ReviewClient({
 
   // Single review submit
   async function submitReview(applicationId: string, state: "approved" | "waitlisted" | "rejected") {
+    if (busy) return;
     const reason = reasonMap[applicationId]?.trim() || "";
     if (state === "rejected" && !reason) {
       setStatusMessage({ id: applicationId, text: "A reason is required when rejecting an application.", isError: true });
@@ -121,7 +129,8 @@ export function ReviewClient({
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
-        setStatusMessage({ id: applicationId, text: `Application marked ${state}.` });
+        setStatusMessage({ text: `Application marked ${state}.` });
+        setRejectId(null);
         router.refresh();
       } else {
         setStatusMessage({ id: applicationId, text: data.error ?? "Failed to save review.", isError: true });
@@ -135,6 +144,7 @@ export function ReviewClient({
 
   // Single solo selection submit
   async function submitSoloSelection(applicationId: string, state: "selected" | "reserve" | "not_selected") {
+    if (busy) return;
     setPendingId(applicationId);
     setStatusMessage(null);
     try {
@@ -160,7 +170,7 @@ export function ReviewClient({
 
   // Bulk review submit
   async function submitBulkReview(state: "approved" | "waitlisted" | "rejected") {
-    if (selectedIds.size === 0) return;
+    if (activeIds.size === 0 || busy) return;
     if (state === "rejected" && !bulkReason.trim()) {
       setStatusMessage({ text: "A rejection reason is required for bulk rejection.", isError: true });
       return;
@@ -172,7 +182,7 @@ export function ReviewClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          applicationIds: Array.from(selectedIds),
+          applicationIds: Array.from(activeIds),
           state,
           reason: bulkReason.trim() || undefined,
         }),
@@ -199,21 +209,6 @@ export function ReviewClient({
     <div className="review-workspace">
       {/* Action Navigation Bar */}
       <div className="review-top-bar">
-        <div className="review-links">
-          {event.format !== "solo" ? (
-            <Link className="workspace-sublink" href={`/admin/groups?event=${event.id}`}>
-              Squads & Captains →
-            </Link>
-          ) : (
-            <Link className="workspace-sublink" href={`/admin/selection?event=${event.id}`}>
-              Solo Selection Queue →
-            </Link>
-          )}
-          <Link className="workspace-sublink" href={`/admin/fixtures?event=${event.id}`}>
-            Fixtures & Draw →
-          </Link>
-        </div>
-
         <a
           className="export-button"
           href={`/api/admin/applications/export?event=${event.id}`}
@@ -230,7 +225,7 @@ export function ReviewClient({
       </div>
 
       {/* Global Status Banner */}
-      {statusMessage && !statusMessage.id && (
+      {statusMessage && (
         <div className={`status-banner ${statusMessage.isError ? "error" : "success"}`} role="status">
           {statusMessage.text}
         </div>
@@ -243,7 +238,7 @@ export function ReviewClient({
             type="search"
             placeholder="Search by student name, roll number, or batch…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setSelectedIds(new Set()); setLimit(40); }}
             aria-label="Search applicants"
           />
         </div>
@@ -262,7 +257,7 @@ export function ReviewClient({
                 key={chip.id}
                 type="button"
                 className={`filter-chip ${reviewFilter === chip.id ? "active" : ""}`}
-                onClick={() => setReviewFilter(chip.id)}
+                onClick={() => { setReviewFilter(chip.id); setSelectedIds(new Set()); setLimit(40); }}
               >
                 {chip.label}
               </button>
@@ -275,7 +270,7 @@ export function ReviewClient({
               <select
                 id="batch-select"
                 value={batchFilter}
-                onChange={(e) => setBatchFilter(e.target.value)}
+                onChange={(e) => { setBatchFilter(e.target.value); setSelectedIds(new Set()); setLimit(40); }}
                 className="batch-select"
               >
                 <option value="all">All Batches</option>
@@ -291,7 +286,7 @@ export function ReviewClient({
       </div>
 
       {/* Bulk Action Toolbar */}
-      {selectedIds.size > 0 && (
+      {activeIds.size > 0 && (
         <div className="bulk-toolbar" role="region" aria-label="Bulk actions">
           <div className="bulk-info">
             <span className="bulk-count">{selectedIds.size}</span> applicant{selectedIds.size === 1 ? "" : "s"} selected
@@ -335,7 +330,7 @@ export function ReviewClient({
 
       {/* Bulk Reject Modal */}
       {showBulkRejectModal && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bulk-reject-title">
+        <PortalDialog labelledBy="bulk-reject-title" onClose={() => setShowBulkRejectModal(false)} busy={bulkPending}>
           <div className="modal-card">
             <h2 id="bulk-reject-title">Bulk Reject Applications</h2>
             <p>
@@ -375,7 +370,7 @@ export function ReviewClient({
               </button>
             </div>
           </div>
-        </div>
+        </PortalDialog>
       )}
 
       {/* Select All Checkbox Header */}
@@ -385,12 +380,12 @@ export function ReviewClient({
             type="checkbox"
             checked={allFilteredSelected}
             onChange={toggleSelectAll}
-            disabled={filtered.length === 0}
+            disabled={eligible.length === 0 || busy}
           />
-          <span>Select all matching ({filtered.length})</span>
+          <span>Select visible requests ({eligible.length})</span>
         </label>
         <span className="queue-count-label">
-          Showing {filtered.length} of {applications.length} applications
+          Showing {visible.length} of {filtered.length} matching applications
         </span>
       </div>
 
@@ -406,10 +401,10 @@ export function ReviewClient({
         </div>
       ) : (
         <div className="review-list">
-          {filtered.map((row) => {
+          {visible.map((row) => {
             const isSelected = selectedIds.has(row.application_id);
             const isExpanded = expandedAnswers.has(row.application_id);
-            const isPending = pendingId === row.application_id;
+            const isPending = busy;
             const rowMessage = statusMessage?.id === row.application_id ? statusMessage : null;
             const answers = row.answers && typeof row.answers === "object" ? Object.entries(row.answers) : [];
 
@@ -425,6 +420,7 @@ export function ReviewClient({
                         id={`select-${row.application_id}`}
                         type="checkbox"
                         checked={isSelected}
+                        disabled={busy || row.review_state === "withdrawn"}
                         onChange={() => toggleSelect(row.application_id)}
                       />
                       <span className="sr-only">Select {row.full_name}</span>
@@ -510,20 +506,6 @@ export function ReviewClient({
 
                   {row.review_state !== "withdrawn" && (
                     <div className="review-action-controls">
-                      <div className="reason-input-group">
-                        <label htmlFor={`reason-${row.application_id}`}>Note / Reason</label>
-                        <input
-                          id={`reason-${row.application_id}`}
-                          value={reasonMap[row.application_id] ?? ""}
-                          disabled={isPending}
-                          onChange={(e) =>
-                            setReasonMap({ ...reasonMap, [row.application_id]: e.target.value })
-                          }
-                          maxLength={500}
-                          placeholder="Required for rejection"
-                        />
-                      </div>
-
                       <div className="button-group">
                         <button
                           type="button"
@@ -531,12 +513,12 @@ export function ReviewClient({
                           disabled={isPending || row.review_state === "approved"}
                           onClick={() => submitReview(row.application_id, "approved")}
                         >
-                          Approve
+                          {event.format === "solo" ? "Approve & add" : "Approve"}
                         </button>
                         <button
                           type="button"
                           className="btn-waitlist"
-                          disabled={isPending || row.review_state === "waitlisted"}
+                          disabled={isPending || row.review_state === "waitlisted" || ["selected","reserve"].includes(row.selection_state)}
                           onClick={() => submitReview(row.application_id, "waitlisted")}
                         >
                           Waitlist
@@ -544,8 +526,8 @@ export function ReviewClient({
                         <button
                           type="button"
                           className="btn-reject"
-                          disabled={isPending || row.review_state === "rejected"}
-                          onClick={() => submitReview(row.application_id, "rejected")}
+                          disabled={isPending || row.review_state === "rejected" || ["selected","reserve"].includes(row.selection_state)}
+                          onClick={() => { setRejectId(row.application_id); setStatusMessage(null); }}
                         >
                           Reject
                         </button>
@@ -553,10 +535,11 @@ export function ReviewClient({
                     </div>
                   )}
 
+                  {["selected","reserve"].includes(row.selection_state) && <p className="admin-only-note">Remove from the final roster before rejecting or waitlisting this participant.</p>}
                   {/* Inline Solo Selection for solo events once approved */}
                   {event.format === "solo" && row.review_state === "approved" && (
                     <div className="solo-selection-controls">
-                      <span className="solo-control-label">Solo Selection:</span>
+                      <span className="solo-control-label">Final roster:</span>
                       <div className="button-group mini">
                         <button
                           type="button"
@@ -564,7 +547,7 @@ export function ReviewClient({
                           disabled={isPending}
                           onClick={() => submitSoloSelection(row.application_id, "selected")}
                         >
-                          ✓ Selected
+                          {row.selection_state === "selected" ? "On roster" : "Add participant"}
                         </button>
                         <button
                           type="button"
@@ -580,7 +563,7 @@ export function ReviewClient({
                           disabled={isPending}
                           onClick={() => submitSoloSelection(row.application_id, "not_selected")}
                         >
-                          Not Selected
+                          Remove from roster
                         </button>
                       </div>
                     </div>
@@ -591,6 +574,15 @@ export function ReviewClient({
           })}
         </div>
       )}
+      {rejectId && <PortalDialog labelledBy="reject-request-title" onClose={() => setRejectId(null)} busy={busy}>
+        <h2 id="reject-request-title">Reject participant request</h2><p>{applications.find(a => a.application_id === rejectId)?.full_name}</p>
+        <form onSubmit={e => {e.preventDefault(); void submitReview(rejectId,"rejected");}}>
+          <label>Reason for rejection<textarea required maxLength={500} value={reasonMap[rejectId] ?? ""} onChange={e => setReasonMap(v => ({...v,[rejectId]:e.target.value}))}/></label>
+          {statusMessage?.isError && <p role="alert">{statusMessage.text}</p>}
+          <div className="portal-form-actions"><button type="button" className="portal-secondary" onClick={() => setRejectId(null)} disabled={busy}>Keep request</button><button className="portal-primary" disabled={busy || !reasonMap[rejectId]?.trim()}>Confirm rejection</button></div>
+        </form>
+      </PortalDialog>}
+      {visible.length < filtered.length && <button type="button" className="portal-secondary" onClick={() => setLimit(n => n + 40)}>Show more requests</button>}
     </div>
   );
 }

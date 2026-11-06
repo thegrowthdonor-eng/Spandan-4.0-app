@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { eventDetailsSchema, fromIstInput, toIstInput, publicationMissing, type EventDetails } from "./event-setup";
+import { managementLinks, canEnterManagement, type ManagementSummary } from "./management";
+
+const draft:EventDetails={title:"Chess",category:"sport",format:"solo",scoreTemplate:"generic",summary:"",rules:"",venue:"",capacity:null,waitlistEnabled:false,reportingAt:null,startsAt:null,endsAt:null,rosterLockAt:null,eligibility:{division:"open"},applicationQuestions:[],groupMinSize:null,groupMaxSize:null,batchRestricted:false,posterUrl:null};
+test("drafts allow incomplete content while publication identifies required fields",()=>{
+  assert.equal(eventDetailsSchema.safeParse(draft).success,true);
+  assert.deepEqual(publicationMissing(draft),["summary","rules","venue","start time"]);
+  assert.ok(publicationMissing({...draft,format:"sport"}).includes("team sizes"));
+});
+test("event schedule and choice questions reject inconsistent input",()=>{
+  assert.equal(eventDetailsSchema.safeParse({...draft,startsAt:"2026-12-01T04:00:00.000Z",endsAt:"2026-12-01T03:00:00.000Z"}).success,false);
+  assert.equal(eventDetailsSchema.safeParse({...draft,applicationQuestions:[{key:"q",label:"Preferred position",type:"select",required:true,options:["A","A"]}]}).success,false);
+  assert.equal(eventDetailsSchema.safeParse({...draft,applicationQuestions:[{key:"roll",label:"Roll number",type:"text",required:true}]}).success,false);
+});
+test("IST event input round-trips independently of device timezone",()=>{
+  assert.equal(fromIstInput("2026-12-01T09:30"),"2026-12-01T04:00:00.000Z");
+  assert.equal(toIstInput("2026-12-01T04:00:00.000Z"),"2026-12-01T09:30");
+  assert.equal(fromIstInput(""),null);
+});
+test("management navigation exposes the union of responsibilities without editor operations",()=>{
+  const base:ManagementSummary={isAdmin:false,canVerify:false,canCreate:false,canNotice:false,canGallery:false,canLive:false,canHelp:false,roles:[],events:[],editableEvents:[],pendingVerification:null};
+  assert.equal(canEnterManagement(base),false);
+  assert.deepEqual(managementLinks({...base,canCreate:true}).map(v=>v.label),["Overview","Events"]);
+  const mixed={...base,canCreate:true,canNotice:true,events:[{id:"event",title:"Chess",category:"sport",format:"solo",state:"open"}]};
+  assert.ok(managementLinks(mixed).some(v=>v.label==="Participants"));
+  assert.ok(managementLinks(mixed).some(v=>v.label==="Notices"));
+  assert.equal(managementLinks(mixed).some(v=>v.label==="Administration"),false);
+  assert.equal(managementLinks(mixed).some(v=>v.label==="Teams"),false);
+});

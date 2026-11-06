@@ -97,6 +97,9 @@ export const bulkSoloSelectionSchema = z.object({
 });
 
 export const groupCommandSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("publishTeam"), eventId: z.string().uuid(), name: z.string().trim().min(1).max(160),
+    batchId: z.string().uuid().nullable(), applicationIds: z.array(z.string().uuid()).min(1).max(200).refine(ids => new Set(ids).size === ids.length),
+    captainId: z.string().uuid().nullable() }),
   z.object({ action: z.literal("create"), eventId: z.string().uuid(), name: z.string().trim().min(1).max(160), batchId: z.string().uuid().nullable() }),
   z.object({ action: z.literal("add"), groupId: z.string().uuid(), applicationId: z.string().uuid() }),
   z.object({ action: z.literal("publish"), groupId: z.string().uuid(), captainId: z.string().uuid().nullable() }),
@@ -282,6 +285,9 @@ export const festivalSetupSchema = z.discriminatedUnion("action", [
     capacity: z.number().int().positive().nullable(),
     waitlistEnabled: z.boolean(),
     startsAt: optionalDateTime,
+    reportingAt: optionalDateTime.optional(),
+    endsAt: optionalDateTime.optional(),
+    rosterLockAt: optionalDateTime.optional(),
     eligibility: z.record(z.string(), z.unknown()).default({}),
     applicationQuestions: z.array(z.object({
       key: z.string().trim().min(1).max(80),

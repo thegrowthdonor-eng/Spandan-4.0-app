@@ -64,6 +64,7 @@ export default async function AdminResultsPage({
   }
 
   const wanted = (await searchParams).event;
+  if (wanted && !events.some(event => event.id === wanted)) return <main className="portal-unavailable"><h1>Event unavailable</h1><p>This event is outside your responsibility or has been removed.</p><Link href="/admin">Back to my workspace</Link></main>;
   const selected = events.find((event) => event.id === wanted) ?? events[0];
 
   const [{ data: ruleData }, { data: resultData }, { data: participantData }] = await Promise.all([

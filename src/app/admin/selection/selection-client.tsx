@@ -34,6 +34,7 @@ export function SelectionClient({
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectionFilter, setSelectionFilter] = useState<string>("all");
+  const [limit,setLimit] = useState(40);
   const [batchFilter, setBatchFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
@@ -64,13 +65,16 @@ export function SelectionClient({
     });
   }, [candidates, selectionFilter, batchFilter, search]);
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.application_id));
+  const visible = filtered.slice(0,limit);
+  const activeIds = new Set(visible.filter(c => selectedIds.has(c.application_id)).map(c => c.application_id));
+  const busy = pendingId !== null || bulkPending;
+  const allFilteredSelected = visible.length > 0 && visible.every(c => activeIds.has(c.application_id));
 
   function toggleSelectAll() {
     if (allFilteredSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map((c) => c.application_id)));
+      setSelectedIds(new Set(visible.map((c) => c.application_id)));
     }
   }
 
@@ -93,6 +97,7 @@ export function SelectionClient({
   }
 
   async function submitSingleSelection(applicationId: string, state: "selected" | "reserve" | "not_selected") {
+    if (busy) return;
     setPendingId(applicationId);
     setStatusMessage(null);
     try {
@@ -117,7 +122,7 @@ export function SelectionClient({
   }
 
   async function submitBulkSelection(state: "selected" | "reserve" | "not_selected") {
-    if (selectedIds.size === 0) return;
+    if (activeIds.size === 0 || busy) return;
     setBulkPending(true);
     setStatusMessage(null);
     try {
@@ -125,7 +130,7 @@ export function SelectionClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          applicationIds: Array.from(selectedIds),
+          applicationIds: Array.from(activeIds),
           state,
         }),
         cache: "no-store",
@@ -167,7 +172,7 @@ export function SelectionClient({
         </a>
       </div>
 
-      {statusMessage && !statusMessage.id && (
+      {statusMessage && (
         <div className={`status-banner ${statusMessage.isError ? "error" : "success"}`} role="status">
           {statusMessage.text}
         </div>
@@ -180,7 +185,7 @@ export function SelectionClient({
             type="search"
             placeholder="Search approved candidates by name, roll, or batch…"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {setSearch(e.target.value);setSelectedIds(new Set());setLimit(40);}}
             aria-label="Search candidates"
           />
         </div>
@@ -198,7 +203,7 @@ export function SelectionClient({
                 key={chip.id}
                 type="button"
                 className={`filter-chip ${selectionFilter === chip.id ? "active" : ""}`}
-                onClick={() => setSelectionFilter(chip.id)}
+                onClick={() => {setSelectionFilter(chip.id);setSelectedIds(new Set());setLimit(40);}}
               >
                 {chip.label}
               </button>
@@ -211,7 +216,7 @@ export function SelectionClient({
               <select
                 id="batch-select-solo"
                 value={batchFilter}
-                onChange={(e) => setBatchFilter(e.target.value)}
+                onChange={(e) => {setBatchFilter(e.target.value);setSelectedIds(new Set());setLimit(40);}}
                 className="batch-select"
               >
                 <option value="all">All Batches</option>
@@ -297,10 +302,10 @@ export function SelectionClient({
         </div>
       ) : (
         <div className="review-list">
-          {filtered.map((row) => {
+          {visible.map((row) => {
             const isSelected = selectedIds.has(row.application_id);
             const isExpanded = expandedAnswers.has(row.application_id);
-            const isPending = pendingId === row.application_id;
+            const isPending = busy;
             const rowMessage = statusMessage?.id === row.application_id ? statusMessage : null;
             const answers = row.answers && typeof row.answers === "object" ? Object.entries(row.answers) : [];
 
@@ -415,6 +420,7 @@ export function SelectionClient({
           })}
         </div>
       )}
+      {visible.length < filtered.length && <button type="button" className="portal-secondary" onClick={() => setLimit(n => n + 40)}>Show more participants</button>}
     </div>
   );
 }

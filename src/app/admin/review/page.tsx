@@ -56,6 +56,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
   }
 
   const wanted = (await searchParams).event;
+  if (wanted && !events.some(event => event.id === wanted)) return <main className="portal-unavailable"><h1>Event unavailable</h1><p>This event is outside your responsibility or has been removed.</p><Link href="/admin">Back to my workspace</Link></main>;
   const selected = events.find((event) => event.id === wanted) ?? events[0];
 
   const { data: queueData, error } = await client.rpc("list_event_review_queue", { p_event_id: selected.id });
@@ -74,11 +75,10 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
       </header>
 
       <section className="review-intro">
-        <p className="eyebrow">Event-head workspace</p>
+        <p className="eyebrow">Participant management</p>
         <h1>Application review</h1>
         <p>
-          You can review applications only for events assigned to you. Approval and final participant selection
-          remain separate decisions. Audited exports and bulk decisions are available below.
+          You can review applications only for events assigned to you. For solo events, approval also adds the student to the final roster. Team events need team publication after approval.
         </p>
       </section>
 
@@ -87,7 +87,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
       {error ? (
         <p className="review-empty">Applications are temporarily unavailable.</p>
       ) : (
-        <ReviewClient event={selected} applications={queue} />
+        <ReviewClient key={selected.id} event={selected} applications={queue} />
       )}
     </main>
   );
