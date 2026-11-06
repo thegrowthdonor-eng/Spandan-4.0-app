@@ -4,15 +4,18 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Candidate = { profile_id: string; full_name: string; fest_id: string; batch_label: string };
-type Member = { assignment_id: string; profile_id: string; full_name: string; fest_id: string; batch_label: string; role: "main_admin" | "treasurer" | "event_head" | "notice_publisher" | "event_coordinator"; event_id: string | null; event_title: string | null; granted_at: string };
+type StaffRole = "main_admin" | "treasurer" | "event_editor" | "event_head" | "notice_publisher" | "event_coordinator";
+type Member = { assignment_id: string; profile_id: string; full_name: string; fest_id: string; batch_label: string; role: StaffRole; event_id: string | null; event_title: string | null; event_category: "sport" | "cultural" | "literary" | "creative" | "other" | null; granted_at: string };
 type EventRow = { event_id: string; title: string; category: string; state: string };
-const roleLabels = { main_admin: "Main Admin", treasurer: "Treasurer", event_coordinator: "Event Coordinator", event_head: "Event Head", notice_publisher: "Notice Publisher" };
+const roleLabels: Record<StaffRole, string> = { main_admin: "Main Admin", treasurer: "Treasurer", event_editor: "Event Editor", event_coordinator: "Event Coordinator", event_head: "Event Head", notice_publisher: "Notice Publisher" };
+const categoryLabels = { sport: "Sports", cultural: "Cultural", literary: "Literary", creative: "Arts & Creative", other: "Other" };
 
 export function CommitteeControl({ candidates, members, events }: { candidates: Candidate[]; members: Member[]; events: EventRow[] }) {
   const router = useRouter();
   const [profileId, setProfileId] = useState("");
-  const [role, setRole] = useState<Member["role"]>("treasurer");
+  const [role, setRole] = useState<StaffRole>("treasurer");
   const [eventId, setEventId] = useState("");
+  const [eventCategory, setEventCategory] = useState<keyof typeof categoryLabels>("sport");
   const [candidateSearch, setCandidateSearch] = useState("");
   const [eventSearch, setEventSearch] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -47,17 +50,18 @@ export function CommitteeControl({ candidates, members, events }: { candidates: 
   return <div className="control-grid">
     <section className="control-panel">
       <div><p className="eyebrow">App controllers · 2023 batch</p><h2>Assign a role</h2><p className="control-copy">Only active, verified 2023-batch accounts can receive app controls. Search by name or Fest ID.</p></div>
-      {candidates.length ? <form onSubmit={(event) => { event.preventDefault(); void command({ action: "assign", profileId, role, eventId: role === "event_head" ? eventId || null : null }); }} className="committee-form">
+      {candidates.length ? <form onSubmit={(event) => { event.preventDefault(); void command({ action: "assign", profileId, role, eventId: role === "event_coordinator" ? eventId || null : null, eventCategory: role === "event_head" ? eventCategory : null }); }} className="committee-form">
         <label>Search controller candidate<input type="search" value={candidateSearch} onChange={(event) => setCandidateSearch(event.target.value)} placeholder="Name or Fest ID" /></label>
         <label>Committee member<select required value={profileId} onChange={(event) => setProfileId(event.target.value)}><option value="">Choose verified 2023 student</option>{visibleCandidates.map((candidate) => <option key={candidate.profile_id} value={candidate.profile_id}>{candidate.full_name} · {candidate.fest_id}</option>)}</select></label>
-        <label>Responsibility<select value={role} onChange={(event) => setRole(event.target.value as Member["role"])}><option value="treasurer">Treasurer — registration verification</option><option value="event_coordinator">Event Coordinator — add & manage events</option><option value="notice_publisher">Notice Publisher — official notices</option><option value="event_head">Event Head — assigned event only</option><option value="main_admin">Main Admin — full organiser control</option></select></label>
-        {role === "event_head" ? <><label>Search event<input type="search" value={eventSearch} onChange={(event) => setEventSearch(event.target.value)} placeholder="Title, category or status" /></label><label>Assigned event<select required value={eventId} onChange={(event) => setEventId(event.target.value)}><option value="">Choose one event</option>{visibleEvents.map((festivalEvent) => <option key={festivalEvent.event_id} value={festivalEvent.event_id}>{festivalEvent.title} · {festivalEvent.state}</option>)}</select></label></> : null}
-        <button className="primary-control" disabled={pending || !profileId || (role === "event_head" && !eventId)}>{pending ? "Updating…" : `Give ${roleLabels[role]} access`}</button>
+        <label>Responsibility<select value={role} onChange={(event) => setRole(event.target.value as StaffRole)}><option value="event_editor">Event Editor — create and edit own events</option><option value="event_coordinator">Event Coordinator — assigned event operations</option><option value="event_head">Event Head — all events in one category</option><option value="treasurer">Treasurer — registration verification</option><option value="notice_publisher">Notice Publisher — official notices</option><option value="main_admin">Main Admin — full organiser control</option></select></label>
+        {role === "event_coordinator" ? <><label>Search event<input type="search" value={eventSearch} onChange={(event) => setEventSearch(event.target.value)} placeholder="Title, category or status" /></label><label>Assigned event<select required value={eventId} onChange={(event) => setEventId(event.target.value)}><option value="">Choose one event</option>{visibleEvents.map((festivalEvent) => <option key={festivalEvent.event_id} value={festivalEvent.event_id}>{festivalEvent.title} · {festivalEvent.state}</option>)}</select></label></> : null}
+        {role === "event_head" ? <label>Managed category<select value={eventCategory} onChange={(event) => setEventCategory(event.target.value as keyof typeof categoryLabels)}>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label> : null}
+        <button className="primary-control" disabled={pending || !profileId || (role === "event_coordinator" && !eventId)}>{pending ? "Updating…" : `Give ${roleLabels[role]} access`}</button>
       </form> : <p className="empty-control">No active 2023-batch account is available. Activate the student first, then assign their responsibility here.</p>}
       {message ? <p className="control-message" role="status">{message}</p> : null}
     </section>
     <section className="control-panel"><div><p className="eyebrow">Live access</p><h2>Current app controllers</h2><p className="control-copy">Remove access when a responsibility ends. The final Main Admin is protected.</p></div>
-      {members.length ? <ul className="committee-list">{members.map((member) => <li key={member.assignment_id}><div><strong>{member.full_name}</strong><span>{roleLabels[member.role]}{member.event_title ? ` · ${member.event_title}` : ""}</span><small>{member.batch_label} · {member.fest_id}</small></div><button type="button" className="revoke-button" disabled={pending} onClick={() => void command({ action: "revoke", assignmentId: member.assignment_id })}>Remove access</button></li>)}</ul> : <p className="empty-control">No committee roles assigned yet.</p>}
+      {members.length ? <ul className="committee-list">{members.map((member) => <li key={member.assignment_id}><div><strong>{member.full_name}</strong><span>{roleLabels[member.role]}{member.event_title ? ` · ${member.event_title}` : member.event_category ? ` · ${categoryLabels[member.event_category]}` : ""}</span><small>{member.batch_label} · {member.fest_id}</small></div><button type="button" className="revoke-button" disabled={pending} onClick={() => void command({ action: "revoke", assignmentId: member.assignment_id })}>Remove access</button></li>)}</ul> : <p className="empty-control">No committee roles assigned yet.</p>}
     </section>
     {selected ? <p className="selection-hint">Giving access to <strong>{selected.full_name}</strong>. Database rules will reject any account outside the 2023 batch.</p> : null}
   </div>;

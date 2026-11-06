@@ -22,6 +22,7 @@ export interface CompressOptions {
   maxHeight?: number;
   quality?: number; // 0.1 to 1.0 (default 0.8)
   mimeType?: "image/webp" | "image/jpeg";
+  alwaysReencode?: boolean;
 }
 
 export async function compressImageFile(
@@ -33,10 +34,11 @@ export async function compressImageFile(
     maxHeight = 1440,
     quality = 0.8,
     mimeType = "image/webp",
+    alwaysReencode = false,
   } = options;
 
   // If already tiny WebP (< 150KB), no need to re-encode
-  if (file.type === "image/webp" && file.size < 150 * 1024) {
+  if (!alwaysReencode && file.type === "image/webp" && file.size < 150 * 1024) {
     return {
       file,
       originalSize: file.size,

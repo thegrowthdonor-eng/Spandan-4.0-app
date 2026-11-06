@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { festivalSetupSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { createAdminClient } from "@/server/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,6 +65,8 @@ export async function POST(request: Request) {
       p_event_id: data.eventId,
       p_state: data.state,
     });
+  } else if (data.action === "deleteEvent") {
+    result = await client.rpc("delete_owned_event", { p_event_id: data.eventId });
   } else {
     result = await client.rpc("update_admin_event_full", {
       p_event_id: data.eventId,
@@ -99,5 +102,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to save festival setup right now." }, { status: 503, headers });
   }
 
+  if (data.action === "deleteEvent") {
+    const paths = Array.isArray(result.data) ? result.data.filter((path): path is string => typeof path === "string" && path.startsWith("gallery/")) : [];
+    const { error: cleanupError } = paths.length ? await createAdminClient().storage.from("fest-media").remove(paths) : { error: null };
+    return NextResponse.json({ ok: true, cleanupPending: Boolean(cleanupError) }, { headers });
+  }
   return NextResponse.json({ ok: true }, { headers });
 }

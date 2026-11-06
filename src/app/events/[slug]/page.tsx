@@ -129,16 +129,16 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
   }
 }
 
-async function getEventManagers(eventId: string): Promise<EventManager[]> {
+async function getEventManagers(eventId: string, category: string): Promise<EventManager[]> {
   if (!hasSupabaseConfiguration()) return [];
   try {
     const admin = createAdminClient();
-    const { data: assignments, error: assignmentError } = await admin
-      .from("staff_assignments")
-      .select("profile_id")
-      .eq("event_id", eventId)
-      .eq("role", "event_head")
-      .is("revoked_at", null);
+    const [coordinatorResult, headResult] = await Promise.all([
+      admin.from("staff_assignments").select("profile_id").eq("event_id", eventId).eq("role", "event_coordinator").is("revoked_at", null),
+      admin.from("staff_assignments").select("profile_id").eq("event_category", category).eq("role", "event_head").is("revoked_at", null),
+    ]);
+    const assignments = [...(coordinatorResult.data ?? []), ...(headResult.data ?? [])];
+    const assignmentError = coordinatorResult.error ?? headResult.error;
 
     if (assignmentError || !assignments?.length) return [];
     const profileIds = [...new Set(assignments.map((assignment) => assignment.profile_id))];
@@ -281,7 +281,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
 
   const [eventResult, eventManagers, publicParticipants] = await Promise.all([
     getEventResult(event.id),
-    getEventManagers(event.id),
+    getEventManagers(event.id, event.category),
     getPublicParticipants(event.id),
   ]);
 

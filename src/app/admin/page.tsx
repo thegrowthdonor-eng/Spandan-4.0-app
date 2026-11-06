@@ -57,7 +57,7 @@ export default async function AdminPage() {
   const client = await createRequestClient();
   if (!(await client.auth.getUser()).data.user) redirect("/account");
 
-  const [accessCheck, eventsResult, activationResult, noticeCheck, mainAdminCheck, canCreateCheck, liveDeskCheck] = await Promise.all([
+  const [accessCheck, eventsResult, activationResult, noticeCheck, mainAdminCheck, canCreateCheck, liveDeskCheck, galleryCheck] = await Promise.all([
     client.rpc("can_manage_access"),
     client.rpc("list_managed_events"),
     client.rpc("list_activation_queue"),
@@ -65,6 +65,7 @@ export default async function AdminPage() {
     client.rpc("is_main_admin"),
     client.rpc("can_create_events"),
     client.rpc("can_manage_live_desk"),
+    client.rpc("can_manage_gallery_moments"),
   ]);
 
   const events = (eventsResult.data ?? []) as ManagedEvent[];
@@ -73,14 +74,15 @@ export default async function AdminPage() {
   const isMainAdmin = mainAdminCheck.data === true;
   const canCreateEvents = canCreateCheck.data === true;
   const canManageLiveDesk = liveDeskCheck.data === true;
+  const canManageGallery = galleryCheck.data === true;
   const activationQueue = (activationResult.data ?? []) as ActivationRow[];
 
-  if (!canActivate && !events.length && !canPublishNotices && !isMainAdmin && !canCreateEvents) {
+  if (!canActivate && !events.length && !canPublishNotices && !isMainAdmin && !canCreateEvents && !canManageGallery) {
     return <EmptyWorkspace title="This area is restricted." copy="Your account does not currently have an organiser assignment." />;
   }
 
   const pendingCount = activationResult.error ? null : activationQueue.filter((row) => row.access_state === "pending").length;
-  const hasLoadError = Boolean(accessCheck.error || eventsResult.error || noticeCheck.error || mainAdminCheck.error || canCreateCheck.error || liveDeskCheck.error);
+  const hasLoadError = Boolean(accessCheck.error || eventsResult.error || noticeCheck.error || mainAdminCheck.error || canCreateCheck.error || liveDeskCheck.error || galleryCheck.error);
 
   const tools: Tool[] = [
     // PRIORITY 1: GROUND & COUNTER OPERATIONS
@@ -147,15 +149,27 @@ export default async function AdminPage() {
     ] : []),
 
     // PRIORITY 2: EVENT COORDINATION
+    ...(canManageGallery ? [
+      {
+        href: "/admin/gallery",
+        title: "Gallery Moments",
+        subtitle: "Publish candid event photos with captions and the actual moment time",
+        badge: "MEDIA SQUAD",
+        actionText: "Add Moment",
+        accent: "emerald" as const,
+        group: "events",
+        icon: "M4 6h16v12H4V6Zm4-3v3m8-3v3M4 10h16m-11 4 2 2 4-4 3 3"
+      }
+    ] : []),
     ...(isMainAdmin || canCreateEvents ? [
       {
         href: "/admin/events",
-        title: isMainAdmin ? "Event Editor & Rules" : "My Events & Add Event",
+        title: isMainAdmin ? "Event Editor & Rules" : "My Event Drafts",
         subtitle: isMainAdmin
           ? "Configure event catalogue, category rules, registrations & deadlines"
-          : "Propose new events, configure rules, poster, venue and questions",
-        badge: isMainAdmin ? "CATALOGUE & RULES" : "COORDINATOR",
-        actionText: isMainAdmin ? "Configure Events" : "Manage Events",
+          : "Create your events, configure rules, poster, venue and questions",
+        badge: isMainAdmin ? "CATALOGUE & RULES" : "EVENT EDITOR",
+        actionText: isMainAdmin ? "Configure Events" : "Edit My Events",
         accent: "indigo" as const,
         group: "events",
         icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"

@@ -79,9 +79,9 @@ const POLICY_SECTIONS = [
         </p>
         <ul className={styles.policyList}>
           <li>
-            <strong>Public Information:</strong> Participant names, batch representations (e.g. Batch 2022 Spartans),
-            competition event names, match scores, and official podium standings are published publicly on the live
-            schedule, radar, and leaderboard.
+            <strong>Public Information:</strong> Participant names, roll numbers for published individual winners,
+            batch representations (e.g. Batch 2022 Spartans), competition event names, match scores, and official
+            podium standings are published publicly on the live schedule, radar, and leaderboard.
           </li>
           <li>
             <strong>Restricted Information:</strong> Personal contact numbers, private application notes, and treasury
@@ -103,13 +103,16 @@ const POLICY_SECTIONS = [
     content: (
       <>
         <p>
-          Spandan 4.0 celebrates campus spirit through photography and live feeds managed by the official student media
-          squad:
+          Spandan 4.0 celebrates campus spirit through a public moments gallery managed by authorised festival organisers:
         </p>
         <ul className={styles.policyList}>
           <li>
-            <strong>Official Media Coverage:</strong> Photos and video reels captured during open-campus sports, stage
-            performances, and literary fixtures are displayed in the Spandan Gallery and Live Feed.
+            <strong>Official Media Coverage:</strong> Only active 2023-batch Main Admins and Event Coordinators can publish
+            candid event photos. Each public post includes its caption, event and moment date/time in the Gallery and Live Feed.
+          </li>
+          <li>
+            <strong>Device Privacy:</strong> Camera or photo-library access is requested only when an organiser taps the
+            matching upload control. Photos are re-encoded before upload so embedded device and location metadata is removed.
           </li>
           <li>
             <strong>Right to Privacy &amp; Removal:</strong> If you appear prominently in any photo or video published on

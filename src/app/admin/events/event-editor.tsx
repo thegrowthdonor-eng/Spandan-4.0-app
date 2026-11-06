@@ -261,6 +261,14 @@ export function EventEditor({ events, editions, isAdmin = true }: { events: Even
     }
   }
 
+  async function deleteEvent() {
+    if (!current || !window.confirm(`Permanently delete “${current.title}”? Its registrations, teams, fixtures, results and gallery moments will also be removed.`)) return;
+    if (await post({ action: "deleteEvent", eventId: current.event_id })) {
+      setSelectedId("");
+      setMessage({ text: "Event permanently deleted.", isError: false });
+    }
+  }
+
   return (
     <section className="event-editor">
       <div className="editor-management-grid">
@@ -285,12 +293,12 @@ export function EventEditor({ events, editions, isAdmin = true }: { events: Even
         )}
 
         <section className="control-panel editor-management-card">
-          <p className="eyebrow">{isAdmin ? "Event catalogue" : "Propose Event"}</p>
-          <h2>{isAdmin ? "Create event" : "Propose new event"}</h2>
+          <p className="eyebrow">{isAdmin ? "Event catalogue" : "Event Editor"}</p>
+          <h2>{isAdmin ? "Create event" : "Create new event"}</h2>
           <p className="control-copy">
             {isAdmin
               ? "Create it here, then complete its content and timing below."
-              : "Propose a new event. It will be created as a Draft for your coordination, ready for admin review."}
+              : "Create an event draft, complete its setup, and send it for Main Admin approval."}
           </p>
           <label>Event title<input value={newEvent.title} onChange={(event) => setNewEvent({ ...newEvent, title: event.target.value })} maxLength={160} placeholder="e.g. Inter-batch Cricket" /></label>
           <div className="field-pair">
@@ -302,7 +310,7 @@ export function EventEditor({ events, editions, isAdmin = true }: { events: Even
             <label>Score template<select value={newEvent.scoreTemplate} onChange={(event) => setNewEvent({ ...newEvent, scoreTemplate: event.target.value })}><option value="generic">Generic counters</option><option value="cricket">Cricket</option><option value="football">Football</option><option value="basketball">Basketball</option><option value="set_based">Set sport</option><option value="badminton">Badminton (legacy)</option></select></label>
           </div>
           <button type="button" className="primary-control" disabled={pending || !newEvent.title.trim() || !editionId} onClick={() => void createEvent()}>
-            {pending ? "Creating…" : isAdmin ? "Create event" : "Propose event (Draft)"}
+            {pending ? "Creating…" : isAdmin ? "Create event" : "Create draft event"}
           </button>
         </section>
       </div>
@@ -422,6 +430,10 @@ export function EventEditor({ events, editions, isAdmin = true }: { events: Even
               </button>
             ))}
           </nav>
+
+          <button type="button" className="revoke-button" disabled={pending} onClick={() => void deleteEvent()}>
+            Permanently delete this event
+          </button>
 
           {activeTab === "content" && (
             <div className="editor-section">

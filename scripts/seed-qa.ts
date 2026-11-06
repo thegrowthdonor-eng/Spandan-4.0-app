@@ -13,13 +13,20 @@ const qaEditionName = "Spandan 4.0 — Visual QA 2026";
 async function resetQaProject(admin: ReturnType<typeof requireQaEnvironment>) {
   // Clear profile-dependent rows first. Auth deletion cascades into profiles, but
   // these author/owner FKs intentionally use RESTRICT in the production schema.
+  const { data: galleryObjects, error: galleryObjectError } = await admin.from("gallery_moments").select("storage_path");
+  failIfError(galleryObjectError, "Read QA gallery storage paths");
+  if (galleryObjects?.length) {
+    const { error: removeGalleryError } = await admin.storage.from("fest-media").remove(galleryObjects.map((item: { storage_path: string }) => item.storage_path));
+    failIfError(removeGalleryError, "Remove QA gallery assets");
+  }
   for (const table of [
     "push_subscriptions", "help_messages", "help_threads", "feedback_responses",
-    "poll_votes", "poll_options", "polls", "reminders", "group_memberships",
+    "poll_votes", "poll_options", "polls", "reminders", "points_ledger",
+    "result_positions", "result_publications", "group_memberships",
     "participant_groups", "application_history", "applications", "fixture_history",
-    "score_snapshots", "points_ledger", "result_positions", "result_publications",
+    "score_snapshots",
     "point_rules", "fixtures", "notices", "content_banners", "sponsors",
-    "media_items", "stage_reveals", "organiser_profiles", "merchandise_items",
+    "gallery_moments", "media_items", "stage_reveals", "organiser_profiles", "merchandise_items",
     "staff_assignments", "access_records", "audit_log", "events",
   ]) {
     const { error } = await admin.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
@@ -119,12 +126,13 @@ async function main() {
   const events = new Map((eventRows ?? []).map((row: { id: string; slug: string; state: string; format: string; category: string }) => [row.slug, row]));
 
   const accounts: Omit<Account, "id">[] = [];
-  batchLabels.forEach((batch, batchIndex) => {
+  batchLabels.forEach((batch) => {
     for (let roll = 1; roll <= 8; roll += 1) accounts.push({ name: `QA ${batch.replace("MBBS ", "")} Participant ${String(roll).padStart(2, "0")}`, batch, roll: String(roll), role: "participant", state: "active" });
-    if (batchIndex === 0) accounts.push(...QA_ROLE_ACCOUNTS.map((account) => ({ name: account.name, batch, roll: account.roll, role: account.role, state: account.state })));
+    if (batch === "MBBS 2023") accounts.push(...QA_ROLE_ACCOUNTS.map((account) => ({ name: account.name, batch, roll: account.roll, role: account.role, state: account.state })));
   });
   const createdAccounts: Account[] = [];
   for (const [index, account] of accounts.entries()) createdAccounts.push(await createAccount(admin, editionId, batches, account, index + 1));
+  const accountsById = new Map(createdAccounts.map((account) => [account.id, account]));
   const mainAdmin = createdAccounts.find((account) => account.role === "main_admin");
   if (!mainAdmin) throw new Error("QA main admin was not created");
 
@@ -137,20 +145,48 @@ async function main() {
   }
 
   const roleIds = new Map(createdAccounts.map((account) => [account.role, account.id]));
-  const globalAssignments = ["main_admin", "treasurer", "event_coordinator", "notice_publisher"].map((role) => ({ profile_id: roleIds.get(role), role, granted_by: mainAdmin.id }));
+  const globalAssignments = ["main_admin", "treasurer", "event_editor", "notice_publisher"].map((role) => ({ profile_id: roleIds.get(role), role, granted_by: mainAdmin.id }));
   const sportsHead = createdAccounts.find((account) => account.name === "Kabir QA Sports Head")?.id;
   const cultureHead = createdAccounts.find((account) => account.name === "Meera QA Culture Head")?.id;
   const assignments = [
     ...globalAssignments,
-    ...[...events.values()].map((event) => ({
-      profile_id: event.category === "sport" ? sportsHead : cultureHead,
-      role: "event_head",
-      event_id: event.id,
-      granted_by: mainAdmin.id,
-    })),
+    { profile_id: sportsHead, role: "event_head", event_category: "sport", granted_by: mainAdmin.id },
+    { profile_id: cultureHead, role: "event_head", event_category: "cultural", granted_by: mainAdmin.id },
+    { profile_id: cultureHead, role: "event_head", event_category: "literary", granted_by: mainAdmin.id },
+    { profile_id: roleIds.get("event_coordinator"), role: "event_coordinator", event_id: events.get("box-cricket-boys")?.id, granted_by: mainAdmin.id },
   ];
   const { error: staffError } = await admin.from("staff_assignments").insert(assignments);
   failIfError(staffError, "Assign QA staff roles");
+
+  const editorId = roleIds.get("event_editor");
+  if (!editorId) throw new Error("QA event editor was not created");
+  const { error: ownerError } = await admin.from("events").update({ created_by: editorId }).eq("id", events.get("quiz-bowl")?.id);
+  failIfError(ownerError, "Assign QA event-editor ownership");
+
+  const coordinatorId = roleIds.get("event_coordinator");
+  if (!coordinatorId) throw new Error("QA event coordinator was not created");
+  const gallerySeeds = [
+    { creator: mainAdmin.id, file: "cricket-victory.webp", event: "box-cricket-boys", caption: "A candid team huddle between overs at the QA cricket ground.", occurredAt: "2026-12-08T10:18:00+05:30" },
+    { creator: coordinatorId, file: "cultural-dance.webp", event: "group-dance", caption: "Backstage smiles moments before the group dance curtain call.", occurredAt: "2026-12-01T13:42:00+05:30" },
+    { creator: mainAdmin.id, file: "campus-moments.webp", event: "100m-sprint-boys", caption: "Friends cheering from the finish line after the morning sprint.", occurredAt: "2026-12-01T09:28:00+05:30" },
+  ] as const;
+  const galleryRows = [];
+  for (const seed of gallerySeeds) {
+    const storagePath = `gallery/${seed.creator}/${randomUUID()}.webp`;
+    const localFolder = seed.file === "campus-moments.webp" ? "visuals" : "qa-visuals";
+    await uploadAsset(admin, join(process.cwd(), "public", localFolder, seed.file), storagePath);
+    galleryRows.push({
+      edition_id: editionId,
+      event_id: events.get(seed.event)?.id,
+      caption: seed.caption,
+      storage_path: storagePath,
+      occurred_at: seed.occurredAt,
+      created_by: seed.creator,
+      updated_by: seed.creator,
+    });
+  }
+  const { error: galleryError } = await admin.from("gallery_moments").insert(galleryRows);
+  failIfError(galleryError, "Create QA gallery moments");
 
   const activeParticipants = createdAccounts.filter((account) => account.role === "participant" && account.state === "active");
   const applicationRows: { id: string; event_id: string; student_id: string; review_state: string; selection_state: string }[] = [];
@@ -195,12 +231,13 @@ async function main() {
 
   const groupSpecs = [
     ["box-cricket-boys", "QA Crimson XI", "MBBS 2021"],
-    ["box-cricket-girls", "QA Sapphire Strikers", "MBBS 2022"],
+    ["carrom-doubles-open", "QA Sapphire Strikers", "MBBS 2022"],
     ["volleyball-boys", "QA Voltage Squad", "MBBS 2026"],
     ["group-dance", "QA Rhythm Collective", "MBBS 2024"],
     ["nukkad-natak", "QA Street Stage", "MBBS 2023"],
     ["tug-of-war-girls", "QA Iron Pulse", "MBBS 2025"],
   ] as const;
+  const groups = new Map<string, { id: string; name: string; batchLabel: string }>();
   for (const [slug, groupName, batchLabel] of groupSpecs) {
     const groupEvent = events.get(slug);
     if (!groupEvent) continue;
@@ -209,6 +246,7 @@ async function main() {
     if (!captain) continue;
     const { data: group, error } = await admin.from("participant_groups").insert({ event_id: groupEvent.id, batch_id: batches.get(batchLabel), name: groupName, captain_id: captain.student_id, state: "published", published_at: now, created_by: mainAdmin.id }).select("id").single();
     failIfError(error, `Create QA participant group for ${slug}`);
+    groups.set(slug, { id: group.id, name: groupName, batchLabel });
     const { error: membershipError } = await admin.from("group_memberships").insert(groupApps.map((application) => ({ group_id: group.id, application_id: application.id, added_by: mainAdmin.id })));
     failIfError(membershipError, `Create QA group memberships for ${slug}`);
   }
@@ -259,11 +297,39 @@ async function main() {
     failIfError(error, `Publish QA result for ${event.slug}`);
     const winners = [0, 1, 2].map((offset) => batchLabels[(resultIndex * 2 + offset) % batchLabels.length]);
     const positionPoints = [10, 6, 3];
-    const positions = winners.map((label, index) => ({
+    let positions = winners.map((label, index) => ({
       publication_id: publication.id, placing: index + 1, batch_id: batches.get(label),
       winner_name: `${label} QA ${index === 0 ? "Champions" : index === 1 ? "Runners-up" : "Bronze Team"}`,
-      participant_category: "ug", awarded_points: positionPoints[index], note: "Fictional QA podium",
+      winner_roll: null as string | null, participant_category: "ug", application_id: null as string | null,
+      group_id: null as string | null, awarded_points: positionPoints[index], note: "Fictional QA podium",
     }));
+    if (event.slug === "badminton-singles-boys") {
+      const seenBatches = new Set<string>();
+      const soloApplications = applicationRows.filter((application) => {
+        if (application.event_id !== event.id) return false;
+        const batch = accountsById.get(application.student_id)?.batch;
+        if (!batch || seenBatches.has(batch)) return false;
+        seenBatches.add(batch);
+        return true;
+      }).slice(0, 3);
+      if (soloApplications.length !== 3) throw new Error(`QA ${event.slug} needs winners from three batches`);
+      positions = soloApplications.map((application, index) => {
+        const winner = accountsById.get(application.student_id);
+        if (!winner) throw new Error(`Missing QA winner profile for ${event.slug}`);
+        return {
+          publication_id: publication.id, placing: index + 1, batch_id: batches.get(winner.batch),
+          winner_name: winner.name, winner_roll: winner.roll, participant_category: "ug",
+          application_id: application.id, group_id: null, awarded_points: positionPoints[index], note: "Fictional QA solo podium",
+        };
+      });
+    } else if (event.slug === "carrom-doubles-open") {
+      const team = groups.get(event.slug);
+      if (!team) throw new Error(`Missing QA team for ${event.slug}`);
+      positions[0] = {
+        ...positions[0], batch_id: batches.get(team.batchLabel), winner_name: team.name,
+        group_id: team.id, note: "Fictional QA team podium",
+      };
+    }
     const { error: positionError } = await admin.from("result_positions").insert(positions);
     failIfError(positionError, `Create QA positions for ${event.slug}`);
     const { error: rulesError } = await admin.from("point_rules").insert(positionPoints.map((points, index) => ({ event_id: event.id, placing: index + 1, points, configured_by: mainAdmin.id })));

@@ -81,27 +81,37 @@ test("select application questions require a non-empty unique option set", () =>
   assert.equal(festivalSetupSchema.safeParse({ ...base, applicationQuestions: [{ key: "hostel", label: "Hostel", type: "select", required: true }] }).success, false);
 });
 
-test("committeeRoleSchema validates event_coordinator role without eventId requirement", () => {
+test("committeeRoleSchema validates editor, coordinator, and category-head scopes", () => {
+  assert.equal(committeeRoleSchema.safeParse({
+    action: "assign",
+    profileId: "c0a80101-0000-4000-8000-000000000004",
+    role: "event_editor",
+    eventId: null,
+    eventCategory: null,
+  }).success, true);
+
   assert.equal(committeeRoleSchema.safeParse({
     action: "assign",
     profileId: "c0a80101-0000-4000-8000-000000000004",
     role: "event_coordinator",
     eventId: null,
-  }).success, true);
-
-  // event_head still requires an eventId
-  assert.equal(committeeRoleSchema.safeParse({
-    action: "assign",
-    profileId: "c0a80101-0000-4000-8000-000000000004",
-    role: "event_head",
-    eventId: null,
+    eventCategory: null,
   }).success, false);
 
   assert.equal(committeeRoleSchema.safeParse({
     action: "assign",
     profileId: "c0a80101-0000-4000-8000-000000000004",
-    role: "event_head",
+    role: "event_coordinator",
     eventId: "c0a80101-0000-4000-8000-000000000005",
+    eventCategory: null,
+  }).success, true);
+
+  assert.equal(committeeRoleSchema.safeParse({
+    action: "assign",
+    profileId: "c0a80101-0000-4000-8000-000000000004",
+    role: "event_head",
+    eventId: null,
+    eventCategory: "sport",
   }).success, true);
 });
 

@@ -24,11 +24,15 @@
 .kind { flex-shrink:0; font-size:9px; color:#657268; }
 .photo { background:#eaf0e5; }
 .photo img { display:block; width:100%; height:auto; max-height:720px; object-fit:contain; }
+.photoFallback { min-height:260px; display:grid; place-items:center; color:#657268; font:700 10px/1 "DM Mono",monospace; letter-spacing:.12em; text-transform:uppercase; }
 .update { background:#eaf0e5; padding:28px 22px 16px; color:#345747; }
 .update[data-kind=result] { background:#f3e7cb; color:#705525; }
 .update[data-kind=upcoming] { background:#eaf0f6; color:#46617d; }
+.update[data-kind=notice] { background:#f7e8e2; color:#6f4038; }
+.update[data-kind=standings] { background:#f3e7cb; color:#705525; }
 .updateLabel { font:9px/1.5 "DM Mono",monospace; letter-spacing:.12em; text-transform:uppercase; }
 .update h2 { margin:17px 0; font:500 clamp(25px,6vw,34px)/1.2 "Playfair Display",Georgia,serif; letter-spacing:-.025em; overflow-wrap:anywhere; }
+.update p { margin:0; font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
 .score { margin:16px 0 24px; font:600 17px/1.5 "DM Sans",sans-serif; overflow-wrap:anywhere; }
 .updateFoot { display:flex; justify-content:space-between; gap:12px; padding-top:16px; border-top:1px solid currentColor; font:8px/1.5 "DM Mono",monospace; letter-spacing:.06em; opacity:.7; }
 .body { padding:4px 14px 16px; }
@@ -36,8 +40,17 @@
 .actions button { display:grid; place-items:center; min-width:44px; min-height:44px; background:none; border:0; color:#345747; cursor:pointer; border-radius:8px; }
 .actions button:last-child { margin-left:auto; margin-right:-9px; }
 .actions svg { width:22px; height:22px; }
+.actions .saveToPhone { display:inline-flex; align-items:center; gap:6px; padding-inline:10px; font:700 10px/1 "DM Sans",sans-serif; }
+.saveToPhone svg { width:18px; height:18px; }
 .actions .liked { color:#ad594d; }.actions .liked svg { fill:#ad594d; }
 .actions .saved svg { fill:#dce7d6; }
+.resultPost { border:0; background:transparent; overflow:visible; }
+.resultPost .postHeader { padding-inline:4px; }
+.resultPost .podium-card { box-shadow:0 5px 18px rgba(38,25,35,.06); }
+.standings { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
+.standings li { display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:8px; border-top:1px solid rgba(112,85,37,.24); padding-top:8px; font-size:13px; }
+.standings li span { font:700 10px/1 "DM Mono",monospace; }.standings li strong { overflow-wrap:anywhere; }.standings li b { font:700 11px/1 "DM Mono",monospace; white-space:nowrap; }
+.cardLink { display:inline-flex; margin-top:19px; color:inherit; font-size:12px; font-weight:700; text-decoration:none; border-bottom:1px solid currentColor; padding-bottom:3px; }
 .captionTitle { margin:3px 0 6px; font:600 14px/1.5 "DM Sans",sans-serif; }
 .caption { margin:0; color:#59675e; font-size:13px; line-height:1.7; overflow-wrap:anywhere; }
 .details { display:inline-flex; align-items:center; gap:14px; margin-top:10px; min-height:32px; font-size:12px; font-weight:600; color:#345e50; text-decoration:none; }

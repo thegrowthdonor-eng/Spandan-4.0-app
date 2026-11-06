@@ -179,12 +179,15 @@ export const committeeRoleSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("assign"),
     profileId: z.string().uuid(),
-    role: z.enum(["main_admin", "treasurer", "event_head", "notice_publisher", "event_coordinator"]),
+    role: z.enum(["main_admin", "treasurer", "event_editor", "event_head", "notice_publisher", "event_coordinator"]),
     eventId: z.string().uuid().nullable(),
+    eventCategory: z.enum(["sport", "cultural", "literary", "creative", "other"]).nullable(),
   }).superRefine((value, context) => {
-    if ((value.role === "event_head") !== Boolean(value.eventId)) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "Choose one event only for an Event Head." });
-    }
+    const hasEvent = Boolean(value.eventId);
+    const hasCategory = Boolean(value.eventCategory);
+    if (value.role === "event_coordinator" && (!hasEvent || hasCategory)) context.addIssue({ code: z.ZodIssueCode.custom, message: "Choose one event only for an Event Coordinator." });
+    if (value.role === "event_head" && (!hasCategory || hasEvent)) context.addIssue({ code: z.ZodIssueCode.custom, message: "Choose one category only for an Event Head." });
+    if (!["event_coordinator", "event_head"].includes(value.role) && (hasEvent || hasCategory)) context.addIssue({ code: z.ZodIssueCode.custom, message: "This role does not use an event scope." });
   }),
   z.object({ action: z.literal("revoke"), assignmentId: z.string().uuid() }),
 ]);
@@ -268,6 +271,7 @@ export const festivalSetupSchema = z.discriminatedUnion("action", [
     eventId: z.string().uuid(),
     state: z.enum(["draft", "published", "open", "closed", "ongoing", "completed", "cancelled"]),
   }),
+  z.object({ action: z.literal("deleteEvent"), eventId: z.string().uuid() }),
   z.object({
     action: z.literal("updateEventFull"),
     eventId: z.string().uuid(),

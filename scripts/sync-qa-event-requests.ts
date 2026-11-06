@@ -10,7 +10,7 @@ async function main() {
     admin.from("events").select("id,slug,category,eligibility").order("slug"),
     admin.from("profiles").select("id,full_name,gender"),
     admin.from("access_records").select("profile_id,state").eq("state", "active"),
-    admin.from("staff_assignments").select("profile_id,role,event_id,revoked_at"),
+    admin.from("staff_assignments").select("profile_id,role,event_category,revoked_at"),
     admin.from("applications").select("event_id,student_id,review_state"),
   ]);
   for (const [label, result] of Object.entries({ eventsResult, profilesResult, accessResult, staffResult, applicationsResult })) {
@@ -30,14 +30,14 @@ async function main() {
   const staffIds = new Set((staffResult.data ?? []).map((row: { profile_id: string }) => row.profile_id));
   const activeEventHeadKeys = new Set(
     (staffResult.data ?? [])
-      .filter((row: { role: string; event_id: string | null; revoked_at: string | null }) => row.role === "event_head" && row.event_id && !row.revoked_at)
-      .map((row: { profile_id: string; event_id: string }) => `${row.profile_id}:${row.event_id}`),
+      .filter((row: { role: string; event_category: string | null; revoked_at: string | null }) => row.role === "event_head" && row.event_category && !row.revoked_at)
+      .map((row: { profile_id: string; event_category: string }) => `${row.profile_id}:${row.event_category}`),
   );
-  const missingHeadAssignments = events.flatMap((event) => {
-    const head = event.category === "sport" ? sportsHead : cultureHead;
-    return activeEventHeadKeys.has(`${head.id}:${event.id}`)
+  const missingHeadAssignments = [...new Set(events.map((event) => event.category))].flatMap((category) => {
+    const head = category === "sport" ? sportsHead : cultureHead;
+    return activeEventHeadKeys.has(`${head.id}:${category}`)
       ? []
-      : [{ profile_id: head.id, role: "event_head", event_id: event.id, granted_by: head.id }];
+      : [{ profile_id: head.id, role: "event_head", event_category: category, granted_by: head.id }];
   });
   if (missingHeadAssignments.length) {
     const { error } = await admin.from("staff_assignments").insert(missingHeadAssignments);

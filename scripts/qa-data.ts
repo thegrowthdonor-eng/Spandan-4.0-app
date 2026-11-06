@@ -62,6 +62,6 @@ export function qaEventDefinition(slug: (typeof QA_EVENT_SLUGS)[number], index: 
 export const QA_ROLE_ACCOUNTS = [
   { name: "Aarav QA Admin", roll: "91", role: "main_admin", state: "active" }, { name: "Diya QA Treasurer", roll: "92", role: "treasurer", state: "active" },
   { name: "Kabir QA Sports Head", roll: "93", role: "event_head", state: "active" }, { name: "Meera QA Culture Head", roll: "94", role: "event_head", state: "active" },
-  { name: "Ishaan QA Coordinator", roll: "95", role: "event_coordinator", state: "active" }, { name: "Sara QA Notice Publisher", roll: "96", role: "notice_publisher", state: "active" },
+  { name: "Ishaan QA Coordinator", roll: "95", role: "event_coordinator", state: "active" }, { name: "Sara QA Notice Publisher", roll: "96", role: "notice_publisher", state: "active" }, { name: "Naina QA Event Editor", roll: "100", role: "event_editor", state: "active" },
   { name: "Pending QA Participant", roll: "97", role: "participant", state: "pending" }, { name: "Rejected QA Participant", roll: "98", role: "participant", state: "rejected" }, { name: "Suspended QA Participant", roll: "99", role: "participant", state: "suspended" },
 ] as const;

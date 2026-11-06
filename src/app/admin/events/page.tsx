@@ -27,12 +27,12 @@ export default async function EventEditorPage() {
         {isAdmin ? <Link href="/admin/control">Control centre</Link> : null}
       </header>
       <section className="editor-hero">
-        <p className="eyebrow">{isAdmin ? "Main Admin · Event editor" : "Coordinator · Event Proposals & Management"}</p>
-        <h1>{isAdmin ? "Event editor & catalogue" : "My events & proposals"}</h1>
+        <p className="eyebrow">{isAdmin ? "Main Admin · Event editor" : "Event Editor"}</p>
+        <h1>{isAdmin ? "Event editor & catalogue" : "My event drafts"}</h1>
         <p>
           {isAdmin
-            ? "Create and manage events, set the festival-wide registration window, and review/approve proposed coordinator drafts."
-            : "Propose new events for Spandan 4.0, write event rules, configure venues, questions, and prepare them for admin approval."}
+            ? "Create and manage events, set the festival-wide registration window, and review or approve Event Editor drafts."
+            : "Create your event drafts, write rules, configure venues and questions, then prepare them for Main Admin approval."}
         </p>
       </section>
       <section className="control-content">

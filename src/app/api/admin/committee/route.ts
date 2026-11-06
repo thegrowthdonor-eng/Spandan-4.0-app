@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   });
   if (!(await client.auth.getUser()).data.user) return denied;
   const result = parsed.data.action === "assign"
-    ? await client.rpc("assign_committee_role", { p_profile_id: parsed.data.profileId, p_role: parsed.data.role, p_event_id: parsed.data.eventId })
+    ? await client.rpc("assign_committee_role", { p_profile_id: parsed.data.profileId, p_role: parsed.data.role, p_event_id: parsed.data.eventId, p_event_category: parsed.data.eventCategory })
     : await client.rpc("revoke_committee_role", { p_assignment_id: parsed.data.assignmentId });
   if (result.error) {
     if (result.error.code === "42501") return denied;

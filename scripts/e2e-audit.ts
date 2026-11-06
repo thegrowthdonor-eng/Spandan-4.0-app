@@ -396,18 +396,18 @@ async function runAudit() {
     }
 
     // -----------------------------------------------------------------------------------------
-    // ROLE 3: EVENT COORDINATOR LIFECYCLE
+    // ROLE 3: EVENT EDITOR LIFECYCLE
     // -----------------------------------------------------------------------------------------
-    console.log("\n▶ TESTING ROLE: EVENT COORDINATOR");
+    console.log("\n▶ TESTING ROLE: EVENT EDITOR");
 
     const { data: coordRole, error: coordAssignErr } = await adminClient.from("staff_assignments").insert({
       profile_id: studentProfileId,
-      role: "event_coordinator",
+      role: "event_editor",
       granted_by: mainAdminProfileId,
     }).select().single();
 
     if (!coordAssignErr && coordRole) {
-      record("Event Coordinator", "Coordinator Role Assignment", "PASS", "Student granted 'event_coordinator' responsibility.");
+      record("Event Editor", "Editor Role Assignment", "PASS", "Student granted 'event_editor' responsibility.");
 
       // Test 3.1: Propose Event
       const { data: proposedEvent, error: propErr } = await adminClient.rpc("create_admin_event", {
@@ -423,7 +423,7 @@ async function runAudit() {
       });
 
       if (!propErr && proposedEvent) {
-        record("Event Coordinator", "Proposal Draft Enforcement", "PASS", `Event created with ID: ${proposedEvent.id} in state '${proposedEvent.state}'.`);
+        record("Event Editor", "Proposal Draft Enforcement", "PASS", `Event created with ID: ${proposedEvent.id} in state '${proposedEvent.state}'.`);
 
         // Test 3.2: Update event details
         const { error: editErr } = await adminClient.rpc("update_admin_event_full", {
@@ -449,21 +449,21 @@ async function runAudit() {
         });
 
         if (!editErr) {
-          record("Event Coordinator", "Edit Assigned Event Rules & Venue", "PASS", "Coordinator successfully edited summary, venue, rules, and squad specs.");
+          record("Event Editor", "Edit Owned Event Rules & Venue", "PASS", "Editor successfully edited summary, venue, rules, and squad specs.");
         } else {
-          record("Event Coordinator", "Edit Assigned Event Rules & Venue", "FAIL", editErr.message);
+          record("Event Editor", "Edit Owned Event Rules & Venue", "FAIL", editErr.message);
         }
 
         // Clean up
         await adminClient.from("staff_assignments").delete().eq("event_id", proposedEvent.id);
         await adminClient.from("events").delete().eq("id", proposedEvent.id);
       } else {
-        record("Event Coordinator", "Proposal Draft Enforcement", "FAIL", propErr?.message || "create_admin_event failed");
+        record("Event Editor", "Proposal Draft Enforcement", "FAIL", propErr?.message || "create_admin_event failed");
       }
 
       await adminClient.from("staff_assignments").delete().eq("id", coordRole.id);
     } else {
-      record("Event Coordinator", "Coordinator Role Assignment", "FAIL", coordAssignErr?.message || "Assignment failed");
+      record("Event Editor", "Editor Role Assignment", "FAIL", coordAssignErr?.message || "Assignment failed");
     }
 
     // -----------------------------------------------------------------------------------------
@@ -476,7 +476,7 @@ async function runAudit() {
       const { data: headRole } = await adminClient.from("staff_assignments").insert({
         profile_id: studentProfileId,
         role: "event_head",
-        event_id: soloEvent.id,
+        event_category: soloEvent.category,
         granted_by: mainAdminProfileId,
       }).select().single();
 

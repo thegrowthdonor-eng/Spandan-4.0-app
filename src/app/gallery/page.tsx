@@ -1,160 +1,59 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+import { FestTopNav } from "@/components/spandan-branding";
+import { sortGalleryMoments, type GalleryMomentRow } from "@/lib/gallery";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createPublicClient } from "@/server/supabase/public";
-import { FestTopNav } from "@/components/spandan-branding";
-import "../public-info.css";
+import { createRequestClient } from "@/server/supabase/server";
+import styles from "./gallery.module.css";
 
 export const dynamic = "force-dynamic";
 
-type MediaItem = {
-  id: string;
-  kind: string;
-  title: string;
-  asset_url: string;
-  thumbnail_url: string | null;
-  alt_text: string;
-  caption: string | null;
-  rights_note: string;
-};
-
-type StageReveal = {
-  id: string;
-  artist_name: string;
-  description: string | null;
-  image_url: string | null;
-  image_alt: string;
-  stage_at: string | null;
-};
-
 export default async function GalleryPage() {
-  let media: MediaItem[] = [];
-  let reveals: StageReveal[] = [];
-
+  let moments: (GalleryMomentRow & { imageUrl: string })[] = [];
+  let canUpload = false;
   if (hasPublicSupabaseConfiguration()) {
     try {
-      const client = createPublicClient();
-      const [{ data: mediaData }, { data: revealData }] = await Promise.all([
-        client.from("media_items").select("id,kind,title,asset_url,thumbnail_url,alt_text,caption,rights_note"),
-        client.from("stage_reveals").select("id,artist_name,description,image_url,image_alt,stage_at"),
+      const publicClient = createPublicClient();
+      const requestClient = await createRequestClient();
+      const [{ data }, { data: allowed }] = await Promise.all([
+        publicClient.rpc("get_published_gallery_moments"),
+        requestClient.rpc("can_manage_gallery_moments"),
       ]);
-      media = (mediaData ?? []) as MediaItem[];
-      reveals = (revealData ?? []) as StageReveal[];
-    } catch {
-      media = [];
-      reveals = [];
-    }
+      moments = sortGalleryMoments((data ?? []) as GalleryMomentRow[]).map(moment => ({
+        ...moment,
+        imageUrl: publicClient.storage.from("fest-media").getPublicUrl(moment.storage_path).data.publicUrl,
+      }));
+      canUpload = allowed === true;
+    } catch { /* Public empty state remains available during setup. */ }
   }
 
-  return (
-    <main className="public-page">
-      <FestTopNav activePage="gallery" />
-
-      <section className="public-hero">
-        <span className="fest-hero-badge">📸 Media &amp; Highlights</span>
-        <h1>Festival Moments &amp; <em>Reveals</em></h1>
-        <p>Official photography, star night reveals, and stage highlights.</p>
-      </section>
-
-      <section className="public-content">
-        {/* Stage Reveals Section */}
-        <div className="gallery-section">
-          <div className="public-section-heading">
-            <h2>Star Nights &amp; Stage Reveals</h2>
-            <p>Celebrity performers and cultural night headline shows.</p>
-          </div>
-
-          {reveals.length > 0 ? (
-            <div className="reveals-grid">
-              {reveals.map((rev) => (
-                <article key={rev.id} className="reveal-card">
-                  {rev.image_url ? (
-                    <div className="reveal-image-wrapper">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={rev.image_url} alt={rev.image_alt} loading="lazy" />
-                    </div>
-                  ) : (
-                    <div className="reveal-image-wrapper reveal-image-placeholder">
-                      <Image src="/visuals/stage-atmosphere.webp" alt="An empty festival stage under warm spotlights" width={1440} height={960} sizes="(max-width: 720px) 88vw, 420px" />
-                      <span>Artist reveal soon</span>
-                    </div>
-                  )}
-                  <div className="reveal-details">
-                    <h3>{rev.artist_name}</h3>
-                    {rev.description && <p>{rev.description}</p>}
-                    {rev.stage_at && (
-                      <span className="reveal-date">
-                        Performance:{" "}
-                        {new Intl.DateTimeFormat("en-IN", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                          timeZone: "Asia/Kolkata",
-                        }).format(new Date(rev.stage_at))}
-                      </span>
-                    )}
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="reveal-announcement-card">
-              <div className="reveal-announcement-image"><Image src="/visuals/stage-atmosphere.webp" alt="An empty festival stage waiting for the first performance" width={1440} height={960} sizes="(max-width: 720px) 88vw, 680px" /></div>
-              <div className="reveal-announcement-copy"><span className="media-type-pill">STAGE NOTES</span><h3>Star Night Reveals Dropping Soon</h3><p>Official performer and programme announcements will appear here once the organising committee publishes them.</p></div>
-            </div>
-          )}
+  return <main className={styles.page}>
+    <FestTopNav activePage="gallery" />
+    <section className={styles.hero}>
+      <p className={styles.eyebrow}>SPANDAN 4.0 · CAMPUS MOMENTS</p>
+      <h1>The moments between <em>the moments.</em></h1>
+      <p>Candid frames from fields, courts, stages and corridors—shared by the official festival team.</p>
+      {canUpload ? <Link className={styles.add} href="/admin/gallery"><span aria-hidden>＋</span> Add moment</Link> : null}
+    </section>
+    <section className={styles.content} aria-labelledby="moments-title">
+      <div className={styles.heading}><div><p className={styles.eyebrow}>LATEST FROM CAMPUS</p><h2 id="moments-title">Festival moments</h2></div><span>{moments.length} {moments.length === 1 ? "moment" : "moments"}</span></div>
+      {moments.length ? <div className={styles.grid}>{moments.map(moment => <article className={styles.card} key={moment.id}>
+        <div className={styles.photo}>
+          {/* Public Storage URLs are already compressed and CDN-backed. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={moment.imageUrl} alt={moment.caption} loading="lazy" decoding="async" />
         </div>
-
-        {/* Media & Anthem Section */}
-        <div className="gallery-section" style={{ marginTop: 60 }}>
-          <div className="public-section-heading">
-            <h2>Festival Anthems &amp; Teasers</h2>
-            <p>Official promotional videos, campus anthems, and photo archives.</p>
-          </div>
-
-          {media.length > 0 ? (
-            <div className="media-grid">
-              {media.map((item) => (
-                <article key={item.id} className="media-card">
-                  {(item.thumbnail_url || ["photo", "image"].includes(item.kind.toLowerCase())) && <div className="media-card-thumbnail">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.thumbnail_url ?? item.asset_url} alt={item.alt_text} loading="lazy" decoding="async" />
-                  </div>}
-                  <div className="media-type-pill">{item.kind.toUpperCase()}</div>
-                  <h3>{item.title}</h3>
-                  {item.caption && <p>{item.caption}</p>}
-                  <a href={item.asset_url} target="_blank" rel="noopener noreferrer" className="media-watch-btn">
-                    Watch / Listen ↗
-                  </a>
-                  <span className="rights-tag">© {item.rights_note}</span>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="curated-media-showcase">
-              <article className="media-feature-card">
-                <div className="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16v12H4zM8 3v3m8-3v3M4 10h16m-12 4h3m2 0h3" /></svg></div>
-                <div>
-                  <span className="media-type-pill">ANTHEM TEASER</span>
-                  <h3>Spandan 4.0 Official Theme &amp; Anthem</h3>
-                  <p>
-                    Produced exclusively by the ASMC Firozabad Student Union celebrating camaraderie, sleepless ward duties,
-                    and cultural unity.
-                  </p>
-                  <p className="curation-guideline">
-                    Notice: In accordance with festival policy, unverified student video uploads are disabled. All photos
-                    and video edits are published solely by the authorized media squad.
-                  </p>
-                </div>
-              </article>
-            </div>
-          )}
+        <div className={styles.copy}>
+          <Link href={`/events/${moment.event_slug}`}>{moment.event_title}</Link>
+          <p>{moment.caption}</p>
+          <time dateTime={moment.occurred_at}>{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(moment.occurred_at))} IST</time>
         </div>
-      </section>
-
-      <footer className="public-footer">
-        <span>ASMC Firozabad · SPANDAN 4.0</span>
-        <Link href="/events">Explore Event Line-up →</Link>
-      </footer>
-    </main>
-  );
+      </article>)}</div> : <div className={styles.empty}>
+        <Image src="/visuals/campus-moments.webp" width={1440} height={960} alt="Students taking part in sports and stage activities" sizes="(max-width: 720px) 90vw, 680px" />
+        <div><p className={styles.eyebrow}>THE CAMERA ROLL IS WARMING UP</p><h2>Real moments will land here.</h2><p>Once the festival team publishes its first candid, you will find it here with the event and moment time.</p><Link href="/events">Explore events →</Link></div>
+      </div>}
+    </section>
+    <footer className={styles.footer}><span>ASMC Firozabad · SPANDAN 4.0</span><Link href="/feed">Open live feed →</Link></footer>
+  </main>;
 }
