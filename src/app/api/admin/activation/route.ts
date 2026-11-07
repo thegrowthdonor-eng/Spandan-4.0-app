@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     p_profile_id: parsed.data.profileId,
     p_state: parsed.data.state,
     p_reason: parsed.data.reason || null,
-    p_ledger_reference: parsed.data.ledgerReference || null,
+    p_ledger_reference: parsed.data.ledgerReference || "DIGITAL_VERIFIED",
   });
   if (error) {
     if (error.code === "42501") return NextResponse.json({ error: error.message || "Not authorised to change activation." }, { status: 403, headers });

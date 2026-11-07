@@ -59,11 +59,8 @@ export default async function ActivationPage() {
 
       <section className="activation-intro">
         <p className="eyebrow">Treasury & Registration</p>
-        <h1>Activation queue</h1>
-        <p>
-          Verify the authorized college roster and offline contribution record before activation. Ledger references
-          are mandatory and audited. Account recovery tokens can be issued for students needing password resets.
-        </p>
+        <h1>Student Verification & Activation</h1>
+        <p>Verify college roster credentials, approve festival passes, and issue account recovery tokens.</p>
       </section>
 
       {error ? (
