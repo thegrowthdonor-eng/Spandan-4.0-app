@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { batchDisplay, participantLabels, type ParticipantCategory } from "@/lib/participants";
@@ -11,7 +12,7 @@ import { ActivityHub, type ApplicationItem } from "./activity-hub";
 import type { HelpThread } from "./support-tools";
 import styles from "./my-fest.module.css";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "My Fest & Official Pass — Spandan 4.0 | ASMC Firozabad",
   description: "Official student delegate festival pass, college credentials, and competition applications for ASMC Firozabad.",
 };

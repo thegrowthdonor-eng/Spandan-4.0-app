@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createRequestClient } from "@/server/supabase/server";
@@ -7,7 +8,7 @@ import type { TeamWorkspaceData } from "@/lib/team-contracts";
 import "@/components/participation/team-workspace.css";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "My Teams & Invitations | Spandan 4.0" };
+export const metadata: Metadata = { title: "My Teams & Invitations | Spandan 4.0" };
 export default async function MyTeamsPage({ searchParams }: { searchParams: Promise<{ event?: string }> }) {
   if (!hasPublicSupabaseConfiguration()) redirect("/account");
   const client = await createRequestClient();
