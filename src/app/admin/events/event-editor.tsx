@@ -89,22 +89,11 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
         if(!upload.ok)throw new Error((uploaded.error??"Poster upload failed.")+" The event details are saved; retry uses the same event and preserves the selected poster.");
         posterUrl=uploaded.url;setPosterFile(null);
       }
-      setDetails(v=>({...v,posterUrl}));setDirty(false);setMessage({text:"Event saved. Main Admin can review and publish it."});
+      setDetails(v=>({...v,posterUrl}));setDirty(false);setMessage({text:"Event published successfully to the festival catalogue."});
       if(!current)router.replace("/admin/events?event="+result.eventId);
       router.refresh();
     }catch(error){setMessage({text:error instanceof Error?error.message:"Unable to save. Please retry.",error:true});}
     finally{setPending(false);}
-  }
-  async function lifecycle(state:string){
-    if(dirty){setMessage({text:"Save your changes before changing event status.",error:true});return;}
-    const missing=publicationMissing(details);
-    if(["published","open"].includes(state)&&missing.length){setMessage({text:"Complete "+missing.join(", ")+" before publishing.",error:true});return;}
-    setPending(true);
-    try{
-      const response=await fetch("/api/admin/festival",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"setEventState",eventId:current?.event_id,state})});
-      const result=await response.json();if(!response.ok)throw new Error(result.error);
-      setMessage({text:"Event status updated to "+state+"."});router.refresh();
-    }catch(error){setMessage({text:error instanceof Error?error.message:"Unable to change status.",error:true});}finally{setPending(false);}
   }
   async function remove(){
     if(!current||deleteTitle!==current.title||pending)return;
@@ -117,13 +106,13 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
   }
   const visible=events.filter(e=>(filter==="all"||e.state===filter)&&e.title.toLowerCase().includes(query.toLowerCase()));
   return <div className="portal-events">
-    <section className="portal-heading"><div><p className="portal-eyebrow">{isAdmin?"Festival catalogue":"Event Editor"}</p><h1>{creating?"Create event":current?current.title:"Events"}</h1><p>{showForm?"Complete the steps and save your event. Drafts stay private until Main Admin publishes them.":"Find a draft or create your next event."}</p></div>
+    <section className="portal-heading"><div><p className="portal-eyebrow">{isAdmin?"Festival catalogue":"Event Editor"}</p><h1>{creating?"Create event":current?current.title:"Events"}</h1><p>{showForm?"Complete the steps and publish your event directly to the festival catalogue.":"Manage and publish events in the festival catalogue."}</p></div>
       <Link href={showForm?"/admin/events":"/admin/events?create=1"} className="portal-primary">{showForm?"← All events":"+ Create event"}</Link></section>
     {message&&<p ref={errorBox} tabIndex={-1} className={"portal-message"+(message.error?" portal-error":"")} role={message.error?"alert":"status"}>{message.text}</p>}
     {!showForm?<>
       <div className="portal-list-controls"><input type="search" aria-label="Search editable events" placeholder="Search events" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Event status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All statuses</option>{["draft","published","open","closed","ongoing","completed","cancelled"].map(s=><option key={s}>{s}</option>)}</select></div>
       <div className="portal-event-grid">{visible.map(e=><Link key={e.event_id} href={"/admin/events?event="+e.event_id} className="portal-event"><span className="portal-badge">{e.state}</span><h3>{e.title}</h3><p>{eventCategoryLabel(e.category)} · {e.registration_enabled?e.format:"Information only"}</p><span>Edit event →</span></Link>)}</div>
-      {!visible.length&&<p className="portal-message">No events match. Create a draft or change your filters.</p>}
+      {!visible.length&&<p className="portal-message">No events match. Create an event or change your filters.</p>}
     </>:<>
       {current&&<p><span className="portal-badge">{current.state}</span> {dirty?"Unsaved changes":"Saved event"}</p>}
       <nav className="portal-steps" aria-label="Event setup steps">{steps.map((name,i)=><button type="button" key={name} aria-current={step===i?"step":undefined} onClick={()=>goStep(i)}>{i+1}. {name}</button>)}</nav>
@@ -139,7 +128,7 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
           <label>Participation format<select disabled={current?.structure_locked} value={details.format} onChange={e=>change("format",e.target.value as EventDetails["format"])}><option value="solo">Individual / solo</option><option value="pair">Pair / doubles</option><option value="group">Group performance</option><option value="sport">Sports team / squad</option></select><small>Choose Individual for singles, races and other individual sports. This determines the participant and winner workflow.</small></label>
           {details.category==="sport"&&<label>Sport discipline<select value={String(details.eligibility.sub_category??"")} onChange={e=>change("eligibility",{...details.eligibility,sub_category:e.target.value})}><option value="">General sport</option><option value="field">Field sport</option><option value="racket">Racket sport</option><option value="athletics">Athletics</option><option value="indoor">Indoor</option><option value="strength">Strength</option></select></label>}
           <label>Scoring<select disabled={current?.structure_locked} value={details.scoreTemplate} onChange={e=>change("scoreTemplate",e.target.value as EventDetails["scoreTemplate"])}>{Object.entries({generic:"Standard",cricket:"Cricket",football:"Football",basketball:"Basketball",set_based:"Set-based sport",badminton:"Badminton"}).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>
-          {current&&<small>Category, format and scoring can change only while this is a draft without any registrations or competition records.</small>}
+          {current&&<small>Category, format and scoring can change only while this event has no registrations or competition records.</small>}
           <label>Division<select value={String(details.eligibility.division??"open")} onChange={e=>change("eligibility",{...details.eligibility,division:e.target.value})}><option value="open">Open / mixed</option><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
           </>}
         </>}
@@ -169,11 +158,10 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
 
 
         </>}
-        {step===3&&<><legend>Review event</legend><h2>{details.title||"Untitled event"}</h2><p>{eventCategoryLabel(details.category)} · {details.registrationEnabled?details.format:"Information only"}{details.registrationEnabled?` · ${String(details.eligibility.division)}`:""}</p><p>{details.summary||"Description not added yet."}</p><p>{details.venue||"Venue not set"} · {details.startsAt?new Date(details.startsAt).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}):"Start not set"} (IST)</p><p>{details.registrationEnabled?`${details.applicationQuestions.length} registration questions`:"No registration required"}</p><p className="portal-message">{publicationMissing(details).length?"Still needed before publication: "+publicationMissing(details).join(", "):"Event details are ready for Main Admin review."}</p></>}
+        {step===3&&<><legend>Review event</legend><h2>{details.title||"Untitled event"}</h2><p>{eventCategoryLabel(details.category)} · {details.registrationEnabled?details.format:"Information only"}{details.registrationEnabled?` · ${String(details.eligibility.division)}`:""}</p><p>{details.summary||"Description not added yet."}</p><p>{details.venue||"Venue not set"} · {details.startsAt?new Date(details.startsAt).toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}):"Start not set"} (IST)</p><p>{details.registrationEnabled?`${details.applicationQuestions.length} registration questions`:"No registration required"}</p><p className="portal-message">{publicationMissing(details).length?"Still needed before publication: "+publicationMissing(details).join(", "):"Event details are complete and ready to publish."}</p></>}
         </fieldset>
-        <div className="portal-form-actions">{step>0&&<button type="button" className="portal-secondary" onClick={()=>goStep(step-1)} disabled={pending||imageBusy}>Back</button>}{step<3?<button type="submit" className="portal-primary" disabled={pending||imageBusy}>Continue →</button>:<button type="submit" className="portal-primary" disabled={pending||imageBusy||(!current&&!editionId)}>{pending?"Saving…":current?"Save changes":"Save draft"}</button>}</div>
+        <div className="portal-form-actions">{step>0&&<button type="button" className="portal-secondary" onClick={()=>goStep(step-1)} disabled={pending||imageBusy}>Back</button>}{step<3?<button type="submit" className="portal-primary" disabled={pending||imageBusy}>Continue →</button>:<button type="submit" className="portal-primary" disabled={pending||imageBusy||(!current&&!editionId)}>{pending?"Publishing…":current?"Save & Publish":"Publish event"}</button>}</div>
       </form>
-      {isAdmin&&current&&<section className="portal-form portal-section"><h2>Publication & event status</h2><p>Saving details does not publish the event. Students can register only when it is open.</p><div className="portal-event-actions">{["published","open","closed","ongoing","completed","cancelled"].filter(s=>s!==current.state&&(details.registrationEnabled||!["open","closed"].includes(s))).map(s=><button key={s} className="portal-secondary" type="button" disabled={pending||dirty} onClick={()=>void lifecycle(s)}>{({published:"Publish listing",open:"Open registrations",closed:"Close registrations",ongoing:"Mark ongoing",completed:"Mark completed",cancelled:"Cancel event"} as Record<string,string>)[s]}</button>)}</div></section>}
       {current&&<details className="portal-danger"><summary>Danger zone</summary><p>Permanent deletion removes this event and its registrations, teams, fixtures, results and gallery moments.</p><button type="button" className="portal-secondary" onClick={()=>deleteDialog.current?.showModal()}>Delete this event</button></details>}
       <dialog className="portal-dialog" ref={deleteDialog}><h2>Delete event permanently?</h2><p>All associated records will be removed. Type <strong>{current?.title}</strong> to confirm.</p><label>Confirm event title<input value={deleteTitle} onChange={e=>setDeleteTitle(e.target.value)}/></label><div className="portal-form-actions"><button type="button" className="portal-secondary" onClick={()=>deleteDialog.current?.close()} disabled={pending}>Keep event</button><button type="button" className="portal-primary" disabled={pending||deleteTitle!==current?.title} onClick={()=>void remove()}>Delete permanently</button></div></dialog>
     </>}

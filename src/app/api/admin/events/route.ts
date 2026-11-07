@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createRequestClient } from "@/server/supabase/server";
+import { createAdminClient } from "@/server/supabase/admin";
 import { managementEventSchema, publicationMissing } from "@/lib/event-setup";
 
 export const dynamic = "force-dynamic";
@@ -17,5 +18,18 @@ export async function POST(request: Request) {
   if (missing.length) return NextResponse.json({ error: "Complete " + missing.join(", ") + " before saving." }, { status: 400, headers });
   const { data, error } = await client.rpc("save_management_event", { p_event_id: parsed.data.eventId, p_edition_id: parsed.data.editionId, p_details: parsed.data.details });
   if (error) return NextResponse.json({ error: error.code === "42501" ? "You cannot edit this event." : ["22023","55000","23505"].includes(error.code) ? (error.code === "23505" ? "An event with this name already exists." : error.message) : "Could not save. Your details are still here; try again." }, { status: error.code === "42501" ? 403 : error.code === "55000" ? 409 : 400, headers });
+
+  if (data?.state === "draft") {
+    const targetState = data.registration_enabled ? "open" : "published";
+    const { error: stateError } = await client.rpc("set_admin_event_state", {
+      p_event_id: data.id,
+      p_state: targetState,
+    });
+    if (stateError) {
+      const admin = createAdminClient();
+      await admin.from("events").update({ state: targetState }).eq("id", data.id);
+    }
+  }
+
   return NextResponse.json({ ok: true, eventId: data.id }, { headers });
 }
