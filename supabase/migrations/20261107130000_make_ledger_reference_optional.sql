@@ -89,3 +89,4 @@ $$;
 revoke all on function public.set_student_access(uuid, uuid, public.access_state, text, text) from public;
 grant execute on function public.set_student_access(uuid, uuid, public.access_state, text, text) to authenticated;
 notify pgrst, 'reload schema';
+

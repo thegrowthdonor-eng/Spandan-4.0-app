@@ -451,7 +451,7 @@ export function ActivationClient({
           busy={pendingId === selectedRecord.profile_id}
         >
           <div className="modal-card student-profile-modal">
-            {/* Modal Header */}
+            {/* Modal Header with Dedicated Close Button */}
             <div className="modal-profile-header">
               <div className={`modal-avatar-lg status-${selectedRecord.access_state}`}>
                 {selectedRecord.full_name
@@ -465,13 +465,16 @@ export function ActivationClient({
               <div className="modal-profile-titles">
                 <div className="modal-title-row">
                   <h2 id="student-detail-title">{selectedRecord.full_name}</h2>
-                  {selectedRecord.is_admin && <span className="admin-role-badge">🛡️ Main Admin</span>}
+                  {selectedRecord.is_admin && <span className="admin-role-badge">🛡️ Admin</span>}
                   {selectedRecord.profile_id === currentUserId && <span className="badge-self">You</span>}
                 </div>
 
                 <div className="modal-fest-id-row">
+                  <span className={`status-badge access-${selectedRecord.access_state}`}>
+                    {selectedRecord.access_state.toUpperCase()}
+                  </span>
                   <span className="fest-id-pill">
-                    ID: <strong>{selectedRecord.fest_id}</strong>
+                    {selectedRecord.fest_id}
                   </span>
                   <button
                     type="button"
@@ -481,114 +484,70 @@ export function ActivationClient({
                   >
                     {copiedFestId === selectedRecord.fest_id ? "Copied!" : "Copy"}
                   </button>
-                  <span className={`status-badge access-${selectedRecord.access_state}`}>
-                    {selectedRecord.access_state.toUpperCase()}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn-modal-close"
+                onClick={() => setSelectedRecord(null)}
+                aria-label="Close profile modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Scrollable Modal Body */}
+            <div className="modal-profile-body">
+              {/* Credentials Meta Grid */}
+              <div className="modal-meta-grid">
+                <div className="meta-cell">
+                  <span className="cell-label">Academic Batch</span>
+                  <span className="cell-value">Batch {selectedRecord.batch_label}</span>
+                </div>
+                <div className="meta-cell">
+                  <span className="cell-label">Course / Dept</span>
+                  <span className="cell-value">{selectedRecord.course_label ?? "MBBS"}</span>
+                </div>
+                <div className="meta-cell">
+                  <span className="cell-label">College Roll No</span>
+                  <span className="cell-value"><strong>{selectedRecord.roll_canonical || "N/A"}</strong></span>
+                </div>
+                <div className="meta-cell">
+                  <span className="cell-label">Requested On</span>
+                  <span className="cell-value">
+                    {new Intl.DateTimeFormat("en-IN", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                      timeZone: "Asia/Kolkata",
+                    }).format(new Date(selectedRecord.requested_at))}
                   </span>
                 </div>
               </div>
-            </div>
 
-            {/* Credentials Meta Grid */}
-            <div className="modal-meta-grid">
-              <div className="meta-cell">
-                <span className="cell-label">Academic Batch</span>
-                <span className="cell-value">Batch {selectedRecord.batch_label}</span>
-              </div>
-              <div className="meta-cell">
-                <span className="cell-label">Course / Dept</span>
-                <span className="cell-value">{selectedRecord.course_label ?? "MBBS"}</span>
-              </div>
-              <div className="meta-cell">
-                <span className="cell-label">College Roll No</span>
-                <span className="cell-value"><strong>{selectedRecord.roll_canonical || "N/A"}</strong></span>
-              </div>
-              <div className="meta-cell">
-                <span className="cell-label">Requested On</span>
-                <span className="cell-value">
-                  {new Intl.DateTimeFormat("en-IN", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                    timeZone: "Asia/Kolkata",
-                  }).format(new Date(selectedRecord.requested_at))}
-                </span>
-              </div>
-            </div>
+              {selectedRecord.is_admin && !isViewerMainAdmin && (
+                <div className="admin-protected-banner">
+                  <strong>🛡️ Protected Administrator Profile</strong>
+                  <span>Suspension, rejection, and removal are strictly restricted to Main Admins.</span>
+                </div>
+              )}
 
-            {selectedRecord.is_admin && !isViewerMainAdmin && (
-              <div className="admin-protected-banner">
-                <strong>🛡️ Protected Administrator Profile</strong>
-                <span>Suspension, rejection, and removal are strictly restricted to Main Admins.</span>
-              </div>
-            )}
-
-            {/* Optional Remark Input (No ledger reference needed) */}
-            <div className="modal-remark-row">
-              <label htmlFor="modal-reason-input">Internal Remark (Optional)</label>
-              <input
-                id="modal-reason-input"
-                type="text"
-                value={modalReason}
-                onChange={(e) => setModalReason(e.target.value)}
-                placeholder="Optional internal remark or rejection reason"
-                maxLength={500}
-                disabled={pendingId === selectedRecord.profile_id}
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="modal-actions-container">
-              <div className="primary-actions-group">
-                {selectedRecord.access_state !== "active" && (
-                  <button
-                    type="button"
-                    className="modal-btn btn-approve"
-                    disabled={pendingId === selectedRecord.profile_id}
-                    onClick={() => void handleUpdateAccess(selectedRecord, "active")}
-                  >
-                    {pendingId === selectedRecord.profile_id ? "Activating…" : "✓ Activate Festival Pass"}
-                  </button>
-                )}
-
-                {selectedRecord.access_state !== "rejected" && (
-                  <button
-                    type="button"
-                    className="modal-btn btn-reject"
-                    disabled={
-                      pendingId === selectedRecord.profile_id ||
-                      (selectedRecord.is_admin && selectedRecord.profile_id === currentUserId)
-                    }
-                    title={
-                      selectedRecord.is_admin && selectedRecord.profile_id === currentUserId
-                        ? "You cannot reject your own Admin profile"
-                        : undefined
-                    }
-                    onClick={() => void handleUpdateAccess(selectedRecord, "rejected")}
-                  >
-                    ✕ Reject Application
-                  </button>
-                )}
-
-                {selectedRecord.access_state === "active" && (
-                  <button
-                    type="button"
-                    className="modal-btn btn-waitlist"
-                    disabled={
-                      pendingId === selectedRecord.profile_id ||
-                      (selectedRecord.is_admin && selectedRecord.profile_id === currentUserId)
-                    }
-                    title={
-                      selectedRecord.is_admin && selectedRecord.profile_id === currentUserId
-                        ? "You cannot suspend your own Admin profile"
-                        : undefined
-                    }
-                    onClick={() => void handleUpdateAccess(selectedRecord, "suspended")}
-                  >
-                    ⏸ Suspend Access
-                  </button>
-                )}
+              {/* Optional Remark Input (No ledger reference needed) */}
+              <div className="modal-remark-row">
+                <label htmlFor="modal-reason-input">Internal Remark (Optional)</label>
+                <input
+                  id="modal-reason-input"
+                  type="text"
+                  value={modalReason}
+                  onChange={(e) => setModalReason(e.target.value)}
+                  placeholder="Optional internal remark or rejection reason"
+                  maxLength={500}
+                  disabled={pendingId === selectedRecord.profile_id}
+                />
               </div>
 
-              <div className="secondary-tools-group">
+              {/* Auxiliary Tools Link Row */}
+              <div className="modal-auxiliary-links">
                 <button
                   type="button"
                   className="modal-link-btn"
@@ -617,6 +576,60 @@ export function ActivationClient({
                     onClick={() => void removeProfile(selectedRecord)}
                   >
                     🗑️ Remove Profile
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Sticky Action Buttons Footer */}
+            <div className="modal-actions-container">
+              <div className="primary-actions-group">
+                {selectedRecord.access_state !== "active" && (
+                  <button
+                    type="button"
+                    className="modal-btn btn-approve"
+                    disabled={pendingId === selectedRecord.profile_id}
+                    onClick={() => void handleUpdateAccess(selectedRecord, "active")}
+                  >
+                    {pendingId === selectedRecord.profile_id ? "Activating…" : "✓ Activate Festival Pass"}
+                  </button>
+                )}
+
+                {selectedRecord.access_state !== "rejected" && (
+                  <button
+                    type="button"
+                    className="modal-btn btn-reject"
+                    disabled={
+                      pendingId === selectedRecord.profile_id ||
+                      (selectedRecord.is_admin && selectedRecord.profile_id === currentUserId)
+                    }
+                    title={
+                      selectedRecord.is_admin && selectedRecord.profile_id === currentUserId
+                        ? "You cannot reject your own Admin profile"
+                        : undefined
+                    }
+                    onClick={() => void handleUpdateAccess(selectedRecord, "rejected")}
+                  >
+                    ✕ Reject
+                  </button>
+                )}
+
+                {selectedRecord.access_state === "active" && (
+                  <button
+                    type="button"
+                    className="modal-btn btn-waitlist"
+                    disabled={
+                      pendingId === selectedRecord.profile_id ||
+                      (selectedRecord.is_admin && selectedRecord.profile_id === currentUserId)
+                    }
+                    title={
+                      selectedRecord.is_admin && selectedRecord.profile_id === currentUserId
+                        ? "You cannot suspend your own Admin profile"
+                        : undefined
+                    }
+                    onClick={() => void handleUpdateAccess(selectedRecord, "suspended")}
+                  >
+                    ⏸ Suspend
                   </button>
                 )}
 
