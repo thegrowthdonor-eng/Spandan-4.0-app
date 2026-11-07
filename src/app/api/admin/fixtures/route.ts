@@ -46,13 +46,6 @@ export async function GET(request: Request) {
       if (error.code === "42501" || error.code === "28000") return denied;
       return NextResponse.json({ error: "Unable to load fixture history." }, { status: 500, headers });
     }
-    const admin = createAdminClient();
-    const { data: fixtureInfo } = await admin.from("fixtures").select("events(id, state, starts_at, registration_enabled)").eq("id", command.fixtureId).single();
-    const ev = fixtureInfo?.events as unknown as { id: string; state: string; starts_at: string | null; registration_enabled: boolean } | null;
-    if (ev && ev.state === "ongoing" && ev.starts_at && new Date(ev.starts_at) > new Date()) {
-      await admin.from("events").update({ state: ev.registration_enabled ? "open" : "published" }).eq("id", ev.id);
-    }
-
     return NextResponse.json({ ok: true, data }, { headers });
   }
 
@@ -124,13 +117,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unable to create fixture right now." }, { status: 503, headers });
     }
 
-    const admin = createAdminClient();
-    const { data: fixtureInfo } = await admin.from("fixtures").select("events(id, state, starts_at, registration_enabled)").eq("id", command.fixtureId).single();
-    const ev = fixtureInfo?.events as unknown as { id: string; state: string; starts_at: string | null; registration_enabled: boolean } | null;
-    if (ev && ev.state === "ongoing" && ev.starts_at && new Date(ev.starts_at) > new Date()) {
-      await admin.from("events").update({ state: ev.registration_enabled ? "open" : "published" }).eq("id", ev.id);
-    }
-
     return NextResponse.json({ ok: true, data }, { headers });
   }
 
@@ -149,13 +135,6 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: error.message || "Check the reporting time, start time, and reschedule reason." }, { status: 400, headers });
       }
       return NextResponse.json({ error: "Unable to reschedule fixture right now." }, { status: 503, headers });
-    }
-
-    const admin = createAdminClient();
-    const { data: fixtureInfo } = await admin.from("fixtures").select("events(id, state, starts_at, registration_enabled)").eq("id", command.fixtureId).single();
-    const ev = fixtureInfo?.events as unknown as { id: string; state: string; starts_at: string | null; registration_enabled: boolean } | null;
-    if (ev && ev.state === "ongoing" && ev.starts_at && new Date(ev.starts_at) > new Date()) {
-      await admin.from("events").update({ state: ev.registration_enabled ? "open" : "published" }).eq("id", ev.id);
     }
 
     return NextResponse.json({ ok: true, data }, { headers });
