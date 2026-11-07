@@ -776,7 +776,7 @@ body dialog.portal-dialog::backdrop {
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   background: #f8faf7;
-  border: 1px solid #e2ebdff;
+  border: 1px solid #e2ebdf;
   border-radius: 10px;
   padding: 12px 14px;
 }
