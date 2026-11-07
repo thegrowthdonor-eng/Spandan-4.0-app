@@ -45,6 +45,15 @@ type GroupItem = {
   state: string;
 };
 
+export type SoloStudentItem = {
+  application_id: string;
+  student_id: string;
+  full_name: string;
+  batch_label: string;
+  course_label?: string | null;
+  roll_canonical: string;
+};
+
 type HistoryEntry = {
   id: string;
   actor_name: string | null;
@@ -62,29 +71,15 @@ type HistoryEntry = {
 };
 
 const COMMON_STAGES = [
-  "Final",
-  "Semi-Final 1",
-  "Semi-Final 2",
   "Quarter-Final 1",
   "Quarter-Final 2",
   "Quarter-Final 3",
   "Quarter-Final 4",
+  "Semi-Final 1",
+  "Semi-Final 2",
   "3rd Place Playoff",
-  "Round of 16",
-  "League Match",
-  "Exhibition Match",
-];
-
-const CAMPUS_VENUES = [
-  "Main Cricket Ground",
-  "Football Turf",
-  "Basketball Court",
-  "Indoor Sports Complex",
-  "Badminton Court 1",
-  "Badminton Court 2",
-  "Table Tennis Arena",
-  "Auditorium Stage",
-  "LT-1 Complex",
+  "Final",
+  "Custom…",
 ];
 
 function formatIST(iso: string | null) {
@@ -108,60 +103,69 @@ export function FixturesClient({
   fixtures,
   eligibleBatches = [],
   registeredGroups = [],
+  soloStudents = [],
   isMainAdmin,
 }: {
   event: EventMeta;
   fixtures: FixtureItem[];
   eligibleBatches?: BatchItem[];
   registeredGroups?: GroupItem[];
+  soloStudents?: SoloStudentItem[];
   isMainAdmin: boolean;
 }) {
   const router = useRouter();
   const scoreTemplate = event.score_template || "generic";
 
-  // Mode tabs: 'list' | 'single' | 'bracket'
-  const [activeTab, setActiveTab] = useState<"list" | "single" | "bracket">("list");
+  // Create Form visibility
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  // Single Quick Match State
-  const [quickStage, setQuickStage] = useState("Semi-Final 1");
+  // Selected Fixture for Inspection Modal
+  const [selectedFixture, setSelectedFixture] = useState<FixtureItem | null>(null);
+
+  // Single Match Form State
+  const [stageSelection, setStageSelection] = useState("Quarter-Final 1");
   const [customStage, setCustomStage] = useState("");
-  const [selectedPartA, setSelectedPartA] = useState("");
-  const [selectedPartB, setSelectedPartB] = useState("");
-  const [customPartA, setCustomPartA] = useState("");
-  const [customPartB, setCustomPartB] = useState("");
-  const [useCustomA, setUseCustomA] = useState(false);
-  const [useCustomB, setUseCustomB] = useState(false);
-  const [quickVenue, setQuickVenue] = useState(event.venue || "Main Cricket Ground");
-  const [quickStarts, setQuickStarts] = useState(() => {
+  const [venueInput, setVenueInput] = useState(event.venue || "");
+  const [startsInput, setStartsInput] = useState(() => {
     const d = event.starts_at ? new Date(event.starts_at) : new Date();
     d.setHours(9, 0, 0, 0);
     return toLocalInput(d.toISOString());
   });
-  const [quickReporting, setQuickReporting] = useState(() => {
+  const [reportingInput, setReportingInput] = useState(() => {
     const d = event.starts_at ? new Date(event.starts_at) : new Date();
     d.setHours(8, 45, 0, 0);
     return toLocalInput(d.toISOString());
   });
-  const [createPending, setCreatePending] = useState(false);
 
-  // Tournament Auto-Generator State
-  const [bracketBatches, setBracketBatches] = useState<string[]>([]);
-  const [bracketFormat, setBracketFormat] = useState<"knockout" | "round_robin">("knockout");
-  const [bracketInterval, setBracketInterval] = useState(60); // minutes
-  const [bracketVenue, setBracketVenue] = useState(event.venue || "Main Cricket Ground");
-  const [bracketStarts, setBracketStarts] = useState(() => {
-    const d = event.starts_at ? new Date(event.starts_at) : new Date();
-    d.setHours(9, 0, 0, 0);
-    return toLocalInput(d.toISOString());
-  });
-  const [bracketPending, setBracketPending] = useState(false);
+  // Participant A & B Selection Modes
+  type PartMode = "person" | "pair" | "batch" | "custom";
+  const defaultMode: PartMode =
+    event.format === "solo"
+      ? "person"
+      : event.format === "pair"
+        ? "pair"
+        : "batch";
+
+  const [modeA, setModeA] = useState<PartMode>(defaultMode);
+  const [modeB, setModeB] = useState<PartMode>(defaultMode);
+
+  const [chosenPartA, setChosenPartA] = useState("");
+  const [chosenPartB, setChosenPartB] = useState("");
+  const [customPartA, setCustomPartA] = useState("");
+  const [customPartB, setCustomPartB] = useState("");
+
+  const [soloSearchA, setSoloSearchA] = useState("");
+  const [soloSearchB, setSoloSearchB] = useState("");
+
+  const [createPending, setCreatePending] = useState(false);
+  const [startMatchPending, setStartMatchPending] = useState(false);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "scheduled" | "live" | "final">("all");
   const [stageFilter, setStageFilter] = useState("all");
 
-  // Modals state
+  // Operational Modals
   const [rescheduleFixture, setRescheduleFixture] = useState<FixtureItem | null>(null);
   const [rescheduleReporting, setRescheduleReporting] = useState("");
   const [rescheduleStarts, setRescheduleStarts] = useState("");
@@ -187,26 +191,54 @@ export function FixturesClient({
 
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError?: boolean } | null>(null);
 
-  // Candidate participant labels
-  const participantOptions = useMemo(() => {
-    const list: string[] = [];
-    if (registeredGroups.length > 0) {
-      registeredGroups.forEach((g) => list.push(g.name));
-    }
+  // Batches list
+  const batchOptions = useMemo(() => {
     if (eligibleBatches.length > 0) {
-      eligibleBatches.forEach((b) => {
-        const name = b.label.toLowerCase().includes("batch") ? b.label : `Batch ${b.label}`;
-        if (!list.includes(name)) list.push(name);
-      });
-    } else {
-      ["Batch 2021", "Batch 2022", "Batch 2023", "Batch 2024", "Batch 2025", "Faculty / Staff", "Interns"].forEach(
-        (b) => {
-          if (!list.includes(b)) list.push(b);
-        }
-      );
+      return eligibleBatches.map((b) => (b.label.toLowerCase().includes("batch") ? b.label : `Batch ${b.label}`));
     }
-    return list;
-  }, [eligibleBatches, registeredGroups]);
+    return ["Batch 2021", "Batch 2022", "Batch 2023", "Batch 2024", "Batch 2025", "Faculty / Staff", "Interns"];
+  }, [eligibleBatches]);
+
+  // Pairs / Teams list
+  const groupOptions = useMemo(() => {
+    return registeredGroups.map((g) => g.name);
+  }, [registeredGroups]);
+
+  // Filtered solo students
+  const filteredSoloA = useMemo(() => {
+    const q = soloSearchA.toLowerCase().trim();
+    return soloStudents.filter(
+      (s) =>
+        !q ||
+        s.full_name.toLowerCase().includes(q) ||
+        s.roll_canonical.toLowerCase().includes(q) ||
+        s.batch_label.toLowerCase().includes(q)
+    );
+  }, [soloStudents, soloSearchA]);
+
+  const filteredSoloB = useMemo(() => {
+    const q = soloSearchB.toLowerCase().trim();
+    return soloStudents.filter(
+      (s) =>
+        !q ||
+        s.full_name.toLowerCase().includes(q) ||
+        s.roll_canonical.toLowerCase().includes(q) ||
+        s.batch_label.toLowerCase().includes(q)
+    );
+  }, [soloStudents, soloSearchB]);
+
+  // Status counters
+  const counts = useMemo(() => {
+    let scheduled = 0;
+    let live = 0;
+    let finalCount = 0;
+    fixtures.forEach((f) => {
+      if (f.state === "ongoing" || f.score_status === "live") live++;
+      else if (f.state === "completed" || f.score_status === "final") finalCount++;
+      else scheduled++;
+    });
+    return { all: fixtures.length, scheduled, live, final: finalCount };
+  }, [fixtures]);
 
   // Derived filtered fixtures
   const filteredFixtures = useMemo(() => {
@@ -233,37 +265,24 @@ export function FixturesClient({
     });
   }, [fixtures, searchQuery, statusFilter, stageFilter]);
 
-  // Status counts
-  const counts = useMemo(() => {
-    let scheduled = 0;
-    let live = 0;
-    let finalCount = 0;
-    fixtures.forEach((f) => {
-      if (f.state === "ongoing" || f.score_status === "live") live++;
-      else if (f.state === "completed" || f.score_status === "final") finalCount++;
-      else scheduled++;
-    });
-    return { all: fixtures.length, scheduled, live, final: finalCount };
-  }, [fixtures]);
-
-  // Handle Start Time Change -> Auto set Reporting -15 mins
+  // Auto set Reporting -15 mins
   function handleStartTimeChange(value: string) {
-    setQuickStarts(value);
+    setStartsInput(value);
     if (value) {
       const startD = new Date(value);
       const repD = new Date(startD.getTime() - 15 * 60000);
-      setQuickReporting(toLocalInput(repD.toISOString()));
+      setReportingInput(toLocalInput(repD.toISOString()));
     }
   }
 
-  // 1-Tap Single Fixture Submission
-  async function handleCreateQuickFixture(e: React.FormEvent) {
+  // Create Fixture Submission
+  async function handleCreateFixture(e: React.FormEvent) {
     e.preventDefault();
     if (createPending) return;
 
-    const finalStage = quickStage === "custom" ? customStage.trim() : quickStage;
-    const finalPartA = useCustomA ? customPartA.trim() : selectedPartA.trim();
-    const finalPartB = useCustomB ? customPartB.trim() : selectedPartB.trim();
+    const finalStage = stageSelection === "Custom…" ? customStage.trim() : stageSelection;
+    const finalPartA = modeA === "custom" ? customPartA.trim() : chosenPartA.trim();
+    const finalPartB = modeB === "custom" ? customPartB.trim() : chosenPartB.trim();
 
     if (!finalStage) {
       setStatusMessage({ text: "Please enter or select a round/stage.", isError: true });
@@ -290,17 +309,17 @@ export function FixturesClient({
           stage: finalStage,
           participantALabel: finalPartA,
           participantBLabel: finalPartB,
-          venue: quickVenue.trim() || undefined,
-          reportingAt: quickReporting ? new Date(quickReporting).toISOString() : null,
-          startsAt: quickStarts ? new Date(quickStarts).toISOString() : null,
+          venue: venueInput.trim() || undefined,
+          reportingAt: reportingInput ? new Date(reportingInput).toISOString() : null,
+          startsAt: startsInput ? new Date(startsInput).toISOString() : null,
         }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
-        setStatusMessage({ text: `Fixture "${finalPartA} vs ${finalPartB}" published successfully!` });
-        setActiveTab("list");
-        setSelectedPartA("");
-        setSelectedPartB("");
+        setStatusMessage({ text: `Fixture "${finalPartA} vs ${finalPartB}" created successfully.` });
+        setShowCreateForm(false);
+        setChosenPartA("");
+        setChosenPartB("");
         setCustomPartA("");
         setCustomPartB("");
         router.refresh();
@@ -314,133 +333,66 @@ export function FixturesClient({
     }
   }
 
-  // Generate Bracket Matches Preview
-  const bracketPreview = useMemo(() => {
-    if (bracketBatches.length < 2) return [];
-    const matches: Array<{
-      stage: string;
-      partA: string;
-      partB: string;
-      venue: string;
-      startsAt: string;
-      reportingAt: string;
-    }> = [];
+  // Check if scoring is permitted for a fixture
+  function canScoreMatch(f: FixtureItem): boolean {
+    if (f.state === "ongoing" || f.score_status === "live") return true;
+    if (f.state === "completed" || f.score_status === "final") return true;
+    if (event.state === "ongoing") return true;
+    if (f.starts_at && new Date() >= new Date(f.starts_at)) return true;
+    return false;
+  }
 
-    const baseStart = bracketStarts ? new Date(bracketStarts).getTime() : Date.now();
-
-    if (bracketFormat === "round_robin") {
-      let matchIdx = 1;
-      for (let i = 0; i < bracketBatches.length; i++) {
-        for (let j = i + 1; j < bracketBatches.length; j++) {
-          const matchTime = new Date(baseStart + (matchIdx - 1) * bracketInterval * 60000);
-          const repTime = new Date(matchTime.getTime() - 15 * 60000);
-          matches.push({
-            stage: `League Match ${matchIdx}`,
-            partA: bracketBatches[i],
-            partB: bracketBatches[j],
-            venue: bracketVenue,
-            startsAt: matchTime.toISOString(),
-            reportingAt: repTime.toISOString(),
-          });
-          matchIdx++;
-        }
-      }
-    } else {
-      // Knockout
-      const teams = [...bracketBatches];
-      if (teams.length === 4) {
-        const semi1 = new Date(baseStart);
-        const semi2 = new Date(baseStart + bracketInterval * 60000);
-        const finalTime = new Date(baseStart + bracketInterval * 2 * 60000);
-
-        matches.push({
-          stage: "Semi-Final 1",
-          partA: teams[0],
-          partB: teams[1],
-          venue: bracketVenue,
-          startsAt: semi1.toISOString(),
-          reportingAt: new Date(semi1.getTime() - 15 * 60000).toISOString(),
-        });
-        matches.push({
-          stage: "Semi-Final 2",
-          partA: teams[2],
-          partB: teams[3],
-          venue: bracketVenue,
-          startsAt: semi2.toISOString(),
-          reportingAt: new Date(semi2.getTime() - 15 * 60000).toISOString(),
-        });
-        matches.push({
-          stage: "Final",
-          partA: `Winner of Semi-Final 1`,
-          partB: `Winner of Semi-Final 2`,
-          venue: bracketVenue,
-          startsAt: finalTime.toISOString(),
-          reportingAt: new Date(finalTime.getTime() - 15 * 60000).toISOString(),
-        });
-      } else {
-        // Pairs of teams
-        let pairCount = Math.floor(teams.length / 2);
-        for (let k = 0; k < pairCount; k++) {
-          const tTime = new Date(baseStart + k * bracketInterval * 60000);
-          matches.push({
-            stage: teams.length <= 4 ? `Semi-Final ${k + 1}` : `Quarter-Final ${k + 1}`,
-            partA: teams[k * 2],
-            partB: teams[k * 2 + 1],
-            venue: bracketVenue,
-            startsAt: tTime.toISOString(),
-            reportingAt: new Date(tTime.getTime() - 15 * 60000).toISOString(),
-          });
-        }
-        // Final match slot
-        const fTime = new Date(baseStart + pairCount * bracketInterval * 60000);
-        matches.push({
-          stage: "Final",
-          partA: "Winner Match 1",
-          partB: "Winner Match 2",
-          venue: bracketVenue,
-          startsAt: fTime.toISOString(),
-          reportingAt: new Date(fTime.getTime() - 15 * 60000).toISOString(),
-        });
-      }
-    }
-    return matches;
-  }, [bracketBatches, bracketFormat, bracketInterval, bracketVenue, bracketStarts]);
-
-  // 1-Click Bulk Bracket Generation Submission
-  async function handleBulkSubmit() {
-    if (bracketPreview.length === 0 || bracketPending) return;
-    setBracketPending(true);
+  // 1-Tap "Start Match (Go Live)"
+  async function handleStartMatch(f: FixtureItem) {
+    if (startMatchPending) return;
+    setStartMatchPending(true);
     setStatusMessage(null);
+
+    const initialPayload: Record<string, string> = { ...((f.score_payload || {}) as Record<string, string>) };
+    if (scoreTemplate === "cricket" && !initialPayload.teamA_runs) {
+      initialPayload.teamA_runs = "0";
+      initialPayload.teamA_wickets = "0";
+      initialPayload.teamA_overs = "0.0";
+      initialPayload.teamB_runs = "0";
+      initialPayload.teamB_wickets = "0";
+      initialPayload.teamB_overs = "0.0";
+    } else if (scoreTemplate === "football" && !initialPayload.teamA_goals) {
+      initialPayload.teamA_goals = "0";
+      initialPayload.teamB_goals = "0";
+    }
+
     try {
       const res = await fetch("/api/admin/fixtures", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "bulk_create",
-          eventId: event.id,
-          fixtures: bracketPreview.map((m) => ({
-            stage: m.stage,
-            participantALabel: m.partA,
-            participantBLabel: m.partB,
-            venue: m.venue || undefined,
-            reportingAt: m.reportingAt,
-            startsAt: m.startsAt,
-          })),
+          action: "score",
+          fixtureId: f.fixture_id,
+          expectedVersion: f.score_version,
+          scorePayload: initialPayload,
+          status: "live",
         }),
       });
-      const data = (await res.json()) as { ok?: boolean; createdCount?: number; error?: string };
+      const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
-        setStatusMessage({ text: `Successfully generated ${data.createdCount} tournament matches!` });
-        setActiveTab("list");
-        setBracketBatches([]);
+        setStatusMessage({ text: `Match is now LIVE! Scoring and Scorer App unlocked.` });
+        if (selectedFixture?.fixture_id === f.fixture_id) {
+          setSelectedFixture({
+            ...f,
+            state: "ongoing",
+            score_status: "live",
+            score_version: f.score_version + 1,
+            score_payload: initialPayload,
+          });
+        }
         router.refresh();
       } else {
-        setStatusMessage({ text: data.error ?? "Failed generating fixtures.", isError: true });
+        setStatusMessage({ text: data.error ?? "Failed to start match.", isError: true });
       }
     } catch {
-      setStatusMessage({ text: "Network error generating tournament fixtures.", isError: true });
+      setStatusMessage({ text: "Network error starting match.", isError: true });
     } finally {
-      setBracketPending(false);
+      setStartMatchPending(false);
     }
   }
 
@@ -459,7 +411,10 @@ export function FixturesClient({
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
-        setStatusMessage({ text: "Fixture deleted permanently." });
+        setStatusMessage({ text: "Fixture deleted successfully." });
+        if (selectedFixture?.fixture_id === deleteFixtureTarget.fixture_id) {
+          setSelectedFixture(null);
+        }
         setDeleteFixtureTarget(null);
         router.refresh();
       } else {
@@ -508,6 +463,15 @@ export function FixturesClient({
         setStatusMessage({
           text: `Fixture rescheduled. Schedule version bumped to v${rescheduleFixture.schedule_version + 1}.`,
         });
+        if (selectedFixture?.fixture_id === rescheduleFixture.fixture_id) {
+          setSelectedFixture({
+            ...selectedFixture,
+            starts_at: rescheduleStarts ? new Date(rescheduleStarts).toISOString() : null,
+            reporting_at: rescheduleReporting ? new Date(rescheduleReporting).toISOString() : null,
+            venue: rescheduleVenue.trim() || null,
+            schedule_version: rescheduleFixture.schedule_version + 1,
+          });
+        }
         setRescheduleFixture(null);
         router.refresh();
       } else {
@@ -548,6 +512,15 @@ export function FixturesClient({
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
         setStatusMessage({ text: `Score updated to v${scoreFixture.score_version + 1} (${scoreStatus}).` });
+        if (selectedFixture?.fixture_id === scoreFixture.fixture_id) {
+          setSelectedFixture({
+            ...selectedFixture,
+            score_version: scoreFixture.score_version + 1,
+            score_status: scoreStatus,
+            score_payload: scoreForm,
+            state: scoreStatus === "final" ? "completed" : "ongoing",
+          });
+        }
         setScoreFixture(null);
         router.refresh();
       } else {
@@ -646,17 +619,10 @@ export function FixturesClient({
         <div className="kpi-actions">
           <button
             type="button"
-            className={`kpi-btn ${activeTab === "single" ? "active" : ""}`}
-            onClick={() => setActiveTab(activeTab === "single" ? "list" : "single")}
+            className={`kpi-btn ${showCreateForm ? "active" : ""}`}
+            onClick={() => setShowCreateForm(!showCreateForm)}
           >
-            {activeTab === "single" ? "✕ Close Form" : "+ Quick Match"}
-          </button>
-          <button
-            type="button"
-            className={`kpi-btn bracket ${activeTab === "bracket" ? "active" : ""}`}
-            onClick={() => setActiveTab(activeTab === "bracket" ? "list" : "bracket")}
-          >
-            {activeTab === "bracket" ? "✕ Close Generator" : "⚡ Auto-Generate Bracket"}
+            {showCreateForm ? "✕ Close Form" : "+ Create Match"}
           </button>
         </div>
       </div>
@@ -667,21 +633,21 @@ export function FixturesClient({
         </div>
       )}
 
-      {/* MODE 1: 1-Tap Quick Match Creator */}
-      {activeTab === "single" && (
+      {/* Manual Match Creator Drawer */}
+      {showCreateForm && (
         <section className="fixture-form-drawer">
           <div className="drawer-header">
             <div>
-              <h3>1-Tap Quick Match Creator</h3>
-              <p>Pick rounds, tap participating batches, and publish to the live schedule in seconds.</p>
+              <h3>Create New Match Fixture</h3>
+              <p>Choose the round, pick participants, set the venue and schedule.</p>
             </div>
-            <button type="button" className="drawer-close" onClick={() => setActiveTab("list")}>
+            <button type="button" className="drawer-close" onClick={() => setShowCreateForm(false)}>
               ✕
             </button>
           </div>
 
-          <form onSubmit={handleCreateQuickFixture} className="quick-fixture-form">
-            {/* Stage Selector Chips */}
+          <form onSubmit={handleCreateFixture} className="quick-fixture-form">
+            {/* Stage Selector Chips (Quarters onwards) */}
             <div className="chip-section">
               <label className="section-label">1. Match Stage / Round</label>
               <div className="chip-scroller">
@@ -689,27 +655,20 @@ export function FixturesClient({
                   <button
                     type="button"
                     key={s}
-                    className={`stage-chip ${quickStage === s ? "selected" : ""}`}
+                    className={`stage-chip ${stageSelection === s ? "selected" : ""}`}
                     onClick={() => {
-                      setQuickStage(s);
+                      setStageSelection(s);
                       setCustomStage("");
                     }}
                   >
                     {s}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  className={`stage-chip ${quickStage === "custom" ? "selected" : ""}`}
-                  onClick={() => setQuickStage("custom")}
-                >
-                  Custom…
-                </button>
               </div>
-              {quickStage === "custom" && (
+              {stageSelection === "Custom…" && (
                 <input
                   className="custom-text-input"
-                  placeholder="e.g. Pool A — Match 3"
+                  placeholder="e.g. Round of 16 — Pool A"
                   maxLength={100}
                   required
                   value={customStage}
@@ -718,48 +677,133 @@ export function FixturesClient({
               )}
             </div>
 
-            {/* Team A vs Team B Smart Pickers */}
+            {/* Team A vs Team B Adaptive Selector */}
             <div className="versus-grid">
               {/* Participant A */}
               <div className="team-picker-card">
                 <div className="team-picker-header">
                   <span className="team-badge a">A</span>
                   <h4>Participant A (Home / 1st)</h4>
+                </div>
+
+                {/* Source Mode Tabs */}
+                <div className="part-mode-tabs">
+                  {soloStudents.length > 0 && (
+                    <button
+                      type="button"
+                      className={`mode-tab ${modeA === "person" ? "active" : ""}`}
+                      onClick={() => setModeA("person")}
+                    >
+                      Person / Solo ({soloStudents.length})
+                    </button>
+                  )}
+                  {groupOptions.length > 0 && (
+                    <button
+                      type="button"
+                      className={`mode-tab ${modeA === "pair" ? "active" : ""}`}
+                      onClick={() => setModeA("pair")}
+                    >
+                      Pair / Team ({groupOptions.length})
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="toggle-text-btn"
-                    onClick={() => setUseCustomA(!useCustomA)}
+                    className={`mode-tab ${modeA === "batch" ? "active" : ""}`}
+                    onClick={() => setModeA("batch")}
                   >
-                    {useCustomA ? "Choose from batches" : "Type custom"}
+                    Batch ({batchOptions.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-tab ${modeA === "custom" ? "active" : ""}`}
+                    onClick={() => setModeA("custom")}
+                  >
+                    Custom
                   </button>
                 </div>
 
-                {useCustomA ? (
+                {/* Person / Solo Student list */}
+                {modeA === "person" && (
+                  <div className="candidates-picker-box">
+                    <input
+                      type="search"
+                      placeholder="Search student by name or roll…"
+                      value={soloSearchA}
+                      onChange={(e) => setSoloSearchA(e.target.value)}
+                      className="candidate-search-input"
+                    />
+                    <div className="candidates-list-scroll">
+                      {filteredSoloA.length === 0 ? (
+                        <p className="no-candidates">No approved students found.</p>
+                      ) : (
+                        filteredSoloA.map((s) => {
+                          const label = `${s.full_name} (${s.batch_label}${s.roll_canonical ? `, #${s.roll_canonical}` : ""})`;
+                          const isSelected = chosenPartA === label;
+                          return (
+                            <button
+                              type="button"
+                              key={s.student_id}
+                              className={`candidate-row-btn ${isSelected ? "selected-a" : ""}`}
+                              onClick={() => setChosenPartA(label)}
+                            >
+                              <strong>{s.full_name}</strong>
+                              <span>Batch {s.batch_label} {s.roll_canonical ? `· Roll ${s.roll_canonical}` : ""}</span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pair / Team list */}
+                {modeA === "pair" && (
+                  <div className="batch-chips-grid">
+                    {groupOptions.map((g) => (
+                      <button
+                        type="button"
+                        key={g}
+                        className={`batch-pill ${chosenPartA === g ? "active-a" : ""}`}
+                        disabled={chosenPartB === g}
+                        onClick={() => setChosenPartA(g)}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Batch list */}
+                {modeA === "batch" && (
+                  <div className="batch-chips-grid">
+                    {batchOptions.map((b) => (
+                      <button
+                        type="button"
+                        key={b}
+                        className={`batch-pill ${chosenPartA === b ? "active-a" : ""}`}
+                        disabled={chosenPartB === b}
+                        onClick={() => setChosenPartA(b)}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Custom text input */}
+                {modeA === "custom" && (
                   <input
                     className="custom-text-input"
-                    placeholder="Type team / participant name"
+                    placeholder="Enter custom team or participant name"
                     maxLength={160}
                     value={customPartA}
                     onChange={(e) => setCustomPartA(e.target.value)}
                     required
                   />
-                ) : (
-                  <div className="batch-chips-grid">
-                    {participantOptions.map((p) => (
-                      <button
-                        type="button"
-                        key={p}
-                        className={`batch-pill ${selectedPartA === p ? "active-a" : ""}`}
-                        disabled={selectedPartB === p}
-                        onClick={() => setSelectedPartA(p)}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
                 )}
+
                 <div className="selected-preview">
-                  Selected: <strong>{useCustomA ? customPartA || "None" : selectedPartA || "Select above"}</strong>
+                  Selected: <strong>{modeA === "custom" ? customPartA || "None" : chosenPartA || "Select above"}</strong>
                 </div>
               </div>
 
@@ -772,67 +816,140 @@ export function FixturesClient({
                 <div className="team-picker-header">
                   <span className="team-badge b">B</span>
                   <h4>Participant B (Away / 2nd)</h4>
+                </div>
+
+                {/* Source Mode Tabs */}
+                <div className="part-mode-tabs">
+                  {soloStudents.length > 0 && (
+                    <button
+                      type="button"
+                      className={`mode-tab ${modeB === "person" ? "active" : ""}`}
+                      onClick={() => setModeB("person")}
+                    >
+                      Person / Solo ({soloStudents.length})
+                    </button>
+                  )}
+                  {groupOptions.length > 0 && (
+                    <button
+                      type="button"
+                      className={`mode-tab ${modeB === "pair" ? "active" : ""}`}
+                      onClick={() => setModeB("pair")}
+                    >
+                      Pair / Team ({groupOptions.length})
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="toggle-text-btn"
-                    onClick={() => setUseCustomB(!useCustomB)}
+                    className={`mode-tab ${modeB === "batch" ? "active" : ""}`}
+                    onClick={() => setModeB("batch")}
                   >
-                    {useCustomB ? "Choose from batches" : "Type custom"}
+                    Batch ({batchOptions.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-tab ${modeB === "custom" ? "active" : ""}`}
+                    onClick={() => setModeB("custom")}
+                  >
+                    Custom
                   </button>
                 </div>
 
-                {useCustomB ? (
+                {/* Person / Solo Student list */}
+                {modeB === "person" && (
+                  <div className="candidates-picker-box">
+                    <input
+                      type="search"
+                      placeholder="Search student by name or roll…"
+                      value={soloSearchB}
+                      onChange={(e) => setSoloSearchB(e.target.value)}
+                      className="candidate-search-input"
+                    />
+                    <div className="candidates-list-scroll">
+                      {filteredSoloB.length === 0 ? (
+                        <p className="no-candidates">No approved students found.</p>
+                      ) : (
+                        filteredSoloB.map((s) => {
+                          const label = `${s.full_name} (${s.batch_label}${s.roll_canonical ? `, #${s.roll_canonical}` : ""})`;
+                          const isSelected = chosenPartB === label;
+                          return (
+                            <button
+                              type="button"
+                              key={s.student_id}
+                              className={`candidate-row-btn ${isSelected ? "selected-b" : ""}`}
+                              onClick={() => setChosenPartB(label)}
+                            >
+                              <strong>{s.full_name}</strong>
+                              <span>Batch {s.batch_label} {s.roll_canonical ? `· Roll ${s.roll_canonical}` : ""}</span>
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pair / Team list */}
+                {modeB === "pair" && (
+                  <div className="batch-chips-grid">
+                    {groupOptions.map((g) => (
+                      <button
+                        type="button"
+                        key={g}
+                        className={`batch-pill ${chosenPartB === g ? "active-b" : ""}`}
+                        disabled={chosenPartA === g}
+                        onClick={() => setChosenPartB(g)}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Batch list */}
+                {modeB === "batch" && (
+                  <div className="batch-chips-grid">
+                    {batchOptions.map((b) => (
+                      <button
+                        type="button"
+                        key={b}
+                        className={`batch-pill ${chosenPartB === b ? "active-b" : ""}`}
+                        disabled={chosenPartA === b}
+                        onClick={() => setChosenPartB(b)}
+                      >
+                        {b}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Custom text input */}
+                {modeB === "custom" && (
                   <input
                     className="custom-text-input"
-                    placeholder="Type team / participant name"
+                    placeholder="Enter custom team or participant name"
                     maxLength={160}
                     value={customPartB}
                     onChange={(e) => setCustomPartB(e.target.value)}
                     required
                   />
-                ) : (
-                  <div className="batch-chips-grid">
-                    {participantOptions.map((p) => (
-                      <button
-                        type="button"
-                        key={p}
-                        className={`batch-pill ${selectedPartB === p ? "active-b" : ""}`}
-                        disabled={selectedPartA === p}
-                        onClick={() => setSelectedPartB(p)}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
                 )}
+
                 <div className="selected-preview">
-                  Selected: <strong>{useCustomB ? customPartB || "None" : selectedPartB || "Select above"}</strong>
+                  Selected: <strong>{modeB === "custom" ? customPartB || "None" : chosenPartB || "Select above"}</strong>
                 </div>
               </div>
             </div>
 
-            {/* Venue & Timings Row */}
+            {/* Venue (Manual Typing Only) & Timings Row */}
             <div className="meta-inputs-grid">
               <div className="meta-input-group">
-                <label>Venue / Ground</label>
-                <div className="venue-chips">
-                  {CAMPUS_VENUES.map((v) => (
-                    <button
-                      type="button"
-                      key={v}
-                      className={`venue-chip ${quickVenue === v ? "selected" : ""}`}
-                      onClick={() => setQuickVenue(v)}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
+                <label>Venue (Manual Entry)</label>
                 <input
                   className="custom-text-input"
-                  placeholder="Or enter custom venue"
-                  value={quickVenue}
+                  placeholder="e.g. Main Cricket Ground / LT-1"
+                  value={venueInput}
                   maxLength={160}
-                  onChange={(e) => setQuickVenue(e.target.value)}
+                  onChange={(e) => setVenueInput(e.target.value)}
                 />
               </div>
 
@@ -842,7 +959,7 @@ export function FixturesClient({
                   <input
                     type="datetime-local"
                     required
-                    value={quickStarts}
+                    value={startsInput}
                     onChange={(e) => handleStartTimeChange(e.target.value)}
                   />
                 </label>
@@ -850,8 +967,8 @@ export function FixturesClient({
                   Reporting Time (IST)
                   <input
                     type="datetime-local"
-                    value={quickReporting}
-                    onChange={(e) => setQuickReporting(e.target.value)}
+                    value={reportingInput}
+                    onChange={(e) => setReportingInput(e.target.value)}
                   />
                   <small className="hint">Auto-set to 15m prior</small>
                 </label>
@@ -862,131 +979,11 @@ export function FixturesClient({
               <button type="submit" className="primary-action-btn" disabled={createPending}>
                 {createPending ? "Publishing Match…" : "✓ Publish Match Fixture"}
               </button>
-              <button type="button" className="secondary-action-btn" onClick={() => setActiveTab("list")}>
+              <button type="button" className="secondary-action-btn" onClick={() => setShowCreateForm(false)}>
                 Cancel
               </button>
             </div>
           </form>
-        </section>
-      )}
-
-      {/* MODE 2: 1-Click Tournament Bracket Generator */}
-      {activeTab === "bracket" && (
-        <section className="fixture-form-drawer bracket-drawer">
-          <div className="drawer-header">
-            <div>
-              <h3>⚡ 1-Click Tournament Bracket Generator</h3>
-              <p>Select teams and generate entire Knockout or Round-Robin tournament schedules in one click.</p>
-            </div>
-            <button type="button" className="drawer-close" onClick={() => setActiveTab("list")}>
-              ✕
-            </button>
-          </div>
-
-          <div className="bracket-setup-grid">
-            <div className="setup-column">
-              <label className="section-label">1. Select Participating Batches / Squads ({bracketBatches.length} selected)</label>
-              <div className="selectable-batches-grid">
-                {participantOptions.map((p) => {
-                  const isChecked = bracketBatches.includes(p);
-                  return (
-                    <label key={p} className={`batch-check-card ${isChecked ? "checked" : ""}`}>
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if (e.target.checked) setBracketBatches([...bracketBatches, p]);
-                          else setBracketBatches(bracketBatches.filter((x) => x !== p));
-                        }}
-                      />
-                      <span>{p}</span>
-                    </label>
-                  );
-                })}
-              </div>
-
-              <div className="bracket-options">
-                <label>
-                  Format
-                  <select
-                    value={bracketFormat}
-                    onChange={(e) => setBracketFormat(e.target.value as "knockout" | "round_robin")}
-                  >
-                    <option value="knockout">Single Elimination Knockout (Semis &amp; Final)</option>
-                    <option value="round_robin">Round-Robin / League (All teams play each other)</option>
-                  </select>
-                </label>
-
-                <label>
-                  Match Interval
-                  <select
-                    value={bracketInterval}
-                    onChange={(e) => setBracketInterval(Number(e.target.value))}
-                  >
-                    <option value={45}>45 Minutes</option>
-                    <option value={60}>1 Hour</option>
-                    <option value={90}>1.5 Hours</option>
-                    <option value={120}>2 Hours</option>
-                  </select>
-                </label>
-
-                <label>
-                  Venue
-                  <input
-                    value={bracketVenue}
-                    maxLength={160}
-                    onChange={(e) => setBracketVenue(e.target.value)}
-                    placeholder="e.g. Main Ground"
-                  />
-                </label>
-
-                <label>
-                  First Match Starts At
-                  <input
-                    type="datetime-local"
-                    value={bracketStarts}
-                    onChange={(e) => setBracketStarts(e.target.value)}
-                  />
-                </label>
-              </div>
-            </div>
-
-            {/* Live Schedule Preview */}
-            <div className="preview-column">
-              <label className="section-label">2. Generated Schedule Preview ({bracketPreview.length} Matches)</label>
-              {bracketPreview.length === 0 ? (
-                <div className="empty-bracket-hint">
-                  <p>Select at least 2 teams on the left to preview generated fixtures.</p>
-                </div>
-              ) : (
-                <div className="preview-matches-list">
-                  {bracketPreview.map((m, idx) => (
-                    <div key={idx} className="preview-match-item">
-                      <div className="match-tag-row">
-                        <span className="stage-pill">{m.stage}</span>
-                        <span className="time-pill">{formatIST(m.startsAt)}</span>
-                      </div>
-                      <div className="matchup-preview">
-                        <strong>{m.partA}</strong>
-                        <span className="vs-tag">vs</span>
-                        <strong>{m.partB}</strong>
-                      </div>
-                      <small className="venue-text">📍 {m.venue}</small>
-                    </div>
-                  ))}
-
-                  <button
-                    type="button"
-                    className="primary-action-btn full-width"
-                    disabled={bracketPending}
-                    onClick={handleBulkSubmit}
-                  >
-                    {bracketPending ? "Creating All Matches…" : `✓ Create All ${bracketPreview.length} Fixtures`}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
         </section>
       )}
 
@@ -1037,201 +1034,328 @@ export function FixturesClient({
             className="stage-filter-select"
           >
             <option value="all">All Stages</option>
-            <option value="final">Finals</option>
-            <option value="semi">Semi-Finals</option>
             <option value="quarter">Quarter-Finals</option>
-            <option value="league">League Matches</option>
+            <option value="semi">Semi-Finals</option>
+            <option value="final">Finals</option>
           </select>
         </div>
       </div>
 
-      {/* Stadium Fixture Cards Grid */}
-      <div className="stadium-fixtures-list">
+      {/* Compact Strip Rows List */}
+      <div className="fixture-strips-container">
         {filteredFixtures.length === 0 ? (
           <div className="fixtures-empty-state">
-            <h3>No fixtures match your filters</h3>
+            <h3>No fixtures found</h3>
             <p>
               {fixtures.length === 0
-                ? "Click \"+ Quick Match\" or \"Auto-Generate Bracket\" above to schedule your first matches."
-                : "Try resetting your search query or status filter."}
+                ? "Click \"+ Create Match\" above to schedule your first fixture."
+                : "No matches match your active filters or search."}
             </p>
           </div>
         ) : (
           filteredFixtures.map((f) => {
-            const scoreObj = (f.score_payload || {}) as Record<string, unknown>;
             const isLive = f.state === "ongoing" || f.score_status === "live";
             const isCompleted = f.state === "completed" || f.score_status === "final";
+            const scoreObj = (f.score_payload || {}) as Record<string, unknown>;
+
+            let scoreSnippet = "";
+            if (scoreTemplate === "cricket" && scoreObj.teamA_runs !== undefined) {
+              scoreSnippet = `${scoreObj.teamA_runs}/${scoreObj.teamA_wickets ?? 0} vs ${scoreObj.teamB_runs ?? 0}/${scoreObj.teamB_wickets ?? 0}`;
+            } else if (scoreTemplate === "football" && scoreObj.teamA_goals !== undefined) {
+              scoreSnippet = `${scoreObj.teamA_goals} — ${scoreObj.teamB_goals ?? 0}`;
+            } else if (scoreTemplate === "badminton" && scoreObj.set1) {
+              scoreSnippet = `Sets: ${scoreObj.set1}${scoreObj.set2 ? `, ${scoreObj.set2}` : ""}`;
+            } else if (scoreObj.winner) {
+              scoreSnippet = `Winner: ${scoreObj.winner}`;
+            }
 
             return (
               <article
                 key={f.fixture_id}
-                className={`stadium-match-card ${isLive ? "is-live" : isCompleted ? "is-completed" : ""}`}
+                className={`fixture-strip-row ${isLive ? "is-live" : isCompleted ? "is-completed" : ""}`}
+                onClick={() => setSelectedFixture(f)}
+                tabIndex={0}
+                role="button"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedFixture(f);
+                  }
+                }}
               >
-                {/* Top Badge Bar */}
-                <div className="stadium-card-top">
-                  <div className="stage-and-status">
-                    <span className="stadium-stage-tag">{f.stage}</span>
-                    <span
-                      className={`stadium-status-badge ${isLive ? "live" : isCompleted ? "completed" : "scheduled"}`}
-                    >
-                      {isLive ? "● LIVE" : isCompleted ? "FINAL" : "SCHEDULED"}
+                {/* Left Side: Stage + Matchup + Score Snippet */}
+                <div className="strip-left">
+                  <div className="strip-stage-pill">{f.stage}</div>
+                  <div className="strip-matchup-names">
+                    <span className="team-text home" title={f.participant_a_label}>
+                      {f.participant_a_label}
+                    </span>
+                    <span className="vs-sep">vs</span>
+                    <span className="team-text away" title={f.participant_b_label}>
+                      {f.participant_b_label}
                     </span>
                   </div>
-
-                  <div className="stadium-versions">
-                    <span className="v-pill">v{f.schedule_version}</span>
-                    {f.score_version > 0 && <span className="v-pill score">Score v{f.score_version}</span>}
-                  </div>
+                  {scoreSnippet && <div className="strip-score-snippet">{scoreSnippet}</div>}
                 </div>
 
-                {/* Scoreboard Stadium Center */}
-                <div className="stadium-matchup-arena">
-                  {/* Team A */}
-                  <div className="stadium-competitor home">
-                    <div className="competitor-avatar">
-                      {f.participant_a_label.slice(0, 2).toUpperCase()}
-                    </div>
-                    <span className="competitor-name">{f.participant_a_label}</span>
-                    {scoreTemplate === "cricket" && (
-                      <span className="competitor-live-score">
-                        {String(scoreObj.teamA_runs ?? "0")}/{String(scoreObj.teamA_wickets ?? "0")}
-                        <small>({String(scoreObj.teamA_overs ?? "0")})</small>
-                      </span>
-                    )}
-                    {scoreTemplate === "football" && (
-                      <span className="competitor-live-score big">
-                        {String(scoreObj.teamA_goals ?? "0")}
-                      </span>
-                    )}
+                {/* Right Side: Status Badge + Time/Venue + Chevron */}
+                <div className="strip-right">
+                  <div className="strip-meta-col">
+                    <span className={`strip-status-badge ${isLive ? "live" : isCompleted ? "completed" : "scheduled"}`}>
+                      {isLive ? "● LIVE" : isCompleted ? "FINAL" : "SCHEDULED"}
+                    </span>
+                    <span className="strip-time-text">{formatIST(f.starts_at)}</span>
+                    <span className="strip-venue-text">{f.venue || "TBA"}</span>
                   </div>
-
-                  {/* Center VS or Score Divider */}
-                  <div className="stadium-center-vs">
-                    <span className="vs-badge">VS</span>
-                    <span className="start-time-pill">{formatIST(f.starts_at)}</span>
-                  </div>
-
-                  {/* Team B */}
-                  <div className="stadium-competitor away">
-                    {scoreTemplate === "football" && (
-                      <span className="competitor-live-score big">
-                        {String(scoreObj.teamB_goals ?? "0")}
-                      </span>
-                    )}
-                    {scoreTemplate === "cricket" && (
-                      <span className="competitor-live-score">
-                        {String(scoreObj.teamB_runs ?? "0")}/{String(scoreObj.teamB_wickets ?? "0")}
-                        <small>({String(scoreObj.teamB_overs ?? "0")})</small>
-                      </span>
-                    )}
-                    <span className="competitor-name">{f.participant_b_label}</span>
-                    <div className="competitor-avatar">
-                      {f.participant_b_label.slice(0, 2).toUpperCase()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Badminton / Generic / Summary Row */}
-                {Boolean(scoreObj.summary) && (
-                  <div className="match-summary-banner">
-                    {String(scoreObj.summary)}
-                  </div>
-                )}
-                {scoreTemplate === "badminton" && Object.keys(scoreObj).length > 0 && (
-                  <div className="badminton-sets-strip">
-                    <span>Set 1: {String(scoreObj.set1 || "—")}</span>
-                    <span>Set 2: {String(scoreObj.set2 || "—")}</span>
-                    <span>Set 3: {String(scoreObj.set3 || "—")}</span>
-                    {Boolean(scoreObj.winner) && <strong>Winner: {String(scoreObj.winner)}</strong>}
-                  </div>
-                )}
-
-                {/* Stadium Metadata Strip */}
-                <div className="stadium-meta-strip">
-                  <span className="meta-item">
-                    📍 <strong>{f.venue || "Venue TBA"}</strong>
-                  </span>
-                  <span className="meta-item">
-                    ⏱️ Reporting: {formatIST(f.reporting_at)}
-                  </span>
-                </div>
-
-                {/* Thumb-Friendly Stadium Actions */}
-                <div className="stadium-actions-strip">
-                  <button
-                    type="button"
-                    className="action-icon-btn score-primary"
-                    onClick={() => openScoreModal(f)}
-                    title="Quick Score Entry"
-                  >
-                    ⚡ Score
-                  </button>
-
-                  <Link
-                    href={`/scorer?fixture=${encodeURIComponent(f.fixture_id)}`}
-                    className="action-icon-btn scorer-link"
-                    title="Ground Scorer"
-                  >
-                    📱 Scorer App
-                  </Link>
-
-                  <button
-                    type="button"
-                    className="action-icon-btn"
-                    onClick={() => openReschedule(f)}
-                    title="Reschedule Match"
-                  >
-                    🕒 Reschedule
-                  </button>
-
-                  <button
-                    type="button"
-                    className="action-icon-btn"
-                    title="Send participant reminder notifications"
-                    onClick={() => {
-                      setReminderFixture(f);
-                      setReminderBody(
-                        `Reminder: ${f.stage} between ${f.participant_a_label} and ${f.participant_b_label} starts at ${formatIST(f.starts_at)} at ${f.venue ?? "the venue"}.`
-                      );
-                    }}
-                  >
-                    🔔 Remind
-                  </button>
-
-                  <button
-                    type="button"
-                    className="action-icon-btn"
-                    onClick={() => openHistory(f)}
-                    title="Audit History"
-                  >
-                    📜 History
-                  </button>
-
-                  {isMainAdmin && (
-                    <button
-                      type="button"
-                      className="action-icon-btn"
-                      onClick={() => void forceReleaseScorer(f.fixture_id)}
-                      title="Release Scorer Device"
-                    >
-                      🔄 Scorer Lock
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    className="action-icon-btn danger"
-                    onClick={() => setDeleteFixtureTarget(f)}
-                    title="Delete Fixture"
-                  >
-                    🗑️ Delete
-                  </button>
+                  <span className="strip-chevron">›</span>
                 </div>
               </article>
             );
           })
         )}
       </div>
+
+      {/* FULL FIXTURE INSPECTION MODAL (Tap-to-Open) */}
+      {selectedFixture && (
+        <PortalDialog
+          labelledBy="fixture-detail-title"
+          onClose={() => setSelectedFixture(null)}
+        >
+          <div className="fixture-modal-card">
+            {/* Modal Header */}
+            <div className="fixture-modal-header">
+              <div>
+                <span className="modal-stage-tag">{selectedFixture.stage}</span>
+                <h2 id="fixture-detail-title">
+                  {selectedFixture.participant_a_label} <span className="vs-modal">vs</span> {selectedFixture.participant_b_label}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="modal-close-icon"
+                onClick={() => setSelectedFixture(null)}
+                aria-label="Close match details"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Stadium Matchup Card */}
+            <div className="modal-stadium-card">
+              <div className="stadium-competitor home">
+                <div className="competitor-avatar">
+                  {selectedFixture.participant_a_label.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="competitor-info">
+                  <strong>{selectedFixture.participant_a_label}</strong>
+                  <span className="sub-role">Participant A</span>
+                </div>
+              </div>
+
+              <div className="stadium-center-badge">
+                <span className="vs-circle">VS</span>
+                <span
+                  className={`modal-live-tag ${
+                    selectedFixture.state === "ongoing" || selectedFixture.score_status === "live"
+                      ? "live"
+                      : selectedFixture.state === "completed" || selectedFixture.score_status === "final"
+                        ? "completed"
+                        : "scheduled"
+                  }`}
+                >
+                  {selectedFixture.state === "ongoing" || selectedFixture.score_status === "live"
+                    ? "● LIVE"
+                    : selectedFixture.state === "completed" || selectedFixture.score_status === "final"
+                      ? "FINAL"
+                      : "SCHEDULED"}
+                </span>
+              </div>
+
+              <div className="stadium-competitor away">
+                <div className="competitor-info right">
+                  <strong>{selectedFixture.participant_b_label}</strong>
+                  <span className="sub-role">Participant B</span>
+                </div>
+                <div className="competitor-avatar away">
+                  {selectedFixture.participant_b_label.slice(0, 2).toUpperCase()}
+                </div>
+              </div>
+            </div>
+
+            {/* Scoreboard Display (if scored) */}
+            {selectedFixture.score_payload && Object.keys(selectedFixture.score_payload).length > 0 && (
+              <div className="modal-scoreboard-section">
+                <h4>Official Scoreboard ({scoreTemplate.toUpperCase()})</h4>
+                {scoreTemplate === "cricket" && (
+                  <div className="scoreboard-cricket">
+                    <div className="cricket-team-row">
+                      <span>{selectedFixture.participant_a_label}:</span>
+                      <strong>
+                        {String(selectedFixture.score_payload.teamA_runs ?? 0)}/
+                        {String(selectedFixture.score_payload.teamA_wickets ?? 0)}
+                        <small>({String(selectedFixture.score_payload.teamA_overs ?? "0.0")} ov)</small>
+                      </strong>
+                    </div>
+                    <div className="cricket-team-row">
+                      <span>{selectedFixture.participant_b_label}:</span>
+                      <strong>
+                        {String(selectedFixture.score_payload.teamB_runs ?? 0)}/
+                        {String(selectedFixture.score_payload.teamB_wickets ?? 0)}
+                        <small>({String(selectedFixture.score_payload.teamB_overs ?? "0.0")} ov)</small>
+                      </strong>
+                    </div>
+                  </div>
+                )}
+
+                {scoreTemplate === "football" && (
+                  <div className="scoreboard-football">
+                    <div className="football-score-large">
+                      <span>{String(selectedFixture.score_payload.teamA_goals ?? 0)}</span>
+                      <span>—</span>
+                      <span>{String(selectedFixture.score_payload.teamB_goals ?? 0)}</span>
+                    </div>
+                    {Boolean(selectedFixture.score_payload.penalties) && (
+                      <p className="penalties-note">Penalties: {String(selectedFixture.score_payload.penalties)}</p>
+                    )}
+                  </div>
+                )}
+
+                {scoreTemplate === "badminton" && (
+                  <div className="scoreboard-badminton">
+                    <p>
+                      Sets: {String(selectedFixture.score_payload.set1 || "—")} |{" "}
+                      {String(selectedFixture.score_payload.set2 || "—")}{" "}
+                      {selectedFixture.score_payload.set3 ? `| ${String(selectedFixture.score_payload.set3)}` : ""}
+                    </p>
+                    {Boolean(selectedFixture.score_payload.winner) && (
+                      <p className="winner-tag">Winner: {String(selectedFixture.score_payload.winner)}</p>
+                    )}
+                  </div>
+                )}
+
+                {scoreTemplate === "generic" && (
+                  <div className="scoreboard-generic">
+                    {Boolean(selectedFixture.score_payload.winner) && (
+                      <p><strong>Winner:</strong> {String(selectedFixture.score_payload.winner)}</p>
+                    )}
+                  </div>
+                )}
+
+                {Boolean(selectedFixture.score_payload.summary) && (
+                  <div className="match-summary-quote">
+                    &quot;{String(selectedFixture.score_payload.summary)}&quot;
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Schedule & Venue Metadata */}
+            <div className="modal-meta-grid">
+              <div>
+                <span className="m-label">Venue</span>
+                <span className="m-val">📍 {selectedFixture.venue || "To be announced"}</span>
+              </div>
+              <div>
+                <span className="m-label">Match Starts (IST)</span>
+                <span className="m-val highlight">🕒 {formatIST(selectedFixture.starts_at)}</span>
+              </div>
+              <div>
+                <span className="m-label">Reporting Time</span>
+                <span className="m-val">⏱️ {formatIST(selectedFixture.reporting_at)}</span>
+              </div>
+              <div>
+                <span className="m-label">Audit Versions</span>
+                <span className="m-val">
+                  Schedule v{selectedFixture.schedule_version} · Score v{selectedFixture.score_version}
+                </span>
+              </div>
+            </div>
+
+            {/* SCORING LOCK CONDITION & START MATCH BUTTON */}
+            {!canScoreMatch(selectedFixture) ? (
+              <div className="scoring-locked-card">
+                <div className="lock-header">
+                  <span>🔒 Scoring Locked</span>
+                  <p>Match has not started yet. Scorer app and score entries unlock when play begins.</p>
+                </div>
+                <button
+                  type="button"
+                  className="start-match-btn"
+                  disabled={startMatchPending}
+                  onClick={() => handleStartMatch(selectedFixture)}
+                >
+                  {startMatchPending ? "Starting Match…" : "▶ Start Match (Go Live)"}
+                </button>
+              </div>
+            ) : (
+              <div className="scoring-unlocked-card">
+                <span className="unlocked-header">⚡ Match In Progress / Open for Scoring</span>
+                <div className="scoring-actions-row">
+                  <button
+                    type="button"
+                    className="modal-action-btn primary-score"
+                    onClick={() => openScoreModal(selectedFixture)}
+                  >
+                    ⚡ Enter Live Score
+                  </button>
+                  <Link
+                    href={`/scorer?fixture=${encodeURIComponent(selectedFixture.fixture_id)}`}
+                    className="modal-action-btn scorer-app-link"
+                  >
+                    📱 Open Scorer App
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Standard Operations Footer */}
+            <div className="modal-operations-footer">
+              <button
+                type="button"
+                className="modal-action-btn"
+                onClick={() => openReschedule(selectedFixture)}
+              >
+                🕒 Reschedule Match
+              </button>
+              <button
+                type="button"
+                className="modal-action-btn"
+                onClick={() => {
+                  setReminderFixture(selectedFixture);
+                  setReminderBody(
+                    `Reminder: ${selectedFixture.stage} between ${selectedFixture.participant_a_label} and ${selectedFixture.participant_b_label} starts at ${formatIST(selectedFixture.starts_at)} at ${selectedFixture.venue ?? "the venue"}.`
+                  );
+                }}
+              >
+                🔔 Send Reminder
+              </button>
+              <button
+                type="button"
+                className="modal-action-btn"
+                onClick={() => openHistory(selectedFixture)}
+              >
+                📜 History Log
+              </button>
+              {isMainAdmin && (
+                <button
+                  type="button"
+                  className="modal-action-btn"
+                  onClick={() => void forceReleaseScorer(selectedFixture.fixture_id)}
+                >
+                  🔄 Release Scorer
+                </button>
+              )}
+              <button
+                type="button"
+                className="modal-action-btn danger"
+                onClick={() => setDeleteFixtureTarget(selectedFixture)}
+              >
+                🗑️ Delete Match
+              </button>
+            </div>
+          </div>
+        </PortalDialog>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteFixtureTarget && (

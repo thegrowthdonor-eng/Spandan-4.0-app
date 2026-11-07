@@ -69,17 +69,20 @@ export default async function FixturesPage({
     mainAdmin,
     { data: batchesData },
     { data: groupsData },
+    { data: soloData },
     { data: eventDetails },
   ] = await Promise.all([
     client.rpc("list_event_fixtures", { p_event_id: selected.id }),
     client.rpc("is_main_admin"),
     client.rpc("list_event_eligible_batches", { p_event_id: selected.id }),
     client.rpc("list_event_participant_groups", { p_event_id: selected.id }),
+    client.rpc("list_event_selection_queue", { p_event_id: selected.id }),
     client.from("events").select("venue, starts_at, ends_at").eq("id", selected.id).single(),
   ]);
   const fixtures = (data ?? []) as FixtureItem[];
   const batches = (batchesData ?? []) as Array<{ batch_id: string; label: string; course_label?: string | null }>;
   const groups = (groupsData ?? []) as Array<{ group_id: string; name: string; batch_id: string; state: string }>;
+  const soloStudents = (soloData ?? []) as Array<{ application_id: string; student_id: string; full_name: string; batch_label: string; course_label?: string | null; roll_canonical: string }>;
   const defaultVenue = eventDetails?.venue ?? "";
 
   return (
@@ -98,7 +101,7 @@ export default async function FixturesPage({
       <section className="fixtures-intro">
         <p className="eyebrow">Competition operations</p>
         <h1>Fixtures &amp; scores</h1>
-        <p>Create matches, auto-generate tournament brackets, and manage real-time scoreboards.</p>
+        <p>Schedule matches, manage live scoring, and tap any match for complete details and controls.</p>
       </section>
 
       <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/fixtures" />
@@ -116,6 +119,7 @@ export default async function FixturesPage({
           fixtures={fixtures}
           eligibleBatches={batches}
           registeredGroups={groups}
+          soloStudents={soloStudents}
           isMainAdmin={mainAdmin.data === true}
         />
       )}
