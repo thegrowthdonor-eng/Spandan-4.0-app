@@ -45,21 +45,31 @@ export async function POST(request: Request) {
     const folder = (formData.get("folder") as string) || "general";
     const eventId = formData.get("eventId");
 
-    if (typeof eventId !== "string" || !eventIdPattern.test(eventId)) {
-      return NextResponse.json({ error: "A valid event is required." }, { status: 400, headers: noStoreHeaders });
+    if (!["posters", "podiums", "merchandise", "sponsors"].includes(folder)) {
+      return NextResponse.json({ error: "Choose poster, podium, merchandise, or sponsor media." }, { status: 400, headers: noStoreHeaders });
     }
 
-    if (!["posters", "podiums"].includes(folder)) {
-      return NextResponse.json({ error: "Choose poster or podium media." }, { status: 400, headers: noStoreHeaders });
-    }
-    const { data: canManageEvent, error: permissionError } = await authClient.rpc(folder === "posters" ? "can_edit_event_definition" : "can_manage_event", {
-      p_event_id: eventId,
-    });
-    if (permissionError || canManageEvent !== true) {
-      return NextResponse.json(
-        { error: "You are not authorised to upload media for this event." },
-        { status: 403, headers: noStoreHeaders }
-      );
+    if (["merchandise", "sponsors"].includes(folder)) {
+      const { data: isAdmin, error: adminErr } = await authClient.rpc("is_main_admin");
+      if (adminErr || isAdmin !== true) {
+        return NextResponse.json(
+          { error: "Only Main Admins can upload merchandise and sponsor media." },
+          { status: 403, headers: noStoreHeaders }
+        );
+      }
+    } else {
+      if (typeof eventId !== "string" || !eventIdPattern.test(eventId)) {
+        return NextResponse.json({ error: "A valid event is required." }, { status: 400, headers: noStoreHeaders });
+      }
+      const { data: canManageEvent, error: permissionError } = await authClient.rpc(folder === "posters" ? "can_edit_event_definition" : "can_manage_event", {
+        p_event_id: eventId,
+      });
+      if (permissionError || canManageEvent !== true) {
+        return NextResponse.json(
+          { error: "You are not authorised to upload media for this event." },
+          { status: 403, headers: noStoreHeaders }
+        );
+      }
     }
 
     if (!file) {
@@ -83,7 +93,7 @@ export async function POST(request: Request) {
     }
 
     // Sanitize folder & file name
-    const safeFolder = folder === "podiums" ? "podiums" : "posters";
+    const safeFolder = folder === "podiums" ? "podiums" : folder === "merchandise" ? "merchandise" : folder === "sponsors" ? "sponsors" : "posters";
     const timestamp = crypto.randomUUID();
     const cleanName = file.name
       .replace(/\.[^/.]+$/, "")
@@ -92,7 +102,9 @@ export async function POST(request: Request) {
       .slice(0, 32);
 
     const ext = file.type === "image/webp" ? "webp" : file.type === "image/png" ? "png" : "jpg";
-    const storagePath = `${safeFolder}/${eventId}/${timestamp}-${cleanName || "image"}.${ext}`;
+    const storagePath = ["merchandise", "sponsors"].includes(safeFolder)
+      ? `${safeFolder}/${timestamp}-${cleanName || "image"}.${ext}`
+      : `${safeFolder}/${eventId}/${timestamp}-${cleanName || "image"}.${ext}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);

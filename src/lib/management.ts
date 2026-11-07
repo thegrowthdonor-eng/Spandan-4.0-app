@@ -17,6 +17,8 @@ export function managementLinks(s: ManagementSummary) {
     { href: "/admin/notices", label: "Notices", show: s.canNotice },
     { href: "/admin/gallery", label: "Gallery", show: s.canGallery },
     { href: "/admin/help", label: "Helpdesk", show: s.canHelp },
+    { href: "/admin/merchandise", label: "Merchandise", show: s.isAdmin },
+    { href: "/admin/sponsors", label: "Sponsors & Partners", show: s.isAdmin },
     { href: "/admin/control", label: "Administration", show: s.isAdmin },
   ].filter(link => link.show);
 }
