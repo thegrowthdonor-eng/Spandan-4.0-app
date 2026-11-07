@@ -33,3 +33,14 @@ test("management navigation exposes the union of responsibilities without editor
   assert.equal(managementLinks(mixed).some(v=>v.label==="Administration"),false);
   assert.equal(managementLinks(mixed).some(v=>v.href==="/admin/groups"),false);
 });
+test("future events do not resolve to ongoing when start date has not arrived", () => {
+  const futureStart = new Date(Date.now() + 86400000).toISOString();
+  const pastStart = new Date(Date.now() - 86400000).toISOString();
+  const resolveEffectiveState = (state: string, startsAt: string | null, regEnabled: boolean) => {
+    const isFuture = startsAt ? new Date() < new Date(startsAt) : false;
+    return (state === "ongoing" && isFuture) ? (regEnabled ? "open" : "published") : state;
+  };
+  assert.equal(resolveEffectiveState("ongoing", futureStart, true), "open");
+  assert.equal(resolveEffectiveState("ongoing", futureStart, false), "published");
+  assert.equal(resolveEffectiveState("ongoing", pastStart, true), "ongoing");
+});

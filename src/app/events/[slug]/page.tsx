@@ -290,7 +290,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   ]);
 
   const now = new Date();
-  const appOpen = event.state === "open"
+  const isFuture = event.starts_at ? now < new Date(event.starts_at) : false;
+  const effectiveState = (event.state === "ongoing" && isFuture)
+    ? (event.registration_enabled ? "open" : "published")
+    : event.state;
+  const appOpen = effectiveState === "open"
     && event.application_opens_at != null
     && now >= new Date(event.application_opens_at)
     && event.application_closes_at != null
@@ -347,12 +351,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   let dockHref: string | null = "#event-registration";
   let dockTone = "open";
 
-  if (event.state === "cancelled") {
+  if (effectiveState === "cancelled") {
     dockStatus = "Programme update";
     dockLabel = "Event cancelled";
     dockHref = null;
     dockTone = "inactive";
-  } else if (event.state === "completed") {
+  } else if (effectiveState === "completed") {
     dockStatus = "Event completed";
     dockLabel = eventResult ? "View results" : "Browse events";
     dockHref = eventResult ? "#event-results" : "/events";
@@ -365,8 +369,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     dockHref = "/my-fest";
     dockTone = "status";
   } else if (!appOpen) {
-    dockStatus = event.state === "closed" ? "Registration closed" : "Registration unavailable";
-    dockLabel = event.state === "closed" ? "Registration closed" : "Not open yet";
+    dockStatus = effectiveState === "closed" ? "Registration closed" : "Registration unavailable";
+    dockLabel = effectiveState === "closed" ? "Registration closed" : "Not open yet";
     dockHref = null;
     dockTone = "inactive";
   } else if (!isAuthenticated) {
@@ -395,10 +399,10 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       <FestTopNav activePage="events" showBack backFallbackHref="/events" />
 
       {/* State banner */}
-      {event.state === "cancelled" && <div className="event-state-banner banner-cancelled">This event has been cancelled.</div>}
-      {event.state === "completed" && <div className="event-state-banner banner-completed">This event is complete. Published results appear below when available.</div>}
-      {event.state === "closed" && <div className="event-state-banner banner-closed">Registration is closed. Check My Fest for your application status.</div>}
-      {event.state === "open" && appOpen && <div className="event-state-banner banner-open">Applications are open. Apply below before {datetime(event.application_closes_at)}.</div>}
+      {effectiveState === "cancelled" && <div className="event-state-banner banner-cancelled">This event has been cancelled.</div>}
+      {effectiveState === "completed" && <div className="event-state-banner banner-completed">This event is complete. Published results appear below when available.</div>}
+      {effectiveState === "closed" && <div className="event-state-banner banner-closed">Registration is closed. Check My Fest for your application status.</div>}
+      {effectiveState === "open" && appOpen && <div className="event-state-banner banner-open">Applications are open. Apply below before {datetime(event.application_closes_at)}.</div>}
 
       {/* Official Event Poster Banner */}
       {event.poster_url && (

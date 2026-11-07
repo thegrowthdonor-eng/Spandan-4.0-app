@@ -19,7 +19,8 @@ export async function POST(request: Request) {
   const { data, error } = await client.rpc("save_management_event", { p_event_id: parsed.data.eventId, p_edition_id: parsed.data.editionId, p_details: parsed.data.details });
   if (error) return NextResponse.json({ error: error.code === "42501" ? "You cannot edit this event." : ["22023","55000","23505"].includes(error.code) ? (error.code === "23505" ? "An event with this name already exists." : error.message) : "Could not save. Your details are still here; try again." }, { status: error.code === "42501" ? 403 : error.code === "55000" ? 409 : 400, headers });
 
-  if (data?.state === "draft") {
+  const isFuture = parsed.data.details.startsAt ? new Date(parsed.data.details.startsAt) > new Date() : false;
+  if (data?.state === "draft" || (data?.state === "ongoing" && isFuture)) {
     const targetState = data.registration_enabled ? "open" : "published";
     const { error: stateError } = await client.rpc("set_admin_event_state", {
       p_event_id: data.id,

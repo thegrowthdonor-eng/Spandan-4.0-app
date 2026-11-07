@@ -207,13 +207,31 @@ function stateLabel(state: string, now: Date, event: EventCard): string {
     return "Programme confirmed";
   }
   if (state === "closed") return "Registration closed";
-  if (state === "ongoing") return "In progress";
+  if (state === "ongoing") {
+    if (event.starts_at && now < new Date(event.starts_at)) {
+      if (event.registration_enabled) {
+        if (event.application_closes_at && now >= new Date(event.application_closes_at)) return "Registration closed";
+        if (event.application_opens_at && now < new Date(event.application_opens_at)) return "Opening soon";
+        return "Applications open";
+      }
+      return "Programme confirmed";
+    }
+    return "In progress";
+  }
   if (state === "completed") return "Completed";
   if (state === "cancelled") return "Cancelled";
   return "Programme";
 }
 
 function stateClass(state: string, now?: Date, event?: EventCard): string {
+  if (state === "ongoing" && event?.starts_at && now && now < new Date(event.starts_at)) {
+    if (event.registration_enabled) {
+      if (event.application_closes_at && now >= new Date(event.application_closes_at)) return "state-closed";
+      if (event.application_opens_at && now < new Date(event.application_opens_at)) return "state-published";
+      return "state-open";
+    }
+    return "state-published";
+  }
   if (state === "open" && event?.application_closes_at && now && now >= new Date(event.application_closes_at)) return "state-closed";
   switch (state) {
     case "open": return "state-open";
