@@ -1,8 +1,7 @@
 "use client";
 
 import { PortalDialog } from "@/components/admin/portal-dialog";
-
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -28,6 +27,22 @@ type EventMeta = {
   format: string;
   state: string;
   score_template?: string;
+  venue?: string | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
+};
+
+type BatchItem = {
+  batch_id: string;
+  label: string;
+  course_label?: string | null;
+};
+
+type GroupItem = {
+  group_id: string;
+  name: string;
+  batch_id: string;
+  state: string;
 };
 
 type HistoryEntry = {
@@ -45,6 +60,32 @@ type HistoryEntry = {
   reason: string;
   created_at: string;
 };
+
+const COMMON_STAGES = [
+  "Final",
+  "Semi-Final 1",
+  "Semi-Final 2",
+  "Quarter-Final 1",
+  "Quarter-Final 2",
+  "Quarter-Final 3",
+  "Quarter-Final 4",
+  "3rd Place Playoff",
+  "Round of 16",
+  "League Match",
+  "Exhibition Match",
+];
+
+const CAMPUS_VENUES = [
+  "Main Cricket Ground",
+  "Football Turf",
+  "Basketball Court",
+  "Indoor Sports Complex",
+  "Badminton Court 1",
+  "Badminton Court 2",
+  "Table Tennis Arena",
+  "Auditorium Stage",
+  "LT-1 Complex",
+];
 
 function formatIST(iso: string | null) {
   if (!iso) return "To be announced";
@@ -65,26 +106,62 @@ function toLocalInput(iso: string | null) {
 export function FixturesClient({
   event,
   fixtures,
+  eligibleBatches = [],
+  registeredGroups = [],
   isMainAdmin,
 }: {
   event: EventMeta;
   fixtures: FixtureItem[];
+  eligibleBatches?: BatchItem[];
+  registeredGroups?: GroupItem[];
   isMainAdmin: boolean;
 }) {
   const router = useRouter();
   const scoreTemplate = event.score_template || "generic";
 
-  // New fixture state
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newStage, setNewStage] = useState("");
-  const [newPartA, setNewPartA] = useState("");
-  const [newPartB, setNewPartB] = useState("");
-  const [newVenue, setNewVenue] = useState("");
-  const [newReporting, setNewReporting] = useState("");
-  const [newStarts, setNewStarts] = useState("");
+  // Mode tabs: 'list' | 'single' | 'bracket'
+  const [activeTab, setActiveTab] = useState<"list" | "single" | "bracket">("list");
+
+  // Single Quick Match State
+  const [quickStage, setQuickStage] = useState("Semi-Final 1");
+  const [customStage, setCustomStage] = useState("");
+  const [selectedPartA, setSelectedPartA] = useState("");
+  const [selectedPartB, setSelectedPartB] = useState("");
+  const [customPartA, setCustomPartA] = useState("");
+  const [customPartB, setCustomPartB] = useState("");
+  const [useCustomA, setUseCustomA] = useState(false);
+  const [useCustomB, setUseCustomB] = useState(false);
+  const [quickVenue, setQuickVenue] = useState(event.venue || "Main Cricket Ground");
+  const [quickStarts, setQuickStarts] = useState(() => {
+    const d = event.starts_at ? new Date(event.starts_at) : new Date();
+    d.setHours(9, 0, 0, 0);
+    return toLocalInput(d.toISOString());
+  });
+  const [quickReporting, setQuickReporting] = useState(() => {
+    const d = event.starts_at ? new Date(event.starts_at) : new Date();
+    d.setHours(8, 45, 0, 0);
+    return toLocalInput(d.toISOString());
+  });
   const [createPending, setCreatePending] = useState(false);
 
-  // Reschedule modal state
+  // Tournament Auto-Generator State
+  const [bracketBatches, setBracketBatches] = useState<string[]>([]);
+  const [bracketFormat, setBracketFormat] = useState<"knockout" | "round_robin">("knockout");
+  const [bracketInterval, setBracketInterval] = useState(60); // minutes
+  const [bracketVenue, setBracketVenue] = useState(event.venue || "Main Cricket Ground");
+  const [bracketStarts, setBracketStarts] = useState(() => {
+    const d = event.starts_at ? new Date(event.starts_at) : new Date();
+    d.setHours(9, 0, 0, 0);
+    return toLocalInput(d.toISOString());
+  });
+  const [bracketPending, setBracketPending] = useState(false);
+
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "scheduled" | "live" | "final">("all");
+  const [stageFilter, setStageFilter] = useState("all");
+
+  // Modals state
   const [rescheduleFixture, setRescheduleFixture] = useState<FixtureItem | null>(null);
   const [rescheduleReporting, setRescheduleReporting] = useState("");
   const [rescheduleStarts, setRescheduleStarts] = useState("");
@@ -92,70 +169,115 @@ export function FixturesClient({
   const [rescheduleReason, setRescheduleReason] = useState("");
   const [reschedulePending, setReschedulePending] = useState(false);
 
-  // Score modal state
   const [scoreFixture, setScoreFixture] = useState<FixtureItem | null>(null);
   const [scoreStatus, setScoreStatus] = useState<"scheduled" | "live" | "paused" | "final" | "cancelled">("live");
   const [scoreForm, setScoreForm] = useState<Record<string, string>>({});
   const [scorePending, setScorePending] = useState(false);
 
-  // History modal state
+  const [deleteFixtureTarget, setDeleteFixtureTarget] = useState<FixtureItem | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+
   const [historyFixture, setHistoryFixture] = useState<FixtureItem | null>(null);
   const [historyList, setHistoryList] = useState<HistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  // Reminder modal state
   const [reminderFixture, setReminderFixture] = useState<FixtureItem | null>(null);
   const [reminderBody, setReminderBody] = useState("");
   const [reminderPending, setReminderPending] = useState(false);
 
-  // Messages
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError?: boolean } | null>(null);
 
-  async function forceReleaseScorer(fixtureId: string) {
-    if (!window.confirm("Release the current scoring device? Its unsynced local score will not be published automatically.")) return;
-    try {
-      const response = await fetch("/api/admin/fixtures/release-device", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fixtureId, deviceId: crypto.randomUUID(), force: true }) });
-      const body = await response.json() as { error?: string };
-      setStatusMessage(response.ok ? { text: "Scoring device released. The replacement can now prepare this fixture." } : { text: body.error ?? "Unable to release scorer.", isError: true });
-    } catch { setStatusMessage({ text: "Network error releasing scorer.", isError: true }); }
-  }
+  // Candidate participant labels
+  const participantOptions = useMemo(() => {
+    const list: string[] = [];
+    if (registeredGroups.length > 0) {
+      registeredGroups.forEach((g) => list.push(g.name));
+    }
+    if (eligibleBatches.length > 0) {
+      eligibleBatches.forEach((b) => {
+        const name = b.label.toLowerCase().includes("batch") ? b.label : `Batch ${b.label}`;
+        if (!list.includes(name)) list.push(name);
+      });
+    } else {
+      ["Batch 2021", "Batch 2022", "Batch 2023", "Batch 2024", "Batch 2025", "Faculty / Staff", "Interns"].forEach(
+        (b) => {
+          if (!list.includes(b)) list.push(b);
+        }
+      );
+    }
+    return list;
+  }, [eligibleBatches, registeredGroups]);
 
-  // Open Reschedule Modal
-  function openReschedule(f: FixtureItem) {
-    setRescheduleFixture(f);
-    setRescheduleReporting(toLocalInput(f.reporting_at));
-    setRescheduleStarts(toLocalInput(f.starts_at));
-    setRescheduleVenue(f.venue ?? "");
-    setRescheduleReason("");
-    setStatusMessage(null);
-  }
+  // Derived filtered fixtures
+  const filteredFixtures = useMemo(() => {
+    return fixtures.filter((f) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        f.participant_a_label.toLowerCase().includes(q) ||
+        f.participant_b_label.toLowerCase().includes(q) ||
+        f.stage.toLowerCase().includes(q) ||
+        (f.venue && f.venue.toLowerCase().includes(q));
 
-  // Open History Modal
-  async function openHistory(f: FixtureItem) {
-    setHistoryFixture(f);
-    setHistoryLoading(true);
-    setHistoryList([]);
-    try {
-      const res = await fetch(`/api/admin/fixtures?fixtureId=${f.fixture_id}&type=history`, { cache: "no-store" });
-      const data = (await res.json()) as { ok?: boolean; data?: HistoryEntry[] };
-      if (data.ok && data.data) {
-        setHistoryList(data.data);
-      }
-    } catch {
-      setStatusMessage({ text: "Failed to load fixture history.", isError: true });
-    } finally {
-      setHistoryLoading(false);
+      const matchStatus =
+        statusFilter === "all" ||
+        (statusFilter === "scheduled" && (f.state === "scheduled" || f.state === "draft")) ||
+        (statusFilter === "live" && (f.state === "ongoing" || f.score_status === "live")) ||
+        (statusFilter === "final" && (f.state === "completed" || f.score_status === "final"));
+
+      const matchStage =
+        stageFilter === "all" ||
+        f.stage.toLowerCase().includes(stageFilter.toLowerCase());
+
+      return matchSearch && matchStatus && matchStage;
+    });
+  }, [fixtures, searchQuery, statusFilter, stageFilter]);
+
+  // Status counts
+  const counts = useMemo(() => {
+    let scheduled = 0;
+    let live = 0;
+    let finalCount = 0;
+    fixtures.forEach((f) => {
+      if (f.state === "ongoing" || f.score_status === "live") live++;
+      else if (f.state === "completed" || f.score_status === "final") finalCount++;
+      else scheduled++;
+    });
+    return { all: fixtures.length, scheduled, live, final: finalCount };
+  }, [fixtures]);
+
+  // Handle Start Time Change -> Auto set Reporting -15 mins
+  function handleStartTimeChange(value: string) {
+    setQuickStarts(value);
+    if (value) {
+      const startD = new Date(value);
+      const repD = new Date(startD.getTime() - 15 * 60000);
+      setQuickReporting(toLocalInput(repD.toISOString()));
     }
   }
 
-  // Submit New Fixture
-  async function handleCreateFixture(e: React.FormEvent) {
+  // 1-Tap Single Fixture Submission
+  async function handleCreateQuickFixture(e: React.FormEvent) {
     e.preventDefault();
     if (createPending) return;
-    if (newPartA.trim() === newPartB.trim()) {
+
+    const finalStage = quickStage === "custom" ? customStage.trim() : quickStage;
+    const finalPartA = useCustomA ? customPartA.trim() : selectedPartA.trim();
+    const finalPartB = useCustomB ? customPartB.trim() : selectedPartB.trim();
+
+    if (!finalStage) {
+      setStatusMessage({ text: "Please enter or select a round/stage.", isError: true });
+      return;
+    }
+    if (!finalPartA || !finalPartB) {
+      setStatusMessage({ text: "Please select or enter both Participant A and Participant B.", isError: true });
+      return;
+    }
+    if (finalPartA.toLowerCase() === finalPartB.toLowerCase()) {
       setStatusMessage({ text: "Participant A and Participant B must be different.", isError: true });
       return;
     }
+
     setCreatePending(true);
     setStatusMessage(null);
     try {
@@ -165,25 +287,22 @@ export function FixturesClient({
         body: JSON.stringify({
           action: "create",
           eventId: event.id,
-          stage: newStage.trim(),
-          participantALabel: newPartA.trim(),
-          participantBLabel: newPartB.trim(),
-          venue: newVenue.trim() || undefined,
-          reportingAt: newReporting ? new Date(newReporting).toISOString() : null,
-          startsAt: newStarts ? new Date(newStarts).toISOString() : null,
+          stage: finalStage,
+          participantALabel: finalPartA,
+          participantBLabel: finalPartB,
+          venue: quickVenue.trim() || undefined,
+          reportingAt: quickReporting ? new Date(quickReporting).toISOString() : null,
+          startsAt: quickStarts ? new Date(quickStarts).toISOString() : null,
         }),
-        cache: "no-store",
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
-        setStatusMessage({ text: "Fixture created successfully." });
-        setShowNewForm(false);
-        setNewStage("");
-        setNewPartA("");
-        setNewPartB("");
-        setNewVenue("");
-        setNewReporting("");
-        setNewStarts("");
+        setStatusMessage({ text: `Fixture "${finalPartA} vs ${finalPartB}" published successfully!` });
+        setActiveTab("list");
+        setSelectedPartA("");
+        setSelectedPartB("");
+        setCustomPartA("");
+        setCustomPartB("");
         router.refresh();
       } else {
         setStatusMessage({ text: data.error ?? "Failed to create fixture.", isError: true });
@@ -195,7 +314,174 @@ export function FixturesClient({
     }
   }
 
-  // Submit Reschedule
+  // Generate Bracket Matches Preview
+  const bracketPreview = useMemo(() => {
+    if (bracketBatches.length < 2) return [];
+    const matches: Array<{
+      stage: string;
+      partA: string;
+      partB: string;
+      venue: string;
+      startsAt: string;
+      reportingAt: string;
+    }> = [];
+
+    const baseStart = bracketStarts ? new Date(bracketStarts).getTime() : Date.now();
+
+    if (bracketFormat === "round_robin") {
+      let matchIdx = 1;
+      for (let i = 0; i < bracketBatches.length; i++) {
+        for (let j = i + 1; j < bracketBatches.length; j++) {
+          const matchTime = new Date(baseStart + (matchIdx - 1) * bracketInterval * 60000);
+          const repTime = new Date(matchTime.getTime() - 15 * 60000);
+          matches.push({
+            stage: `League Match ${matchIdx}`,
+            partA: bracketBatches[i],
+            partB: bracketBatches[j],
+            venue: bracketVenue,
+            startsAt: matchTime.toISOString(),
+            reportingAt: repTime.toISOString(),
+          });
+          matchIdx++;
+        }
+      }
+    } else {
+      // Knockout
+      const teams = [...bracketBatches];
+      if (teams.length === 4) {
+        const semi1 = new Date(baseStart);
+        const semi2 = new Date(baseStart + bracketInterval * 60000);
+        const finalTime = new Date(baseStart + bracketInterval * 2 * 60000);
+
+        matches.push({
+          stage: "Semi-Final 1",
+          partA: teams[0],
+          partB: teams[1],
+          venue: bracketVenue,
+          startsAt: semi1.toISOString(),
+          reportingAt: new Date(semi1.getTime() - 15 * 60000).toISOString(),
+        });
+        matches.push({
+          stage: "Semi-Final 2",
+          partA: teams[2],
+          partB: teams[3],
+          venue: bracketVenue,
+          startsAt: semi2.toISOString(),
+          reportingAt: new Date(semi2.getTime() - 15 * 60000).toISOString(),
+        });
+        matches.push({
+          stage: "Final",
+          partA: `Winner of Semi-Final 1`,
+          partB: `Winner of Semi-Final 2`,
+          venue: bracketVenue,
+          startsAt: finalTime.toISOString(),
+          reportingAt: new Date(finalTime.getTime() - 15 * 60000).toISOString(),
+        });
+      } else {
+        // Pairs of teams
+        let pairCount = Math.floor(teams.length / 2);
+        for (let k = 0; k < pairCount; k++) {
+          const tTime = new Date(baseStart + k * bracketInterval * 60000);
+          matches.push({
+            stage: teams.length <= 4 ? `Semi-Final ${k + 1}` : `Quarter-Final ${k + 1}`,
+            partA: teams[k * 2],
+            partB: teams[k * 2 + 1],
+            venue: bracketVenue,
+            startsAt: tTime.toISOString(),
+            reportingAt: new Date(tTime.getTime() - 15 * 60000).toISOString(),
+          });
+        }
+        // Final match slot
+        const fTime = new Date(baseStart + pairCount * bracketInterval * 60000);
+        matches.push({
+          stage: "Final",
+          partA: "Winner Match 1",
+          partB: "Winner Match 2",
+          venue: bracketVenue,
+          startsAt: fTime.toISOString(),
+          reportingAt: new Date(fTime.getTime() - 15 * 60000).toISOString(),
+        });
+      }
+    }
+    return matches;
+  }, [bracketBatches, bracketFormat, bracketInterval, bracketVenue, bracketStarts]);
+
+  // 1-Click Bulk Bracket Generation Submission
+  async function handleBulkSubmit() {
+    if (bracketPreview.length === 0 || bracketPending) return;
+    setBracketPending(true);
+    setStatusMessage(null);
+    try {
+      const res = await fetch("/api/admin/fixtures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "bulk_create",
+          eventId: event.id,
+          fixtures: bracketPreview.map((m) => ({
+            stage: m.stage,
+            participantALabel: m.partA,
+            participantBLabel: m.partB,
+            venue: m.venue || undefined,
+            reportingAt: m.reportingAt,
+            startsAt: m.startsAt,
+          })),
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; createdCount?: number; error?: string };
+      if (data.ok) {
+        setStatusMessage({ text: `Successfully generated ${data.createdCount} tournament matches!` });
+        setActiveTab("list");
+        setBracketBatches([]);
+        router.refresh();
+      } else {
+        setStatusMessage({ text: data.error ?? "Failed generating fixtures.", isError: true });
+      }
+    } catch {
+      setStatusMessage({ text: "Network error generating tournament fixtures.", isError: true });
+    } finally {
+      setBracketPending(false);
+    }
+  }
+
+  // Delete Fixture
+  async function handleDeleteConfirm() {
+    if (!deleteFixtureTarget || deletePending) return;
+    setDeletePending(true);
+    try {
+      const res = await fetch("/api/admin/fixtures", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete",
+          fixtureId: deleteFixtureTarget.fixture_id,
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (data.ok) {
+        setStatusMessage({ text: "Fixture deleted permanently." });
+        setDeleteFixtureTarget(null);
+        router.refresh();
+      } else {
+        setStatusMessage({ text: data.error ?? "Failed to delete fixture.", isError: true });
+      }
+    } catch {
+      setStatusMessage({ text: "Network error deleting fixture.", isError: true });
+    } finally {
+      setDeletePending(false);
+    }
+  }
+
+  // Reschedule
+  function openReschedule(f: FixtureItem) {
+    setRescheduleFixture(f);
+    setRescheduleReporting(toLocalInput(f.reporting_at));
+    setRescheduleStarts(toLocalInput(f.starts_at));
+    setRescheduleVenue(f.venue ?? "");
+    setRescheduleReason("");
+    setStatusMessage(null);
+  }
+
   async function handleRescheduleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!rescheduleFixture || reschedulePending) return;
@@ -216,11 +502,12 @@ export function FixturesClient({
           venue: rescheduleVenue.trim() || undefined,
           reason: rescheduleReason.trim(),
         }),
-        cache: "no-store",
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
-        setStatusMessage({ text: `Fixture rescheduled. Schedule version bumped to v${rescheduleFixture.schedule_version + 1}.` });
+        setStatusMessage({
+          text: `Fixture rescheduled. Schedule version bumped to v${rescheduleFixture.schedule_version + 1}.`,
+        });
         setRescheduleFixture(null);
         router.refresh();
       } else {
@@ -233,7 +520,15 @@ export function FixturesClient({
     }
   }
 
-  // Submit Score
+  // Score
+  function openScoreModal(f: FixtureItem) {
+    setScoreFixture(f);
+    setScoreStatus((f.score_status as any) || "live");
+    const payload = (f.score_payload || {}) as Record<string, string>;
+    setScoreForm({ ...payload });
+    setStatusMessage(null);
+  }
+
   async function handleScoreSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!scoreFixture || scorePending) return;
@@ -249,7 +544,6 @@ export function FixturesClient({
           scorePayload: scoreForm,
           status: scoreStatus,
         }),
-        cache: "no-store",
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
@@ -266,7 +560,7 @@ export function FixturesClient({
     }
   }
 
-  // Submit Reminder
+  // Reminders
   async function handleReminderSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!reminderFixture || reminderPending) return;
@@ -280,12 +574,11 @@ export function FixturesClient({
           fixtureId: reminderFixture.fixture_id,
           body: reminderBody.trim() || undefined,
         }),
-        cache: "no-store",
       });
       const data = (await res.json()) as { ok?: boolean; remindersGenerated?: number; error?: string };
       if (data.ok) {
         setStatusMessage({
-          text: `In-app reminders issued to ${data.remindersGenerated ?? 0} selected participants for this event.`,
+          text: `In-app reminders issued to ${data.remindersGenerated ?? 0} participants for this match.`,
         });
         setReminderFixture(null);
         setReminderBody("");
@@ -299,18 +592,73 @@ export function FixturesClient({
     }
   }
 
+  // History
+  async function openHistory(f: FixtureItem) {
+    setHistoryFixture(f);
+    setHistoryLoading(true);
+    setHistoryList([]);
+    try {
+      const res = await fetch(`/api/admin/fixtures?fixtureId=${f.fixture_id}&type=history`, { cache: "no-store" });
+      const data = (await res.json()) as { ok?: boolean; data?: HistoryEntry[] };
+      if (data.ok && data.data) {
+        setHistoryList(data.data);
+      }
+    } catch {
+      setStatusMessage({ text: "Failed to load fixture history.", isError: true });
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function forceReleaseScorer(fixtureId: string) {
+    if (!window.confirm("Release current scoring device? Unsynced local score will not be published.")) return;
+    try {
+      const res = await fetch("/api/admin/fixtures/release-device", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fixtureId, deviceId: crypto.randomUUID(), force: true }),
+      });
+      const body = (await res.json()) as { error?: string };
+      setStatusMessage(
+        res.ok
+          ? { text: "Scoring device released. Replacement can now prepare this fixture." }
+          : { text: body.error ?? "Unable to release scorer.", isError: true }
+      );
+    } catch {
+      setStatusMessage({ text: "Network error releasing scorer.", isError: true });
+    }
+  }
+
   return (
     <div className="fixtures-workspace">
-      {/* Navigation Sub-bar */}
-      <div className="review-top-bar">
+      {/* KPI & Quick Operational Bar */}
+      <div className="fixtures-kpi-bar">
+        <div className="kpi-event-pill">
+          <span className="kpi-icon">
+            {event.category === "sport" ? "🏆" : event.category === "cultural" ? "🎭" : "⚡"}
+          </span>
+          <div className="kpi-event-info">
+            <strong>{event.title}</strong>
+            <span>{scoreTemplate.toUpperCase()} · {event.format.toUpperCase()}</span>
+          </div>
+        </div>
 
-        <button
-          type="button"
-          className="create-toggle-button"
-          onClick={() => setShowNewForm(!showNewForm)}
-        >
-          {showNewForm ? "✕ Close Form" : "+ Create New Fixture"}
-        </button>
+        <div className="kpi-actions">
+          <button
+            type="button"
+            className={`kpi-btn ${activeTab === "single" ? "active" : ""}`}
+            onClick={() => setActiveTab(activeTab === "single" ? "list" : "single")}
+          >
+            {activeTab === "single" ? "✕ Close Form" : "+ Quick Match"}
+          </button>
+          <button
+            type="button"
+            className={`kpi-btn bracket ${activeTab === "bracket" ? "active" : ""}`}
+            onClick={() => setActiveTab(activeTab === "bracket" ? "list" : "bracket")}
+          >
+            {activeTab === "bracket" ? "✕ Close Generator" : "⚡ Auto-Generate Bracket"}
+          </button>
+        </div>
       </div>
 
       {statusMessage && (
@@ -319,236 +667,623 @@ export function FixturesClient({
         </div>
       )}
 
-      {/* New Fixture Form Drawer */}
-      {showNewForm && (
-        <form className="fixture-form new-fixture-card" onSubmit={handleCreateFixture}>
-          <div className="form-heading-row">
-            <h3>Add New Fixture to {event.title}</h3>
-            <span className="template-tag">Template: {scoreTemplate.toUpperCase()}</span>
-          </div>
-
-          <div className="form-grid-2">
-            <label>
-              Stage / Round (e.g. Quarter-Final, Group A)
-              <input
-                required
-                maxLength={100}
-                value={newStage}
-                onChange={(e) => setNewStage(e.target.value)}
-                placeholder="e.g. Quarter-final 1"
-              />
-            </label>
-            <label>
-              Venue / Field
-              <input
-                maxLength={160}
-                value={newVenue}
-                onChange={(e) => setNewVenue(e.target.value)}
-                placeholder="e.g. Main Court, Ground A"
-              />
-            </label>
-          </div>
-
-          <div className="form-grid-2">
-            <label>
-              Participant A (Batch / Squad / Name)
-              <input
-                required
-                maxLength={160}
-                value={newPartA}
-                onChange={(e) => setNewPartA(e.target.value)}
-                placeholder="e.g. Batch 2024"
-              />
-            </label>
-            <label>
-              Participant B (Batch / Squad / Name)
-              <input
-                required
-                maxLength={160}
-                value={newPartB}
-                onChange={(e) => setNewPartB(e.target.value)}
-                placeholder="e.g. Batch 2025"
-              />
-            </label>
-          </div>
-
-          <div className="form-grid-2">
-            <label>
-              Reporting Time (IST)
-              <input
-                type="datetime-local"
-                value={newReporting}
-                onChange={(e) => setNewReporting(e.target.value)}
-              />
-            </label>
-            <label>
-              Start Time (IST)
-              <input
-                type="datetime-local"
-                value={newStarts}
-                onChange={(e) => setNewStarts(e.target.value)}
-              />
-            </label>
-          </div>
-
-          <div className="form-actions-row">
-            <button type="submit" className="primary-btn" disabled={createPending}>
-              {createPending ? "Creating Fixture…" : "Publish Fixture"}
-            </button>
-            <button
-              type="button"
-              className="cancel-btn"
-              onClick={() => setShowNewForm(false)}
-            >
-              Cancel
+      {/* MODE 1: 1-Tap Quick Match Creator */}
+      {activeTab === "single" && (
+        <section className="fixture-form-drawer">
+          <div className="drawer-header">
+            <div>
+              <h3>1-Tap Quick Match Creator</h3>
+              <p>Pick rounds, tap participating batches, and publish to the live schedule in seconds.</p>
+            </div>
+            <button type="button" className="drawer-close" onClick={() => setActiveTab("list")}>
+              ✕
             </button>
           </div>
-        </form>
+
+          <form onSubmit={handleCreateQuickFixture} className="quick-fixture-form">
+            {/* Stage Selector Chips */}
+            <div className="chip-section">
+              <label className="section-label">1. Match Stage / Round</label>
+              <div className="chip-scroller">
+                {COMMON_STAGES.map((s) => (
+                  <button
+                    type="button"
+                    key={s}
+                    className={`stage-chip ${quickStage === s ? "selected" : ""}`}
+                    onClick={() => {
+                      setQuickStage(s);
+                      setCustomStage("");
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className={`stage-chip ${quickStage === "custom" ? "selected" : ""}`}
+                  onClick={() => setQuickStage("custom")}
+                >
+                  Custom…
+                </button>
+              </div>
+              {quickStage === "custom" && (
+                <input
+                  className="custom-text-input"
+                  placeholder="e.g. Pool A — Match 3"
+                  maxLength={100}
+                  required
+                  value={customStage}
+                  onChange={(e) => setCustomStage(e.target.value)}
+                />
+              )}
+            </div>
+
+            {/* Team A vs Team B Smart Pickers */}
+            <div className="versus-grid">
+              {/* Participant A */}
+              <div className="team-picker-card">
+                <div className="team-picker-header">
+                  <span className="team-badge a">A</span>
+                  <h4>Participant A (Home / 1st)</h4>
+                  <button
+                    type="button"
+                    className="toggle-text-btn"
+                    onClick={() => setUseCustomA(!useCustomA)}
+                  >
+                    {useCustomA ? "Choose from batches" : "Type custom"}
+                  </button>
+                </div>
+
+                {useCustomA ? (
+                  <input
+                    className="custom-text-input"
+                    placeholder="Type team / participant name"
+                    maxLength={160}
+                    value={customPartA}
+                    onChange={(e) => setCustomPartA(e.target.value)}
+                    required
+                  />
+                ) : (
+                  <div className="batch-chips-grid">
+                    {participantOptions.map((p) => (
+                      <button
+                        type="button"
+                        key={p}
+                        className={`batch-pill ${selectedPartA === p ? "active-a" : ""}`}
+                        disabled={selectedPartB === p}
+                        onClick={() => setSelectedPartA(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="selected-preview">
+                  Selected: <strong>{useCustomA ? customPartA || "None" : selectedPartA || "Select above"}</strong>
+                </div>
+              </div>
+
+              <div className="versus-divider">
+                <span>VS</span>
+              </div>
+
+              {/* Participant B */}
+              <div className="team-picker-card">
+                <div className="team-picker-header">
+                  <span className="team-badge b">B</span>
+                  <h4>Participant B (Away / 2nd)</h4>
+                  <button
+                    type="button"
+                    className="toggle-text-btn"
+                    onClick={() => setUseCustomB(!useCustomB)}
+                  >
+                    {useCustomB ? "Choose from batches" : "Type custom"}
+                  </button>
+                </div>
+
+                {useCustomB ? (
+                  <input
+                    className="custom-text-input"
+                    placeholder="Type team / participant name"
+                    maxLength={160}
+                    value={customPartB}
+                    onChange={(e) => setCustomPartB(e.target.value)}
+                    required
+                  />
+                ) : (
+                  <div className="batch-chips-grid">
+                    {participantOptions.map((p) => (
+                      <button
+                        type="button"
+                        key={p}
+                        className={`batch-pill ${selectedPartB === p ? "active-b" : ""}`}
+                        disabled={selectedPartA === p}
+                        onClick={() => setSelectedPartB(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="selected-preview">
+                  Selected: <strong>{useCustomB ? customPartB || "None" : selectedPartB || "Select above"}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Venue & Timings Row */}
+            <div className="meta-inputs-grid">
+              <div className="meta-input-group">
+                <label>Venue / Ground</label>
+                <div className="venue-chips">
+                  {CAMPUS_VENUES.map((v) => (
+                    <button
+                      type="button"
+                      key={v}
+                      className={`venue-chip ${quickVenue === v ? "selected" : ""}`}
+                      onClick={() => setQuickVenue(v)}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  className="custom-text-input"
+                  placeholder="Or enter custom venue"
+                  value={quickVenue}
+                  maxLength={160}
+                  onChange={(e) => setQuickVenue(e.target.value)}
+                />
+              </div>
+
+              <div className="timings-grid">
+                <label>
+                  Start Time (IST)
+                  <input
+                    type="datetime-local"
+                    required
+                    value={quickStarts}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Reporting Time (IST)
+                  <input
+                    type="datetime-local"
+                    value={quickReporting}
+                    onChange={(e) => setQuickReporting(e.target.value)}
+                  />
+                  <small className="hint">Auto-set to 15m prior</small>
+                </label>
+              </div>
+            </div>
+
+            <div className="form-submit-row">
+              <button type="submit" className="primary-action-btn" disabled={createPending}>
+                {createPending ? "Publishing Match…" : "✓ Publish Match Fixture"}
+              </button>
+              <button type="button" className="secondary-action-btn" onClick={() => setActiveTab("list")}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </section>
       )}
 
-      {/* Fixtures List */}
-      <div className="fixtures-container">
-        <div className="fixtures-header-count">
-          <span>{fixtures.length} Fixture{fixtures.length === 1 ? "" : "s"} Scheduled</span>
-          <span className="template-note">Score rules: {scoreTemplate}</span>
+      {/* MODE 2: 1-Click Tournament Bracket Generator */}
+      {activeTab === "bracket" && (
+        <section className="fixture-form-drawer bracket-drawer">
+          <div className="drawer-header">
+            <div>
+              <h3>⚡ 1-Click Tournament Bracket Generator</h3>
+              <p>Select teams and generate entire Knockout or Round-Robin tournament schedules in one click.</p>
+            </div>
+            <button type="button" className="drawer-close" onClick={() => setActiveTab("list")}>
+              ✕
+            </button>
+          </div>
+
+          <div className="bracket-setup-grid">
+            <div className="setup-column">
+              <label className="section-label">1. Select Participating Batches / Squads ({bracketBatches.length} selected)</label>
+              <div className="selectable-batches-grid">
+                {participantOptions.map((p) => {
+                  const isChecked = bracketBatches.includes(p);
+                  return (
+                    <label key={p} className={`batch-check-card ${isChecked ? "checked" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) setBracketBatches([...bracketBatches, p]);
+                          else setBracketBatches(bracketBatches.filter((x) => x !== p));
+                        }}
+                      />
+                      <span>{p}</span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="bracket-options">
+                <label>
+                  Format
+                  <select
+                    value={bracketFormat}
+                    onChange={(e) => setBracketFormat(e.target.value as "knockout" | "round_robin")}
+                  >
+                    <option value="knockout">Single Elimination Knockout (Semis &amp; Final)</option>
+                    <option value="round_robin">Round-Robin / League (All teams play each other)</option>
+                  </select>
+                </label>
+
+                <label>
+                  Match Interval
+                  <select
+                    value={bracketInterval}
+                    onChange={(e) => setBracketInterval(Number(e.target.value))}
+                  >
+                    <option value={45}>45 Minutes</option>
+                    <option value={60}>1 Hour</option>
+                    <option value={90}>1.5 Hours</option>
+                    <option value={120}>2 Hours</option>
+                  </select>
+                </label>
+
+                <label>
+                  Venue
+                  <input
+                    value={bracketVenue}
+                    maxLength={160}
+                    onChange={(e) => setBracketVenue(e.target.value)}
+                    placeholder="e.g. Main Ground"
+                  />
+                </label>
+
+                <label>
+                  First Match Starts At
+                  <input
+                    type="datetime-local"
+                    value={bracketStarts}
+                    onChange={(e) => setBracketStarts(e.target.value)}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Live Schedule Preview */}
+            <div className="preview-column">
+              <label className="section-label">2. Generated Schedule Preview ({bracketPreview.length} Matches)</label>
+              {bracketPreview.length === 0 ? (
+                <div className="empty-bracket-hint">
+                  <p>Select at least 2 teams on the left to preview generated fixtures.</p>
+                </div>
+              ) : (
+                <div className="preview-matches-list">
+                  {bracketPreview.map((m, idx) => (
+                    <div key={idx} className="preview-match-item">
+                      <div className="match-tag-row">
+                        <span className="stage-pill">{m.stage}</span>
+                        <span className="time-pill">{formatIST(m.startsAt)}</span>
+                      </div>
+                      <div className="matchup-preview">
+                        <strong>{m.partA}</strong>
+                        <span className="vs-tag">vs</span>
+                        <strong>{m.partB}</strong>
+                      </div>
+                      <small className="venue-text">📍 {m.venue}</small>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="primary-action-btn full-width"
+                    disabled={bracketPending}
+                    onClick={handleBulkSubmit}
+                  >
+                    {bracketPending ? "Creating All Matches…" : `✓ Create All ${bracketPreview.length} Fixtures`}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Search & Filter Toolstrip */}
+      <div className="fixtures-filter-strip">
+        <div className="status-tabs">
+          <button
+            type="button"
+            className={`status-tab ${statusFilter === "all" ? "active" : ""}`}
+            onClick={() => setStatusFilter("all")}
+          >
+            All ({counts.all})
+          </button>
+          <button
+            type="button"
+            className={`status-tab ${statusFilter === "scheduled" ? "active" : ""}`}
+            onClick={() => setStatusFilter("scheduled")}
+          >
+            Scheduled ({counts.scheduled})
+          </button>
+          <button
+            type="button"
+            className={`status-tab live ${statusFilter === "live" ? "active" : ""}`}
+            onClick={() => setStatusFilter("live")}
+          >
+            <span className="live-dot" /> Live ({counts.live})
+          </button>
+          <button
+            type="button"
+            className={`status-tab ${statusFilter === "final" ? "active" : ""}`}
+            onClick={() => setStatusFilter("final")}
+          >
+            Completed ({counts.final})
+          </button>
         </div>
 
-        {fixtures.length === 0 ? (
-          <div className="review-empty-state">
-            <h3>No fixtures created yet</h3>
-            <p>Click &quot;+ Create New Fixture&quot; above to schedule the first match or round.</p>
+        <div className="search-and-stage">
+          <input
+            type="search"
+            placeholder="Search teams, rounds, venues…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="fixtures-search-input"
+          />
+          <select
+            value={stageFilter}
+            onChange={(e) => setStageFilter(e.target.value)}
+            className="stage-filter-select"
+          >
+            <option value="all">All Stages</option>
+            <option value="final">Finals</option>
+            <option value="semi">Semi-Finals</option>
+            <option value="quarter">Quarter-Finals</option>
+            <option value="league">League Matches</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Stadium Fixture Cards Grid */}
+      <div className="stadium-fixtures-list">
+        {filteredFixtures.length === 0 ? (
+          <div className="fixtures-empty-state">
+            <h3>No fixtures match your filters</h3>
+            <p>
+              {fixtures.length === 0
+                ? "Click \"+ Quick Match\" or \"Auto-Generate Bracket\" above to schedule your first matches."
+                : "Try resetting your search query or status filter."}
+            </p>
           </div>
         ) : (
-          <div className="fixture-cards-grid">
-            {fixtures.map((f) => {
-              const scoreObj = (f.score_payload || {}) as Record<string, unknown>;
-              return (
-                <article key={f.fixture_id} className={`fixture-item-card state-${f.state}`}>
-                  <div className="card-top-bar">
-                    <span className="fixture-stage-tag">{f.stage}</span>
-                    <div className="versions-box">
-                      <span className="version-pill">Sched v{f.schedule_version}</span>
-                      {f.score_version > 0 && (
-                        <span className="version-pill score">Score v{f.score_version} ({f.score_status})</span>
-                      )}
-                    </div>
+          filteredFixtures.map((f) => {
+            const scoreObj = (f.score_payload || {}) as Record<string, unknown>;
+            const isLive = f.state === "ongoing" || f.score_status === "live";
+            const isCompleted = f.state === "completed" || f.score_status === "final";
+
+            return (
+              <article
+                key={f.fixture_id}
+                className={`stadium-match-card ${isLive ? "is-live" : isCompleted ? "is-completed" : ""}`}
+              >
+                {/* Top Badge Bar */}
+                <div className="stadium-card-top">
+                  <div className="stage-and-status">
+                    <span className="stadium-stage-tag">{f.stage}</span>
+                    <span
+                      className={`stadium-status-badge ${isLive ? "live" : isCompleted ? "completed" : "scheduled"}`}
+                    >
+                      {isLive ? "● LIVE" : isCompleted ? "FINAL" : "SCHEDULED"}
+                    </span>
                   </div>
 
-                  <div className="matchup-row">
-                    <span className="participant-a">{f.participant_a_label}</span>
-                    <span className="versus-pill">VS</span>
-                    <span className="participant-b">{f.participant_b_label}</span>
+                  <div className="stadium-versions">
+                    <span className="v-pill">v{f.schedule_version}</span>
+                    {f.score_version > 0 && <span className="v-pill score">Score v{f.score_version}</span>}
+                  </div>
+                </div>
+
+                {/* Scoreboard Stadium Center */}
+                <div className="stadium-matchup-arena">
+                  {/* Team A */}
+                  <div className="stadium-competitor home">
+                    <div className="competitor-avatar">
+                      {f.participant_a_label.slice(0, 2).toUpperCase()}
+                    </div>
+                    <span className="competitor-name">{f.participant_a_label}</span>
+                    {scoreTemplate === "cricket" && (
+                      <span className="competitor-live-score">
+                        {String(scoreObj.teamA_runs ?? "0")}/{String(scoreObj.teamA_wickets ?? "0")}
+                        <small>({String(scoreObj.teamA_overs ?? "0")})</small>
+                      </span>
+                    )}
+                    {scoreTemplate === "football" && (
+                      <span className="competitor-live-score big">
+                        {String(scoreObj.teamA_goals ?? "0")}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Score Snapshot Display if present */}
-                  {f.score_payload && Object.keys(scoreObj).length > 0 && (
-                    <div className="live-score-display">
-                      <div className="score-header">
-                        <strong>Scoreboard</strong>
-                        <span className={`score-status-tag ${f.score_status}`}>{f.score_status?.toUpperCase()}</span>
-                      </div>
-                      <div className="score-details">
-                        {scoreTemplate === "cricket" && (
-                          <div className="score-cricket">
-                            <p><strong>{f.participant_a_label}:</strong> {String(scoreObj.teamA_runs ?? "0")}/{String(scoreObj.teamA_wickets ?? "0")} ({String(scoreObj.teamA_overs ?? "0")} ov)</p>
-                            <p><strong>{f.participant_b_label}:</strong> {String(scoreObj.teamB_runs ?? "0")}/{String(scoreObj.teamB_wickets ?? "0")} ({String(scoreObj.teamB_overs ?? "0")} ov)</p>
-                            {Boolean(scoreObj.summary) && <p className="match-summary">{String(scoreObj.summary)}</p>}
-                          </div>
-                        )}
-                        {scoreTemplate === "football" && (
-                          <div className="score-football">
-                            <div className="football-score-row">
-                              <span>{String(scoreObj.teamA_goals ?? "0")}</span>
-                              <span>—</span>
-                              <span>{String(scoreObj.teamB_goals ?? "0")}</span>
-                            </div>
-                            {Boolean(scoreObj.penalties) && <p className="penalties-note">Penalties: {String(scoreObj.penalties)}</p>}
-                          </div>
-                        )}
-                        {scoreTemplate === "badminton" && (
-                          <div className="score-badminton">
-                            <p>Sets: {String(scoreObj.set1 ?? "—")} | {String(scoreObj.set2 ?? "—")} | {String(scoreObj.set3 ?? "—")}</p>
-                            {Boolean(scoreObj.winner) && <p className="winner-note">Winner: {String(scoreObj.winner)}</p>}
-                          </div>
-                        )}
-                        {scoreTemplate === "generic" && (
-                          <div className="score-generic">
-                            {Boolean(scoreObj.winner) && <p><strong>Winner:</strong> {String(scoreObj.winner)}</p>}
-                            {Boolean(scoreObj.summary) && <p>{String(scoreObj.summary)}</p>}
-                          </div>
-                        )}
-                      </div>
+                  {/* Center VS or Score Divider */}
+                  <div className="stadium-center-vs">
+                    <span className="vs-badge">VS</span>
+                    <span className="start-time-pill">{formatIST(f.starts_at)}</span>
+                  </div>
+
+                  {/* Team B */}
+                  <div className="stadium-competitor away">
+                    {scoreTemplate === "football" && (
+                      <span className="competitor-live-score big">
+                        {String(scoreObj.teamB_goals ?? "0")}
+                      </span>
+                    )}
+                    {scoreTemplate === "cricket" && (
+                      <span className="competitor-live-score">
+                        {String(scoreObj.teamB_runs ?? "0")}/{String(scoreObj.teamB_wickets ?? "0")}
+                        <small>({String(scoreObj.teamB_overs ?? "0")})</small>
+                      </span>
+                    )}
+                    <span className="competitor-name">{f.participant_b_label}</span>
+                    <div className="competitor-avatar">
+                      {f.participant_b_label.slice(0, 2).toUpperCase()}
                     </div>
+                  </div>
+                </div>
+
+                {/* Badminton / Generic / Summary Row */}
+                {Boolean(scoreObj.summary) && (
+                  <div className="match-summary-banner">
+                    {String(scoreObj.summary)}
+                  </div>
+                )}
+                {scoreTemplate === "badminton" && Object.keys(scoreObj).length > 0 && (
+                  <div className="badminton-sets-strip">
+                    <span>Set 1: {String(scoreObj.set1 || "—")}</span>
+                    <span>Set 2: {String(scoreObj.set2 || "—")}</span>
+                    <span>Set 3: {String(scoreObj.set3 || "—")}</span>
+                    {Boolean(scoreObj.winner) && <strong>Winner: {String(scoreObj.winner)}</strong>}
+                  </div>
+                )}
+
+                {/* Stadium Metadata Strip */}
+                <div className="stadium-meta-strip">
+                  <span className="meta-item">
+                    📍 <strong>{f.venue || "Venue TBA"}</strong>
+                  </span>
+                  <span className="meta-item">
+                    ⏱️ Reporting: {formatIST(f.reporting_at)}
+                  </span>
+                </div>
+
+                {/* Thumb-Friendly Stadium Actions */}
+                <div className="stadium-actions-strip">
+                  <button
+                    type="button"
+                    className="action-icon-btn score-primary"
+                    onClick={() => openScoreModal(f)}
+                    title="Quick Score Entry"
+                  >
+                    ⚡ Score
+                  </button>
+
+                  <Link
+                    href={`/scorer?fixture=${encodeURIComponent(f.fixture_id)}`}
+                    className="action-icon-btn scorer-link"
+                    title="Ground Scorer"
+                  >
+                    📱 Scorer App
+                  </Link>
+
+                  <button
+                    type="button"
+                    className="action-icon-btn"
+                    onClick={() => openReschedule(f)}
+                    title="Reschedule Match"
+                  >
+                    🕒 Reschedule
+                  </button>
+
+                  <button
+                    type="button"
+                    className="action-icon-btn"
+                    title="Send participant reminder notifications"
+                    onClick={() => {
+                      setReminderFixture(f);
+                      setReminderBody(
+                        `Reminder: ${f.stage} between ${f.participant_a_label} and ${f.participant_b_label} starts at ${formatIST(f.starts_at)} at ${f.venue ?? "the venue"}.`
+                      );
+                    }}
+                  >
+                    🔔 Remind
+                  </button>
+
+                  <button
+                    type="button"
+                    className="action-icon-btn"
+                    onClick={() => openHistory(f)}
+                    title="Audit History"
+                  >
+                    📜 History
+                  </button>
+
+                  {isMainAdmin && (
+                    <button
+                      type="button"
+                      className="action-icon-btn"
+                      onClick={() => void forceReleaseScorer(f.fixture_id)}
+                      title="Release Scorer Device"
+                    >
+                      🔄 Scorer Lock
+                    </button>
                   )}
 
-                  <div className="fixture-meta-grid">
-                    <div>
-                      <span className="meta-label">Venue</span>
-                      <span className="meta-val">{f.venue || "To be announced"}</span>
-                    </div>
-                    <div>
-                      <span className="meta-label">Reporting</span>
-                      <span className="meta-val">{formatIST(f.reporting_at)}</span>
-                    </div>
-                    <div>
-                      <span className="meta-label">Match Starts</span>
-                      <span className="meta-val highlight">{formatIST(f.starts_at)}</span>
-                    </div>
-                  </div>
-
-                  {/* Fixture Operational Actions */}
-                  <div className="fixture-control-buttons">
-                    <Link
-                      className="btn-action score-btn"
-                      href={`/scorer?fixture=${encodeURIComponent(f.fixture_id)}`}
-                    >
-                      Prepare Offline Scorer
-                    </Link>
-                    {isMainAdmin && <button type="button" className="btn-action history-btn" onClick={() => void forceReleaseScorer(f.fixture_id)}>Transfer Scorer</button>}
-                    <button
-                      type="button"
-                      className="btn-action reschedule-btn"
-                      onClick={() => openReschedule(f)}
-                    >
-                      Reschedule…
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-action history-btn"
-                      onClick={() => openHistory(f)}
-                    >
-                      History ({f.schedule_version})
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-action reminder-btn"
-                      title="Send in-app notifications to participants"
-                      onClick={() => {
-                        setReminderFixture(f);
-                        setReminderBody(`Reminder: ${f.stage} between ${f.participant_a_label} and ${f.participant_b_label} starts at ${formatIST(f.starts_at)} at ${f.venue ?? "the venue"}.`);
-                      }}
-                    >
-                      Send Reminder
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-action print-btn"
-                      title="Print Ground Scorecard / Roster for Umpires"
-                      onClick={() => window.print()}
-                    >
-                      🖨️ Print Card
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  <button
+                    type="button"
+                    className="action-icon-btn danger"
+                    onClick={() => setDeleteFixtureTarget(f)}
+                    title="Delete Fixture"
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              </article>
+            );
+          })
         )}
       </div>
 
+      {/* Delete Confirmation Modal */}
+      {deleteFixtureTarget && (
+        <PortalDialog
+          labelledBy="delete-modal-title"
+          onClose={() => setDeleteFixtureTarget(null)}
+          busy={deletePending}
+        >
+          <div className="modal-card wide">
+            <h2 id="delete-modal-title">Delete Fixture Permanently?</h2>
+            <p>
+              Are you sure you want to delete this match?
+              <br />
+              <strong>
+                {deleteFixtureTarget.stage}: {deleteFixtureTarget.participant_a_label} vs{" "}
+                {deleteFixtureTarget.participant_b_label}
+              </strong>
+            </p>
+            <p className="reschedule-audit-notice">
+              ⚠️ This will remove all associated live score snapshots, audit entries, and offline scorer locks. This action cannot be undone.
+            </p>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="modal-btn cancel"
+                disabled={deletePending}
+                onClick={() => setDeleteFixtureTarget(null)}
+              >
+                Keep Match
+              </button>
+              <button
+                type="button"
+                className="modal-btn confirm-reject"
+                style={{ background: "#c53030", borderColor: "#c53030" }}
+                disabled={deletePending}
+                onClick={handleDeleteConfirm}
+              >
+                {deletePending ? "Deleting…" : "Yes, Delete Match"}
+              </button>
+            </div>
+          </div>
+        </PortalDialog>
+      )}
+
       {/* Reschedule Modal */}
       {rescheduleFixture && (
-        <PortalDialog labelledBy="reschedule-modal-title" onClose={() => setRescheduleFixture(null)} busy={reschedulePending}>
+        <PortalDialog
+          labelledBy="reschedule-modal-title"
+          onClose={() => setRescheduleFixture(null)}
+          busy={reschedulePending}
+        >
           <div className="modal-card wide">
             <h2 id="reschedule-modal-title">Reschedule Fixture</h2>
             <p>
@@ -563,19 +1298,19 @@ export function FixturesClient({
             <form onSubmit={handleRescheduleSubmit}>
               <div className="form-grid-2">
                 <label className="modal-label">
-                  New Reporting Time (IST)
-                  <input
-                    type="datetime-local"
-                    value={rescheduleReporting}
-                    onChange={(e) => setRescheduleReporting(e.target.value)}
-                  />
-                </label>
-                <label className="modal-label">
                   New Start Time (IST)
                   <input
                     type="datetime-local"
                     value={rescheduleStarts}
                     onChange={(e) => setRescheduleStarts(e.target.value)}
+                  />
+                </label>
+                <label className="modal-label">
+                  New Reporting Time (IST)
+                  <input
+                    type="datetime-local"
+                    value={rescheduleReporting}
+                    onChange={(e) => setRescheduleReporting(e.target.value)}
                   />
                 </label>
               </div>
@@ -625,9 +1360,13 @@ export function FixturesClient({
         </PortalDialog>
       )}
 
-      {/* Score Entry Modal */}
+      {/* Quick Score Entry Modal */}
       {scoreFixture && (
-        <PortalDialog labelledBy="score-modal-title" onClose={() => setScoreFixture(null)} busy={scorePending}>
+        <PortalDialog
+          labelledBy="score-modal-title"
+          onClose={() => setScoreFixture(null)}
+          busy={scorePending}
+        >
           <div className="modal-card wide">
             <h2 id="score-modal-title">
               Score Entry: {scoreFixture.participant_a_label} vs {scoreFixture.participant_b_label}
@@ -642,7 +1381,9 @@ export function FixturesClient({
                 Match Status
                 <select
                   value={scoreStatus}
-                  onChange={(e) => setScoreStatus(e.target.value as "scheduled" | "live" | "paused" | "final" | "cancelled")}
+                  onChange={(e) =>
+                    setScoreStatus(e.target.value as "scheduled" | "live" | "paused" | "final" | "cancelled")
+                  }
                   className="score-select"
                 >
                   <option value="live">Live (Ongoing)</option>
@@ -679,7 +1420,7 @@ export function FixturesClient({
                     <input
                       value={scoreForm.summary ?? ""}
                       onChange={(e) => setScoreForm({ ...scoreForm, summary: e.target.value })}
-                      placeholder="e.g. Team A won by 14 runs"
+                      placeholder="e.g. Batch 2023 won by 14 runs"
                     />
                   </label>
                 </div>
@@ -709,11 +1450,19 @@ export function FixturesClient({
                     </label>
                   </div>
                   <label className="modal-label">
-                    Penalties / Extra time notes (if any)
+                    Penalties / Shootout (if applicable)
                     <input
                       value={scoreForm.penalties ?? ""}
                       onChange={(e) => setScoreForm({ ...scoreForm, penalties: e.target.value })}
-                      placeholder="e.g. 4 - 3 on penalties"
+                      placeholder="e.g. 4-3 penalties"
+                    />
+                  </label>
+                  <label className="modal-label">
+                    Match Summary
+                    <input
+                      value={scoreForm.summary ?? ""}
+                      onChange={(e) => setScoreForm({ ...scoreForm, summary: e.target.value })}
+                      placeholder="e.g. Batch 2024 won in extra time"
                     />
                   </label>
                 </div>
@@ -723,66 +1472,19 @@ export function FixturesClient({
               {scoreTemplate === "badminton" && (
                 <div className="template-fields">
                   <div className="form-grid-3">
-                    <label className="modal-label">
-                      Set 1 (e.g. 21-18)
-                      <input
-                        value={scoreForm.set1 ?? ""}
-                        onChange={(e) => setScoreForm({ ...scoreForm, set1: e.target.value })}
-                        placeholder="21-19"
-                      />
-                    </label>
-                    <label className="modal-label">
-                      Set 2 (e.g. 19-21)
-                      <input
-                        value={scoreForm.set2 ?? ""}
-                        onChange={(e) => setScoreForm({ ...scoreForm, set2: e.target.value })}
-                        placeholder="19-21"
-                      />
-                    </label>
-                    <label className="modal-label">
-                      Set 3 (if played)
-                      <input
-                        value={scoreForm.set3 ?? ""}
-                        onChange={(e) => setScoreForm({ ...scoreForm, set3: e.target.value })}
-                        placeholder="21-15"
-                      />
-                    </label>
+                    <label className="modal-label">Set 1<input value={scoreForm.set1 ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, set1: e.target.value })} placeholder="21-18" /></label>
+                    <label className="modal-label">Set 2<input value={scoreForm.set2 ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, set2: e.target.value })} placeholder="19-21" /></label>
+                    <label className="modal-label">Set 3<input value={scoreForm.set3 ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, set3: e.target.value })} placeholder="21-14" /></label>
                   </div>
-                  <label className="modal-label">
-                    Winner
-                    <select
-                      value={scoreForm.winner ?? ""}
-                      onChange={(e) => setScoreForm({ ...scoreForm, winner: e.target.value })}
-                      className="score-select"
-                    >
-                      <option value="">Deciding / In progress</option>
-                      <option value={scoreFixture.participant_a_label}>{scoreFixture.participant_a_label}</option>
-                      <option value={scoreFixture.participant_b_label}>{scoreFixture.participant_b_label}</option>
-                    </select>
-                  </label>
+                  <label className="modal-label">Winner<input value={scoreForm.winner ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, winner: e.target.value })} placeholder="Name of winner" /></label>
                 </div>
               )}
 
               {/* GENERIC TEMPLATE */}
               {scoreTemplate === "generic" && (
                 <div className="template-fields">
-                  <label className="modal-label">
-                    Result / Winner
-                    <input
-                      value={scoreForm.winner ?? ""}
-                      onChange={(e) => setScoreForm({ ...scoreForm, winner: e.target.value })}
-                      placeholder="e.g. Participant A won, or Draw"
-                    />
-                  </label>
-                  <label className="modal-label">
-                    Summary / Points Note
-                    <textarea
-                      rows={2}
-                      value={scoreForm.summary ?? ""}
-                      onChange={(e) => setScoreForm({ ...scoreForm, summary: e.target.value })}
-                      placeholder="e.g. Advanced to Semi-Finals on points tally 45-38"
-                    />
-                  </label>
+                  <label className="modal-label">Winner<input value={scoreForm.winner ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, winner: e.target.value })} placeholder="Winner participant or team" /></label>
+                  <label className="modal-label">Match Summary<input value={scoreForm.summary ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, summary: e.target.value })} placeholder="e.g. Qualified for Finals" /></label>
                 </div>
               )}
 
@@ -797,11 +1499,11 @@ export function FixturesClient({
                 </button>
                 <button
                   type="submit"
-                  className="modal-btn confirm-reject"
+                  className="modal-btn confirm-activate"
                   style={{ background: "#261923" }}
                   disabled={scorePending}
                 >
-                  {scorePending ? "Saving Score…" : "Publish Score Snapshot"}
+                  {scorePending ? "Saving Score…" : "Publish Score"}
                 </button>
               </div>
             </form>
@@ -809,35 +1511,34 @@ export function FixturesClient({
         </PortalDialog>
       )}
 
-      {/* History Modal */}
+      {/* Audit History Modal */}
       {historyFixture && (
-        <PortalDialog labelledBy="history-modal-title" onClose={() => setHistoryFixture(null)} busy={false}>
+        <PortalDialog
+          labelledBy="history-modal-title"
+          onClose={() => setHistoryFixture(null)}
+        >
           <div className="modal-card wide">
             <h2 id="history-modal-title">Schedule Audit History</h2>
             <p>
-              Fixture: <strong>{historyFixture.participant_a_label}</strong> vs{" "}
+              Match: <strong>{historyFixture.participant_a_label}</strong> vs{" "}
               <strong>{historyFixture.participant_b_label}</strong> ({historyFixture.stage})
             </p>
 
             {historyLoading ? (
-              <p>Loading history records…</p>
+              <p className="loading-note">Loading history log…</p>
             ) : historyList.length === 0 ? (
-              <p className="no-history-text">No prior reschedule events logged for this fixture. Original version v1.</p>
+              <p className="empty-history-note">No reschedules recorded. This fixture is on its original schedule (v1).</p>
             ) : (
-              <div className="history-timeline">
-                {historyList.map((entry) => (
-                  <div key={entry.id} className="history-entry">
-                    <div className="history-entry-header">
-                      <span className="history-actor">By: {entry.actor_name || "Organiser"}</span>
-                      <span className="history-time">{formatIST(entry.created_at)}</span>
+              <div className="history-entries-list">
+                {historyList.map((h) => (
+                  <div key={h.id} className="history-item">
+                    <div className="history-header">
+                      <span className="history-actor">{h.actor_name || "Organiser"}</span>
+                      <span className="history-time">{formatIST(h.created_at)}</span>
                     </div>
-                    <p className="history-reason">
-                      <strong>Reason:</strong> {entry.reason}
-                    </p>
-                    <div className="previous-schedule-box">
-                      <span>Prior Venue: {entry.previous_schedule.venue || "None"}</span>
-                      <span>Prior Starts: {formatIST(entry.previous_schedule.starts_at ?? null)}</span>
-                      <span>Version: v{entry.previous_schedule.schedule_version}</span>
+                    <p className="history-reason">Reason: &quot;{h.reason}&quot;</p>
+                    <div className="history-diff">
+                      <span>Previous: {formatIST(h.previous_schedule.starts_at ?? null)} at {h.previous_schedule.venue || "TBA"}</span>
                     </div>
                   </div>
                 ))}
@@ -859,12 +1560,19 @@ export function FixturesClient({
 
       {/* Reminder Modal */}
       {reminderFixture && (
-        <PortalDialog labelledBy="reminder-modal-title" onClose={() => setReminderFixture(null)} busy={reminderPending}>
-          <div className="modal-card">
-            <h2 id="reminder-modal-title">Send In-App Fixture Reminder</h2>
+        <PortalDialog
+          labelledBy="reminder-modal-title"
+          onClose={() => setReminderFixture(null)}
+          busy={reminderPending}
+        >
+          <div className="modal-card wide">
+            <h2 id="reminder-modal-title">Send Match Reminder Notification</h2>
             <p>
-              This will create an in-app reminder in My Fest for all <strong>selected participants</strong> in this event.
+              Send an instant push and in-app reminder to registered participants for{" "}
+              <strong>{reminderFixture.stage}</strong> ({reminderFixture.participant_a_label} vs{" "}
+              {reminderFixture.participant_b_label}).
             </p>
+
             <form onSubmit={handleReminderSubmit}>
               <label className="modal-label">
                 Reminder Message
@@ -876,6 +1584,7 @@ export function FixturesClient({
                   required
                 />
               </label>
+
               <div className="modal-actions">
                 <button
                   type="button"
@@ -887,11 +1596,11 @@ export function FixturesClient({
                 </button>
                 <button
                   type="submit"
-                  className="modal-btn confirm-reject"
+                  className="modal-btn confirm-activate"
                   style={{ background: "#261923" }}
                   disabled={reminderPending || !reminderBody.trim()}
                 >
-                  {reminderPending ? "Sending Reminders…" : "Send to Participants"}
+                  {reminderPending ? "Sending Reminders…" : "Send Notifications"}
                 </button>
               </div>
             </form>

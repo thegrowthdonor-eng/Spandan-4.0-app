@@ -64,11 +64,23 @@ export default async function FixturesPage({
   if (wanted && !events.some(event => event.id === wanted)) return <main className="portal-unavailable"><h1>Event unavailable</h1><p>This event is outside your responsibility or has been removed.</p><Link href="/admin">Back to my workspace</Link></main>;
   const selected = events.find((event) => event.id === wanted) ?? events[0];
 
-  const [{ data, error }, mainAdmin] = await Promise.all([
+  const [
+    { data, error },
+    mainAdmin,
+    { data: batchesData },
+    { data: groupsData },
+    { data: eventDetails },
+  ] = await Promise.all([
     client.rpc("list_event_fixtures", { p_event_id: selected.id }),
     client.rpc("is_main_admin"),
+    client.rpc("list_event_eligible_batches", { p_event_id: selected.id }),
+    client.rpc("list_event_participant_groups", { p_event_id: selected.id }),
+    client.from("events").select("venue, starts_at, ends_at").eq("id", selected.id).single(),
   ]);
   const fixtures = (data ?? []) as FixtureItem[];
+  const batches = (batchesData ?? []) as Array<{ batch_id: string; label: string; course_label?: string | null }>;
+  const groups = (groupsData ?? []) as Array<{ group_id: string; name: string; batch_id: string; state: string }>;
+  const defaultVenue = eventDetails?.venue ?? "";
 
   return (
     <main className="fixtures-page">
@@ -85,11 +97,8 @@ export default async function FixturesPage({
 
       <section className="fixtures-intro">
         <p className="eyebrow">Competition operations</p>
-        <h1>Fixtures & scores</h1>
-        <p>
-          Create fixtures, manage live scoring with templates (Cricket, Football, Badminton, Generic), and reschedule
-          with mandatory audit reasons and version bumping. Participants receive schedule reminders automatically.
-        </p>
+        <h1>Fixtures &amp; scores</h1>
+        <p>Create matches, auto-generate tournament brackets, and manage real-time scoreboards.</p>
       </section>
 
       <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/fixtures" />
@@ -97,7 +106,18 @@ export default async function FixturesPage({
       {error ? (
         <p className="fixture-empty">Fixtures are temporarily unavailable.</p>
       ) : (
-        <FixturesClient event={selected} fixtures={fixtures} isMainAdmin={mainAdmin.data === true} />
+        <FixturesClient
+          event={{
+            ...selected,
+            venue: defaultVenue,
+            starts_at: eventDetails?.starts_at ?? null,
+            ends_at: eventDetails?.ends_at ?? null,
+          }}
+          fixtures={fixtures}
+          eligibleBatches={batches}
+          registeredGroups={groups}
+          isMainAdmin={mainAdmin.data === true}
+        />
       )}
     </main>
   );

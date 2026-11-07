@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { type ScoreTemplate, validateScore } from "@/server/competition/scores";
 import { parseFixturePayload } from "@/server/competition/fixture-request";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { createAdminClient } from "@/server/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -191,6 +192,74 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ ok: true, remindersGenerated: count }, { headers });
+  }
+
+  if (command.action === "delete") {
+    const user = (await client.auth.getUser()).data.user!;
+    const admin = createAdminClient();
+    const { data: targetFixture } = await admin
+      .from("fixtures")
+      .select("id, event_id, stage, participant_a_label, participant_b_label")
+      .eq("id", command.fixtureId)
+      .single();
+
+    if (!targetFixture) {
+      return NextResponse.json({ error: "Fixture not found." }, { status: 404, headers });
+    }
+
+    const { data: canManage } = await client.rpc("can_manage_event", { p_event_id: targetFixture.event_id });
+    const { data: isMainAdmin } = await client.rpc("is_main_admin");
+    if (!canManage && !isMainAdmin) return denied;
+
+    const { error: rpcError } = await client.rpc("delete_fixture", { p_fixture_id: command.fixtureId });
+    if (rpcError) {
+      await admin.from("audit_log").insert({
+        actor_id: user.id,
+        action: "fixture.deleted",
+        object_type: "fixture",
+        object_id: command.fixtureId,
+        change_summary: {
+          event_id: targetFixture.event_id,
+          stage: targetFixture.stage,
+          participant_a: targetFixture.participant_a_label,
+          participant_b: targetFixture.participant_b_label,
+        },
+      });
+      const { error: delErr } = await admin.from("fixtures").delete().eq("id", command.fixtureId);
+      if (delErr) {
+        return NextResponse.json({ error: "Unable to delete fixture." }, { status: 500, headers });
+      }
+    }
+
+    return NextResponse.json({ ok: true, deleted: true }, { headers });
+  }
+
+  if (command.action === "bulk_create") {
+    const { data: canManage } = await client.rpc("can_manage_event", { p_event_id: command.eventId });
+    const { data: isMainAdmin } = await client.rpc("is_main_admin");
+    if (!canManage && !isMainAdmin) return denied;
+
+    const created: string[] = [];
+    for (const item of command.fixtures) {
+      const { data, error } = await client.rpc("create_fixture", {
+        p_event_id: command.eventId,
+        p_stage: item.stage,
+        p_participant_a_label: item.participantALabel,
+        p_participant_b_label: item.participantBLabel,
+        p_venue: item.venue || null,
+        p_reporting_at: item.reportingAt,
+        p_starts_at: item.startsAt,
+      });
+      if (error) {
+        if (error.code === "42501" || error.code === "28000") return denied;
+        return NextResponse.json(
+          { error: `Error creating ${item.stage} (${item.participantALabel} vs ${item.participantBLabel}): ${error.message}` },
+          { status: 400, headers }
+        );
+      }
+      if (data?.id) created.push(data.id);
+    }
+    return NextResponse.json({ ok: true, createdCount: created.length }, { headers });
   }
 
   return NextResponse.json({ error: "Unknown action." }, { status: 400, headers });

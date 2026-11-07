@@ -4,7 +4,9 @@ export type FixtureCommand =
   | { action: "create"; eventId: string; stage: string; participantALabel: string; participantBLabel: string; venue?: string; reportingAt: string | null; startsAt: string | null }
   | { action: "reschedule"; fixtureId: string; reportingAt: string | null; startsAt: string | null; venue?: string; reason: string }
   | { action: "score"; fixtureId: string; expectedVersion: number; scorePayload: Record<string, unknown>; status: "scheduled" | "live" | "paused" | "final" | "cancelled" }
-  | { action: "reminders"; fixtureId: string; body?: string };
+  | { action: "reminders"; fixtureId: string; body?: string }
+  | { action: "delete"; fixtureId: string }
+  | { action: "bulk_create"; eventId: string; fixtures: Array<{ stage: string; participantALabel: string; participantBLabel: string; venue?: string; reportingAt: string | null; startsAt: string | null }> };
 
 export type FixturePayloadResult =
   | { success: true; command: FixtureCommand }

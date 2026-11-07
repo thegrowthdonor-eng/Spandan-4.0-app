@@ -134,6 +134,25 @@ export const fixtureCommandSchema = z.discriminatedUnion("action", [
     fixtureId: z.string().uuid(),
     body: z.string().trim().max(500).optional(),
   }),
+  z.object({
+    action: z.literal("delete"),
+    fixtureId: z.string().uuid(),
+  }),
+  z.object({
+    action: z.literal("bulk_create"),
+    eventId: z.string().uuid(),
+    fixtures: z.array(z.object({
+      stage: z.string().trim().min(1).max(100),
+      participantALabel: z.string().trim().min(1).max(160),
+      participantBLabel: z.string().trim().min(1).max(160),
+      venue: z.string().trim().max(160).optional(),
+      reportingAt: z.string().datetime().nullable(),
+      startsAt: z.string().datetime().nullable(),
+    }).superRefine((value, context) => {
+      if (value.participantALabel === value.participantBLabel)
+        context.addIssue({ code: z.ZodIssueCode.custom, message: "Fixture participants must differ." });
+    })).min(1).max(50),
+  }),
 ]);
 
 // Keep old schema for backwards compatibility
