@@ -2,9 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 
-// Maintenance Mode is ACTIVE by default.
-// To turn off later, simply set process.env.MAINTENANCE_MODE = "false"
-const IS_MAINTENANCE_MODE = process.env.MAINTENANCE_MODE !== "false";
+// Maintenance Mode is DISABLED by default (Festival is LIVE).
+// To turn on maintenance mode in an emergency, set process.env.MAINTENANCE_MODE = "true"
+const IS_MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === "true";
 
 const ALLOWED_PATHS = [
   "/maintenance",
