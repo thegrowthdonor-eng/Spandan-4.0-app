@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { SpandanLogo } from "@/components/spandan-branding";
-import "../my-fest/my-fest.css";
 
 export default function ExplorePage() {
   return <main className="student-home-page explore-page">

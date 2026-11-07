@@ -1,0 +1,766 @@
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f6f5f1;
+  color: #242b29;
+  padding: 0 0 calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(246, 245, 241, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #dedfd8;
+  padding: 14px 20px;
+}
+
+.headerInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.homeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #fbfbf9;
+  border: 1px solid #c7cfc0;
+  color: #345e50;
+  font: 600 12px/1 "DM Sans", sans-serif;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.homeBtn:hover {
+  background: #ede9df;
+  border-color: #345e50;
+}
+
+.signOutBtn {
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #fcf6f5;
+  border: 1px solid #ebd4cf;
+  color: #a9533e;
+  font: 600 12px/1 "DM Sans", sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.signOutBtn:hover {
+  background: #fae8e5;
+  border-color: #a9533e;
+}
+
+.content {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* --------------------------------------------------------------------------
+   HERO INTRO
+   -------------------------------------------------------------------------- */
+.heroIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 11px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #79547c;
+}
+
+.heroTitle {
+  font: 600 clamp(24px, 4vw, 34px)/1.15 "DM Sans", sans-serif;
+  letter-spacing: -0.04em;
+  color: #20212b;
+  margin: 0;
+}
+
+.heroTitle em {
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-weight: 500;
+  color: #a9533e;
+}
+
+.heroSubtitle {
+  font-size: 14px;
+  color: #656d67;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   VIP DIGITAL PASS (LUXURY OBSIDIAN & CHAMPAGNE GOLD)
+   -------------------------------------------------------------------------- */
+.passContainer {
+  position: relative;
+  border-radius: 20px;
+  padding: 2px;
+  background: linear-gradient(135deg, #d4af37 0%, rgba(212, 175, 55, 0.2) 50%, #b8932b 100%);
+  box-shadow: 0 16px 40px -12px rgba(19, 27, 23, 0.25), 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.passCard {
+  position: relative;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #16241e 0%, #0e1713 70%, #131c17 100%);
+  color: #f4f3ed;
+  overflow: hidden;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.passCard::before {
+  content: "";
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.passHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding-bottom: 16px;
+}
+
+.passCrest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.passEmblem {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 4px;
+  object-fit: contain;
+}
+
+.passOrg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.passCollege {
+  font: 700 11px/1 "DM Mono", monospace;
+  letter-spacing: 0.14em;
+  color: #d4af37;
+  text-transform: uppercase;
+}
+
+.passTitle {
+  font: 600 14px/1.2 "DM Sans", sans-serif;
+  letter-spacing: -0.01em;
+  color: #f4f3ed;
+}
+
+.passChipBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  font: 600 10px/1 "DM Mono", monospace;
+  letter-spacing: 0.08em;
+  color: #e8d08d;
+  text-transform: uppercase;
+}
+
+.passBody {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.monogramAvatar {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #24352b 0%, #15221b 100%);
+  border: 2px solid #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.monogramInitials {
+  font: 700 24px/1 "Playfair Display", Georgia, serif;
+  color: #e8d08d;
+  letter-spacing: 0.04em;
+}
+
+.verifiedBadge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #10b981;
+  color: #ffffff;
+  border: 2px solid #131b17;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.studentDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.studentName {
+  font: 700 clamp(19px, 3vw, 24px)/1.2 "DM Sans", sans-serif;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  margin: 0;
+}
+
+.categoryTag {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font: 500 12px/1 "DM Sans", sans-serif;
+  color: #cbd5cf;
+}
+
+/* Fest ID Copy Pill */
+.festIdWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.festIdPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.festIdPill:hover {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: #d4af37;
+}
+
+.festIdLabel {
+  font: 600 10px/1 "DM Mono", monospace;
+  letter-spacing: 0.1em;
+  color: #d4af37;
+  text-transform: uppercase;
+}
+
+.festIdValue {
+  font: 700 13px/1 "DM Mono", monospace;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+}
+
+.copyIcon {
+  color: #d4af37;
+  opacity: 0.8;
+}
+
+.copiedToast {
+  font: 600 11px/1 "DM Sans", sans-serif;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 4px 8px;
+  border-radius: 4px;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Credentials Grid */
+.credentialsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.credentialItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.credentialLabel {
+  font: 600 10.5px/1 "DM Mono", monospace;
+  letter-spacing: 0.06em;
+  color: #94a199;
+  text-transform: uppercase;
+}
+
+.credentialVal {
+  font: 700 13.5px/1.3 "DM Sans", sans-serif;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Verification Status Banner */
+.verificationBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.verificationBannerVerified {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.verificationBannerPending {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* Digital Seal / QR pattern */
+.passFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-top: 1px dashed rgba(212, 175, 55, 0.25);
+  padding-top: 14px;
+}
+
+.qrBox {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.securityNote {
+  font: 500 10px/1.4 "DM Mono", monospace;
+  letter-spacing: 0.08em;
+  color: #94a199;
+  text-transform: uppercase;
+}
+
+/* --------------------------------------------------------------------------
+   SEGMENTED ACTIVITY HUB (TABS)
+   -------------------------------------------------------------------------- */
+.hubSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tabNav {
+  display: flex;
+  gap: 6px;
+  background: #eae8e1;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #dedfd8;
+}
+
+.tabBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #656d67;
+  font: 600 13px/1 "DM Sans", sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tabBtnActive {
+  background: #ffffff;
+  color: #20212b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tabBadge {
+  font: 700 11px/1 "DM Mono", monospace;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #dedfd8;
+  color: #242b29;
+}
+
+.tabBtnActive .tabBadge {
+  background: #eef2e9;
+  color: #345e50;
+}
+
+/* Event Registrations List */
+.registrationsList {
+  display: grid;
+  gap: 12px;
+}
+
+.eventTicket {
+  background: #ffffff;
+  border: 1px solid #e2e4eb;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+}
+
+.eventTicket:hover {
+  border-color: #345e50;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(52, 94, 80, 0.08);
+}
+
+.ticketMain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ticketCategory {
+  display: inline-block;
+  font: 700 10.5px/1 "DM Mono", monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #79547c;
+}
+
+.ticketTitle {
+  font: 700 16px/1.2 "DM Sans", sans-serif;
+  color: #20212b;
+  margin: 0;
+}
+
+.ticketMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12.5px;
+  color: #656d67;
+}
+
+.ticketMetaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusChip {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font: 600 12px/1 "DM Sans", sans-serif;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.statusApproved {
+  background: #eef8f1;
+  color: #1e7e34;
+  border: 1px solid #c3e6cb;
+}
+
+.statusPending {
+  background: #fff8e8;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.statusRejected {
+  background: #fdf2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Empty State */
+.emptyCard {
+  background: #ffffff;
+  border: 1px dashed #c7cfc0;
+  border-radius: 16px;
+  padding: 36px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyTitle {
+  font: 700 18px/1.2 "DM Sans", sans-serif;
+  color: #20212b;
+  margin: 0;
+}
+
+.emptyDesc {
+  font-size: 13.5px;
+  color: #656d67;
+  max-width: 420px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.browseBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px 20px;
+  border-radius: 9px;
+  background: #345e50;
+  color: #ffffff;
+  font: 600 13px/1 "DM Sans", sans-serif;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  margin-top: 6px;
+}
+
+.browseBtn:hover {
+  background: #274c3e;
+}
+
+/* Teams Tab Card */
+.teamOverviewCard {
+  background: #ffffff;
+  border: 1px solid #e2e4eb;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.teamOverviewInfo h3 {
+  font: 700 17px/1.2 "DM Sans", sans-serif;
+  color: #20212b;
+  margin: 0 0 6px;
+}
+
+.teamOverviewInfo p {
+  font-size: 13.5px;
+  color: #656d67;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.teamCtaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: #633e63;
+  color: #ffffff;
+  font: 600 13px/1 "DM Sans", sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   CURATED QUICK ACTIONS
+   -------------------------------------------------------------------------- */
+.quickActionsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 12px;
+}
+
+.quickActionCard {
+  background: #ffffff;
+  border: 1px solid #e2e4eb;
+  border-radius: 12px;
+  padding: 16px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.quickActionCard:hover {
+  border-color: #345e50;
+  transform: translateY(-1px);
+}
+
+.quickActionIcon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 8px;
+  background: #f5f6f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #345e50;
+}
+
+.quickActionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quickActionTitle {
+  font: 600 13.5px/1.2 "DM Sans", sans-serif;
+  color: #20212b;
+}
+
+.quickActionDesc {
+  font-size: 11.5px;
+  color: #656d67;
+}
+
+.adminHighlight {
+  border-color: #79547c;
+  background: #fcf9fc;
+}
+
+.adminHighlight .quickActionIcon {
+  background: #eee6ef;
+  color: #79547c;
+}
+
+/* Support Tab Container */
+.supportContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .passCard {
+    padding: 18px;
+    gap: 16px;
+  }
+  
+  .passBody {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  
+  .credentialsGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .eventTicket {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .teamOverviewCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+}
