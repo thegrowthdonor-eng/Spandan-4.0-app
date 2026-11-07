@@ -6,6 +6,7 @@ import { createPublicClient } from "@/server/supabase/public";
 import { createRequestClient } from "@/server/supabase/server";
 import { ApplyButton } from "../apply-button";
 import Link from "next/link";
+import { eventCategoryLabel } from "@/lib/event-categories";
 import { EventRegistrationDock } from "../event-registration-dock";
 import { EventParticipantsDialog } from "../event-participants-dialog";
 import { FestTopNav } from "@/components/spandan-branding";
@@ -20,11 +21,13 @@ type EventDetail = {
   title: string;
   category: string;
   format: string;
+  registration_enabled: boolean;
   summary: string;
   rules_markdown: string;
   venue: string | null;
   state: string;
   starts_at: string | null;
+  ends_at: string | null;
   reporting_at: string | null;
   application_opens_at: string | null;
   application_closes_at: string | null;
@@ -112,7 +115,7 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
   try {
     const { data, error } = await createPublicClient()
       .from("events")
-      .select("id,slug,title,category,format,summary,rules_markdown,venue,state,starts_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,poster_url,eligibility,group_min_size,group_max_size")
+      .select("id,slug,title,category,format,registration_enabled,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,poster_url,eligibility,group_min_size,group_max_size")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -121,7 +124,7 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
     // Resilient fallback if poster_url migration is not yet applied
     const fallback = await createPublicClient()
       .from("events")
-      .select("id,slug,title,category,format,summary,rules_markdown,venue,state,starts_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,eligibility,group_min_size,group_max_size")
+      .select("id,slug,title,category,format,registration_enabled,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,eligibility,group_min_size,group_max_size")
       .eq("slug", slug)
       .maybeSingle();
     return fallback.data ? { ...fallback.data, poster_url: null } as EventDetail : null;
@@ -354,6 +357,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     dockLabel = eventResult ? "View results" : "Browse events";
     dockHref = eventResult ? "#event-results" : "/events";
     dockTone = "status";
+  } else if (!event.registration_enabled) {
+    dockStatus = "Information only"; dockLabel = "No registration required"; dockHref = null; dockTone = "status";
   } else if (existingApplication && existingApplication.review_state !== "withdrawn") {
     dockStatus = `Application ${existingApplication.review_state.replaceAll("_", " ")}`;
     dockLabel = "View application";
@@ -411,20 +416,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       <section className="event-detail-hero">
         <div className="event-detail-hero-topline">
           <div className="event-detail-badge-strip">
-            <span className={`division-pill division-pill-${division}`}>
+            {event.registration_enabled&&<span className={`division-pill division-pill-${division}`}>
               {divisionTitle}
-            </span>
-            <span className="event-category-pill">{event.category}</span>
-            {showFormatBadge && <span className="event-format-pill">{event.format}</span>}
+            </span>}
+            <span className="event-category-pill">{eventCategoryLabel(event.category)}</span>
+            {event.registration_enabled&&showFormatBadge && <span className="event-format-pill">{event.format}</span>}
           </div>
-          <EventParticipantsDialog eventTitle={event.title} participants={publicParticipants} />
+          {event.registration_enabled&&<EventParticipantsDialog eventTitle={event.title} participants={publicParticipants} />}
         </div>
 
         <h1>{event.title}</h1>
         <p className="event-summary">{event.summary || "Official event details will be published by the organiser."}</p>
 
         {/* Specifications highlight card */}
-        <div className="event-specs-banner">
+        {event.registration_enabled&&<div className="event-specs-banner">
           <div className="spec-card">
             <span className="spec-label">Division</span>
             <strong className="spec-val highlight-gold">{divisionTitle}</strong>
@@ -453,21 +458,21 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             <span className="spec-label">Venue</span>
             <strong className="spec-val">{event.venue ?? "To be announced"}</strong>
           </div>
-        </div>
+        </div>}
 
         <dl className="event-facts">
           <div>
             <dt>Schedule</dt>
-            <dd>{datetime(event.starts_at)}</dd>
+            <dd>{datetime(event.starts_at)}{event.ends_at?` – ${datetime(event.ends_at)}`:""}</dd>
           </div>
           <div>
             <dt>Venue</dt>
             <dd>{event.venue ?? "To be announced"}</dd>
           </div>
           <div>
-            <dt>Applications</dt>
+            <dt>{event.registration_enabled?"Applications":"Attendance"}</dt>
             <dd>
-              {appOpen
+              {!event.registration_enabled?"No registration required":appOpen
                 ? `Closes ${datetime(event.application_closes_at)}${event.waitlist_enabled ? " · waitlist possible" : ""}`
                 : event.application_opens_at && now < new Date(event.application_opens_at)
                   ? `Opens ${datetime(event.application_opens_at)}`
@@ -516,13 +521,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         </section>
       )}
 
-      <section className="event-rules">
+      {event.registration_enabled&&<section className="event-rules">
         <p className="eyebrow">Official rules</p>
         <h2>Know before you enter.</h2>
         <div className="rules-copy-container">
           {renderMarkdownRules(event.rules_markdown)}
         </div>
-      </section>
+      </section>}
 
       {eventManagers.length > 0 && (
         <section className="event-managed-by" aria-labelledby="event-managed-by-title">
@@ -546,9 +551,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         </section>
       )}
 
-      {event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
-      {(["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Your squad</p><p>Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster.</p><Link href={`/my-fest/teams?event=${event.id}`}>My team / Leader workspace →</Link></div></section>}
-      <EventRegistrationDock
+      {event.registration_enabled&&event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
+      {(event.registration_enabled&&["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Your squad</p><p>Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster.</p><Link href={`/my-fest/teams?event=${event.id}`}>My team / Leader workspace →</Link></div></section>}
+      {event.registration_enabled&&<EventRegistrationDock
         eventTitle={event.title}
         status={dockStatus}
         label={dockLabel}
@@ -565,7 +570,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             <ApplyButton eventId={event.id} questions={questions} />
           </>
         )}
-      </EventRegistrationDock>
+      </EventRegistrationDock>}
     </main>
   );
 }

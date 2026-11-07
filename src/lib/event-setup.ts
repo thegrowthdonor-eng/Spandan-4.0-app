@@ -4,6 +4,7 @@ export const eventDetailsSchema = z.object({
   title: z.string().trim().min(1, "Enter an event title.").max(160),
   category: z.enum(["sport", "cultural", "literary", "creative", "other"]),
   format: z.enum(["solo", "pair", "group", "sport"]),
+  registrationEnabled: z.boolean().default(true),
   scoreTemplate: z.enum(["generic", "cricket", "football", "basketball", "badminton", "set_based"]),
   summary: z.string().trim().max(600), rules: z.string().trim().max(20000),
   venue: z.string().trim().max(160), capacity: z.number().int().positive().nullable(),
@@ -27,7 +28,7 @@ export const eventDetailsSchema = z.object({
   if (v.format === "pair" && (v.groupMinSize !== 2 || v.groupMaxSize !== 2)) issue("groupMinSize","Pair events require exactly two partners.");
   if (new Set(v.applicationQuestions.map(q => q.key)).size !== v.applicationQuestions.length) issue("applicationQuestions","Question keys must be unique.");
   for (const q of v.applicationQuestions) {
-    if (q.type === "select" && (!q.options?.length || new Set(q.options).size !== q.options.length)) issue("applicationQuestions","Choice questions need unique, non-empty options.");
+    if (q.type === "select" && (!q.options || q.options.length < 2 || q.options.length > 20 || new Set(q.options).size !== q.options.length)) issue("applicationQuestions","Choice questions need 2–20 unique, non-empty options.");
     if (q.type === "text" && q.options?.length) issue("applicationQuestions","Text questions cannot contain choices.");
     if (/(roll|batch|full[ _-]?name|phone|mobile|gender|sex)/i.test(q.key+" "+q.label)) issue("applicationQuestions","Student identity is already collected. Ask event-specific questions.");
   }
@@ -48,7 +49,24 @@ export function fromIstInput(value: string) {
 }
 export function publicationMissing(v: EventDetails) {
   return [
-    !v.summary.trim() && "summary", !v.rules.trim() && "rules", !v.venue.trim() && "venue",
-    !v.startsAt && "start time", v.format !== "solo" && (!v.groupMinSize || !v.groupMaxSize) && "team sizes",
+    !v.summary.trim() && "summary", v.registrationEnabled && !v.rules.trim() && "rules", !v.venue.trim() && "venue",
+    !v.startsAt && "start time", !v.endsAt && "end time", v.registrationEnabled && v.format !== "solo" && (!v.groupMinSize || !v.groupMaxSize) && "team sizes",
   ].filter(Boolean) as string[];
+}
+
+export function eventStepError(v: EventDetails, step: number) {
+  if (step === 0) return !v.title.trim() ? "Enter an event title." : null;
+  if (step === 1) {
+    if (!v.summary.trim()) return "Enter a short description.";
+    if (v.registrationEnabled && !v.rules.trim()) return "Enter the official rules.";
+    if (v.registrationEnabled && v.format !== "solo" && (!v.groupMinSize || !v.groupMaxSize)) return "Set the minimum and maximum roster sizes.";
+    const parsed = eventDetailsSchema.safeParse(v);
+    const issue = !parsed.success && parsed.error.issues.find(i => ["applicationQuestions", "groupMinSize", "groupMaxSize"].includes(String(i.path[0])));
+    return issue ? issue.message : null;
+  }
+  if (step === 2) {
+    if (!v.venue.trim() || !v.startsAt || !v.endsAt) return "Complete venue, start and end date/time.";
+    if (v.endsAt <= v.startsAt) return "End time must be after the start.";
+  }
+  return null;
 }

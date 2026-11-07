@@ -6,6 +6,7 @@ import { buildFestivalFeed } from "../src/lib/feed";
 import { getPublishedResults } from "../src/lib/published-results";
 import { verifyManagement } from "./verify-management";
 import { verifyTeamWorkflows } from "./verify-team-workflows";
+import { verifyLaunchAdmin } from "./verify-launch-admin";
 
 async function count(admin: ReturnType<typeof requireQaEnvironment>, table: string) {
   const { count: total, error } = await admin.from(table).select("*", { count: "exact", head: true });
@@ -237,6 +238,7 @@ async function main() {
   await publicClient.auth.signOut({ scope: "local" });
   await verifyManagement();
   await verifyTeamWorkflows();
+  await verifyLaunchAdmin();
   console.log("QA verification passed: expected counts, role coverage, public content, FK presence, and zero PG/JR/Faculty profiles or invites.");
 }
 

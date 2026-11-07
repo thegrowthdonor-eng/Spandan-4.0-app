@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { eventCategoryLabel } from "@/lib/event-categories";
 import type { WorkspaceEvent } from "@/lib/management";
 import { participationTools } from "@/lib/event-participation";
 
@@ -12,7 +13,7 @@ export function ManagementEvents({events,editableIds=[],editing=false}:{events:W
   const categories=[...new Set(events.map(e=>e.category))];
   const filtered=events.filter(e=>(category==="all"||category===e.category)&&(e.title+" "+e.state).toLowerCase().includes(query.toLowerCase()));
   return <>
-    <div className="portal-list-controls"><input type="search" aria-label={editing?"Search editable events":"Search managed events"} placeholder="Find your event" value={query} onChange={e=>{setQuery(e.target.value);setLimit(6);}}/>{categories.length>1&&<select aria-label="Filter event category" value={category} onChange={e=>{setCategory(e.target.value);setLimit(6);}}><option value="all">All categories</option>{categories.map(c=><option value={c} key={c}>{c==="creative"?"Arts & Creative":c==="sport"?"Sports":c}</option>)}</select>}</div>
+    <div className="portal-list-controls"><input type="search" aria-label={editing?"Search editable events":"Search managed events"} placeholder="Find your event" value={query} onChange={e=>{setQuery(e.target.value);setLimit(6);}}/>{categories.length>1&&<select aria-label="Filter event category" value={category} onChange={e=>{setCategory(e.target.value);setLimit(6);}}><option value="all">All categories</option>{categories.map(c=><option value={c} key={c}>{eventCategoryLabel(c)}</option>)}</select>}</div>
     <div className="portal-event-grid">{filtered.slice(0,limit).map(event=><article key={event.id} className="portal-event">
       <span className="portal-badge">{event.state}</span><h3>{event.title}</h3>
       {!editing&&<p>{event.pending??0} pending requests · {event.format==="solo"?"Individual":event.format==="pair"?"Pair":event.format==="group"?"Group":"Team"} participation</p>}

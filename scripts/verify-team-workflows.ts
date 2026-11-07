@@ -14,12 +14,13 @@ export async function verifyTeamWorkflows() {
   const [owner, one, two, three, four, coordinator, editor, inactive] = await Promise.all([login("91","2023"),login("1"),login("2"),login("3"),login("4"),login("95","2023"),login("100","2023"),login("99","2023")]);
   const users = await Promise.all([one,two,three,four].map(async c => (await c.auth.getUser()).data.user!.id));
   const { data: edition } = await admin.from("editions").select("id").single();
+  const batchId=(await admin.from("profiles").select("batch_id").eq("id",users[0]).single()).data!.batch_id;
   const probeIds: string[] = [];
   async function event(format: string) {
     const { data, error } = await admin.from("events").insert({ edition_id: edition!.id, slug: "qa-team-"+randomUUID(), title: "QA Team Workflow "+format, category: "other", format, state: "open", summary: "QA only", rules_markdown: "Follow instructions", venue: "QA room", score_template: "generic", application_opens_at: "2026-01-01T00:00:00Z", application_closes_at: "2026-12-01T00:00:00Z", roster_lock_at: "2026-12-02T00:00:00Z", eligibility: {division:"open"}, group_min_size: format === "solo" ? null : 2, group_max_size: format === "pair" ? 2 : format === "solo" ? null : 4, batch_restricted: true, application_questions: [{key:"position",label:"Preferred position",type:"select",required:true,options:["A","B"]}] }).select("id").single();
     failIfError(error,"Create team workflow probe"); probeIds.push(data!.id); return data!.id as string;
   }
-  const team = (client: typeof owner, eventId: string, groupId: string | null, action: string, details: Record<string,unknown> = {}) => client.rpc("manage_team_proposal",{p_event_id:eventId,p_group_id:groupId,p_action:action,p_details:details});
+  const team = (client: typeof owner, eventId: string, groupId: string | null, action: string, details: Record<string,unknown> = {}) => client.rpc("manage_team_proposal",{p_event_id:eventId,p_group_id:groupId,p_action:action,p_details:{batchId,...details}});
   const pair = (client: typeof owner, eventId: string, action: string, invitationId: string | null = null, partnerId: string | null = null, answers: Record<string,string> = {}) => client.rpc("pair_invitation_command",{p_event_id:eventId,p_action:action,p_invitation_id:invitationId,p_partner_id:partnerId,p_answers:answers});
   try {
     const sport = await event("sport"), pairs = await event("pair"), solo = await event("solo"), groupEvent = await event("group");

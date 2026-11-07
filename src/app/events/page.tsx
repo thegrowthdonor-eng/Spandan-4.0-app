@@ -25,7 +25,7 @@ export default async function EventsPage({
     const client = createPublicClient();
     const { data, error } = await client
       .from("events")
-      .select("id,title,slug,category,format,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,poster_url,eligibility,group_min_size,group_max_size")
+      .select("id,title,slug,category,format,registration_enabled,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,poster_url,eligibility,group_min_size,group_max_size")
       .order("starts_at", { ascending: true, nullsFirst: false })
       .order("title");
 
@@ -33,7 +33,7 @@ export default async function EventsPage({
       // Fallback query if poster_url column not yet applied.
       const fallback = await client
         .from("events")
-        .select("id,title,slug,category,format,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,eligibility,group_min_size,group_max_size")
+        .select("id,title,slug,category,format,registration_enabled,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,eligibility,group_min_size,group_max_size")
         .order("starts_at", { ascending: true, nullsFirst: false })
         .order("title");
       unavailable = Boolean(fallback.error);

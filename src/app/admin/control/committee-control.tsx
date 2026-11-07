@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { eventCategoryLabels } from "@/lib/event-categories";
 
 type Candidate = { profile_id: string; full_name: string; fest_id: string; batch_label: string };
 type StaffRole = "main_admin" | "treasurer" | "event_editor" | "event_head" | "notice_publisher" | "event_coordinator";
 type Member = { assignment_id: string; profile_id: string; full_name: string; fest_id: string; batch_label: string; role: StaffRole; event_id: string | null; event_title: string | null; event_category: "sport" | "cultural" | "literary" | "creative" | "other" | null; granted_at: string };
 type EventRow = { event_id: string; title: string; category: string; state: string };
 const roleLabels: Record<StaffRole, string> = { main_admin: "Main Admin", treasurer: "Treasurer", event_editor: "Event Editor", event_coordinator: "Event Coordinator", event_head: "Event Head", notice_publisher: "Notice Publisher" };
-const categoryLabels = { sport: "Sports", cultural: "Cultural", literary: "Literary", creative: "Arts & Creative", other: "Other" };
+const categoryLabels = eventCategoryLabels;
 
 export function CommitteeControl({ candidates, members, events }: { candidates: Candidate[]; members: Member[]; events: EventRow[] }) {
   const router = useRouter();

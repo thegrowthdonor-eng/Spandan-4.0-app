@@ -18,6 +18,7 @@ async function main() {
   await mkdir("audit-artifacts/team-workflows",{recursive:true});
   async function session(roll:string,batch="2021") {
     const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+    assert.ok((await (await context.request.get(base+"/events")).text()).includes("Fictional visual-QA entry"),"Browser server must serve QA content before any login/write");
     assert.ok((await context.request.post(base+"/api/auth/login",{data:{batch,rollNumber:roll,password:QA_PASSWORD}})).ok());
     const page=await context.newPage();page.on("pageerror",(error:Error)=>errors.push(error.message));
     return {context,page};
@@ -38,6 +39,7 @@ async function main() {
     await organiser.page.goto(`${base}/admin/groups?event=${sport}`,{waitUntil:"networkidle"});
     assert.equal(await organiser.page.getByLabel("Team name",{exact:true}).count(),0,"Staff cannot name an initial squad");
     await organiser.page.screenshot({path:"audit-artifacts/team-workflows/admin-initial-390.png",fullPage:true});
+    await organiser.page.getByRole("combobox",{name:/^Team batch/}).selectOption(batch!.id);
     await organiser.page.getByRole("combobox",{name:/^Captain/}).selectOption(leaderApp.id);
     const appointment=organiser.page.waitForResponse((r:{url:()=>string})=>r.url().endsWith("/api/admin/groups"));
     await organiser.page.getByRole("button",{name:"Appoint Captain",exact:true}).click();assert.ok((await appointment).ok());

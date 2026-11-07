@@ -268,20 +268,6 @@ export function ResultsClient({
 
   return (
     <div className="results-workspace">
-      {/* Top Bar Navigation */}
-      <div className="review-top-bar">
-        <div className="review-links">
-          <Link className="workspace-sublink" href={`/admin/fixtures?event=${event.id}`}>
-            ← Fixtures & Scores
-          </Link>
-          <Link className="workspace-sublink" href={`/admin/review?event=${event.id}`}>
-            Review Queue →
-          </Link>
-          <Link className="workspace-sublink" href="/standings" target="_blank">
-            Live Public Standings ↗
-          </Link>
-        </div>
-      </div>
 
       {statusMessage && (
         <div className={`status-banner ${statusMessage.isError ? "error" : "success"}`} role="status">

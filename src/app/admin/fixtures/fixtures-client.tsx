@@ -1,7 +1,6 @@
 "use client";
 
 import { PortalDialog } from "@/components/admin/portal-dialog";
-import { participationTools } from "@/lib/event-participation";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -304,19 +303,6 @@ export function FixturesClient({
     <div className="fixtures-workspace">
       {/* Navigation Sub-bar */}
       <div className="review-top-bar">
-        <div className="review-links">
-          <Link className="workspace-sublink" href={`/admin/review?event=${event.id}`}>
-            ← Review Queue
-          </Link>
-          {event.format !== "solo" && (
-            <Link className="workspace-sublink" href={`/admin/groups?event=${event.id}`}>
-              {participationTools(event.format)?.label ?? "Participation"} →
-            </Link>
-          )}
-          <Link className="workspace-sublink" href={`/admin/results?event=${event.id}`}>
-            Results & Standings →
-          </Link>
-        </div>
 
         <button
           type="button"

@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.next-qa/
 .env*
 !.env.example
 !.env.qa.example

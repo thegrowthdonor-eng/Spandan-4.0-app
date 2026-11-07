@@ -16,6 +16,7 @@ export type EventCard = {
   slug: string;
   category: string;
   format: string;
+  registration_enabled: boolean;
   summary: string;
   state: string;
   starts_at: string | null;
@@ -56,8 +57,8 @@ const EVENT_CATEGORIES = [
   { key: "sport", label: "Sports", eyebrow: "Play with purpose", description: "Matches, races, courts and inter-batch glory.", icon: "field", tone: "sport" },
   { key: "cultural", label: "Cultural", eyebrow: "Take the stage", description: "Dance, music, theatre and every kind of performance.", icon: "culture", tone: "cultural" },
   { key: "literary", label: "Literary", eyebrow: "Ideas in motion", description: "Words, wit, debates and speaking that stays with you.", icon: "literary", tone: "literary" },
-  { key: "creative", label: "Arts & Creative", eyebrow: "Make it memorable", description: "Art, design, photography and hands-on expression.", icon: "creative", tone: "creative" },
-  { key: "other", label: "More at Spandan", eyebrow: "Discover more", description: "Festival experiences that do not fit in one arena.", icon: "other", tone: "other" },
+  { key: "creative", label: "Arts", eyebrow: "Make it memorable", description: "Art, design, photography and hands-on expression.", icon: "creative", tone: "creative" },
+  { key: "other", label: "Gaming & Specials", eyebrow: "Discover more", description: "Gaming competitions, special evenings and festival experiences.", icon: "other", tone: "other" },
 ] as const;
 type EventCategoryKey = typeof EVENT_CATEGORIES[number]["key"];
 
@@ -195,6 +196,7 @@ function eventVisualIcon(event: EventCard): EventIconName {
 }
 
 function stateLabel(state: string, now: Date, event: EventCard): string {
+  if (!event.registration_enabled && !["cancelled","completed","ongoing"].includes(state)) return "No registration required";
   if (state === "open") {
     if (event.application_closes_at && now >= new Date(event.application_closes_at)) return "Registration closed";
     if (event.application_opens_at && now < new Date(event.application_opens_at)) return "Opening soon";
@@ -257,15 +259,15 @@ function EventCardItem({ event, now }: { event: EventCard; now: Date }) {
 
         {/* Top Badges Row */}
         <div className="event-badge-strip">
-          <span className={`division-pill division-pill-${div}`}>
+          {event.registration_enabled&&<span className={`division-pill division-pill-${div}`}>
             <EventGlyph name={div === "open" ? "users" : "person"} /> {div === "boys" ? "Boys" : div === "girls" ? "Girls" : "Mixed / Open"}
-          </span>
+          </span>}
 
           <span className="subcat-pill">{subLabel ?? categoryName}</span>
 
-          <span className="format-spec-pill" title={event.eligibility?.squad_details || formatBadge.text}>
+          {event.registration_enabled&&<span className="format-spec-pill" title={event.eligibility?.squad_details || formatBadge.text}>
             <EventGlyph name={formatBadge.icon} /> {formatBadge.text}
-          </span>
+          </span>}
         </div>
 
         <h3 className="event-card-title">{event.title}</h3>
@@ -370,6 +372,7 @@ export function EventCatalogue({ events, initialCategory = null }: { events: Eve
 
       // Format
       if (format !== "all") {
+        if (!e.registration_enabled) return false;
         if (format === "solo" && e.format !== "solo") return false;
         if (format === "pair" && e.format !== "pair") return false;
         if (format === "team" && e.format !== "group" && e.format !== "sport") return false;

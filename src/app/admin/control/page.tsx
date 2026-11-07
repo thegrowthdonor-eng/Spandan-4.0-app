@@ -5,6 +5,7 @@ import { createRequestClient } from "@/server/supabase/server";
 import { CommitteeControl } from "./committee-control";
 import { SeniorInvites } from "./senior-invites";
 import { FestivalSettings } from "./festival-settings";
+import { countRolePeople } from "@/lib/event-categories";
 import "../admin.css";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ export default async function AdminControlPage() {
   return <main className="admin-home control-page">
     <header className="admin-home-header"><Link className="wordmark" href="/">Spandan <span>4.0</span></Link><Link href="/admin">Organiser workspace</Link></header>
     <section className="control-hero"><p className="eyebrow">Main Admin · Control centre</p><h1>Administration</h1><p>Assign only the responsibility a committee member needs. There is no role selector on sign-in; access is decided here and enforced by the database.</p></section>
-    <section className="control-content"><nav className="portal-event-actions" aria-label="Administration sections"><a href="#roles">Roles & assignments</a><a href="#invitations">Invitations</a><a href="#settings">Festival settings</a></nav>
+    <section className="control-content"><section className="portal-stats" aria-label="Committee role counts">{[["main_admin","Main Admins"],["treasurer","Treasurers"],["event_coordinator","Event Coordinators"]].map(([role,label])=><article className="portal-event" key={role}><strong>{countRolePeople(membersResult.data ?? [],role)}</strong><span>{label}</span></article>)}</section><nav className="portal-event-actions" aria-label="Administration sections"><a href="#roles">Roles & assignments</a><a href="#invitations">Invitations</a><a href="#settings">Festival settings</a></nav>
       <section id="roles" className="portal-section"><h2>Roles & assignments</h2><CommitteeControl candidates={(candidatesResult.data ?? []) as Candidate[]} members={(membersResult.data ?? []) as CommitteeMember[]} events={(eventsResult.data ?? []) as EventRow[]} /></section>
       <details id="invitations" className="portal-section"><summary>Invitations</summary><SeniorInvites editions={(editionsResult.data ?? []) as Edition[]} /></details>
       <details id="settings" className="portal-section"><summary>Festival settings</summary><FestivalSettings editions={(editionsResult.data ?? []) as Edition[]} /></details>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export type SelectionRow = {
@@ -154,14 +153,6 @@ export function SelectionClient({
     <div className="selection-workspace">
       {/* Top Bar */}
       <div className="review-top-bar">
-        <div className="review-links">
-          <Link className="workspace-sublink" href={`/admin/review?event=${event.id}`}>
-            ← Back to Review Queue
-          </Link>
-          <Link className="workspace-sublink" href={`/admin/fixtures?event=${event.id}`}>
-            Fixtures & Draw →
-          </Link>
-        </div>
 
         <a
           className="export-button"

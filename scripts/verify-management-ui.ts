@@ -13,6 +13,7 @@ const browser = await chromium.launch({headless:true,...(process.env.QA_CHROMIUM
 await mkdir("audit-artifacts/management",{recursive:true});
 try {
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+    assert.ok((await (await context.request.get(base+"/events")).text()).includes("Fictional visual-QA entry"),"Browser server must serve QA content before any login/write");
   const login=await context.request.post(base+"/api/auth/login",{data:{batch:"2023",rollNumber:"91",password:QA_PASSWORD}});
   assert.equal(login.ok(),true,"QA Main Admin login");
   const page=await context.newPage();
@@ -45,7 +46,9 @@ try {
   await page.getByLabel("Official rules").fill("Follow organiser instructions.");
   await page.getByRole("button",{name:"Continue →",exact:true}).click();
   await page.getByLabel("Venue",{exact:true}).fill("QA room");
-  await page.getByLabel("Start time (IST)",{exact:true}).fill("2026-12-01T09:00");
+  await page.getByLabel("Start date & time (IST)",{exact:true}).fill("2026-12-01T09:00");
+  await page.getByLabel("End date & time (IST)",{exact:true}).fill("2026-12-01T10:00");
+  await page.getByRole("button",{name:"Continue →",exact:true}).click();
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
   await page.waitForURL(/\/admin\/events\?event=/);
   const createdId=new URL(page.url()).searchParams.get("event");
@@ -70,6 +73,14 @@ try {
     if(role.roll==="100"){
       await rolePage.goto(base+"/admin/events?create=1",{waitUntil:"networkidle"});
       await rolePage.getByLabel("Event title",{exact:true}).fill("QA Editor browser draft "+Date.now());
+      await rolePage.getByRole("button",{name:"Continue →",exact:true}).click();
+      await rolePage.getByLabel("Short description").fill("QA editor event");
+      await rolePage.getByLabel("Official rules").fill("Follow instructions");
+      await rolePage.getByRole("button",{name:"Continue →",exact:true}).click();
+      await rolePage.getByLabel("Venue",{exact:true}).fill("QA room");
+      await rolePage.getByLabel("Start date & time (IST)",{exact:true}).fill("2026-12-01T09:00");
+      await rolePage.getByLabel("End date & time (IST)",{exact:true}).fill("2026-12-01T10:00");
+      await rolePage.getByRole("button",{name:"Continue →",exact:true}).click();
       await rolePage.getByRole("button",{name:"Save draft",exact:true}).click();
       await rolePage.waitForURL(/\/admin\/events\?event=/);
       const ownedId=new URL(rolePage.url()).searchParams.get("event");

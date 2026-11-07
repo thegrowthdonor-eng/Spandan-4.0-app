@@ -6,5 +6,5 @@ export default defineConfig([
   ...nextVitals,
   ...nextTypescript,
   // Audit evidence and one-off content tooling are not shipped application code.
-  globalIgnores([".next/**", "node_modules/**", "audit-artifacts/**", "scratch/**"]),
+  globalIgnores([".next/**", ".next-qa/**", "node_modules/**", "audit-artifacts/**", "scratch/**"]),
 ]);

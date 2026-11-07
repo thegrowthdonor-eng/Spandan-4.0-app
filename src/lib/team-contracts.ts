@@ -5,7 +5,7 @@ const event = { eventId: uuid };
 const version = z.number().int().nonnegative();
 const answers = z.record(z.string().max(80), z.string().max(500)).default({});
 export const teamCommandSchema = z.discriminatedUnion("action", [
-  z.object({ ...event, action: z.literal("appoint"), groupId: uuid.nullable(), leaderApplicationId: uuid }).strict(),
+  z.object({ ...event, action: z.literal("appoint"), groupId: uuid.nullable(), leaderApplicationId: uuid, batchId: uuid.nullable().optional() }).strict(),
   z.object({ ...event, action: z.literal("save"), groupId: uuid, version, name: z.string().trim().min(1).max(160), applicationIds: z.array(uuid).min(1).max(200).refine(ids => new Set(ids).size === ids.length), reason: z.string().trim().max(500).optional() }).strict(),
   z.object({ ...event, action: z.literal("submit"), groupId: uuid, version }).strict(),
   z.object({ ...event, action: z.literal("publish"), groupId: uuid, version }).strict(),

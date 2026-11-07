@@ -18,8 +18,8 @@ if (
 Object.assign(process.env, qaEnvironment);
 
 const [command, ...args] = process.argv.slice(2);
-if (command !== "dev" && command !== "build") {
-  throw new Error("Usage: node scripts/run-qa-next.mjs <dev|build> [next arguments]");
+if (!["dev", "build", "start"].includes(command)) {
+  throw new Error("Usage: node scripts/run-qa-next.mjs <dev|build|start> [next arguments]");
 }
 
 // Do not use Node's --env-file flag here: Next copies Node exec arguments to

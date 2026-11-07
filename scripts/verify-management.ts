@@ -16,7 +16,7 @@ export async function verifyManagement() {
   const {data:students}=await admin.from("profiles").select("id").eq("participant_category","ug").limit(4);
   assert.ok(edition&&students&&students.length===4);
   const probeIds:string[]=[];
-  const details:EventDetails={title:"QA Management "+Date.now(),category:"other",format:"solo",scoreTemplate:"generic",summary:"QA only",rules:"Follow organiser instructions.",venue:"QA room",capacity:null,waitlistEnabled:false,reportingAt:"2026-12-01T03:30:00.000Z",startsAt:"2026-12-01T04:00:00.000Z",endsAt:"2026-12-01T05:00:00.000Z",rosterLockAt:"2026-11-30T04:00:00.000Z",eligibility:{division:"open"},applicationQuestions:[{key:"position",label:"Preferred position",type:"select",required:true,options:["A","B"]}],groupMinSize:null,groupMaxSize:null,batchRestricted:false,posterUrl:null};
+  const details:EventDetails={registrationEnabled:true,title:"QA Management "+Date.now(),category:"other",format:"solo",scoreTemplate:"generic",summary:"QA only",rules:"Follow organiser instructions.",venue:"QA room",capacity:null,waitlistEnabled:false,reportingAt:"2026-12-01T03:30:00.000Z",startsAt:"2026-12-01T04:00:00.000Z",endsAt:"2026-12-01T05:00:00.000Z",rosterLockAt:"2026-11-30T04:00:00.000Z",eligibility:{division:"open"},applicationQuestions:[{key:"position",label:"Preferred position",type:"select",required:true,options:["A","B"]}],groupMinSize:null,groupMaxSize:null,batchRestricted:false,posterUrl:null};
   try {
     await login("100");
     const summary=await client.rpc("get_management_summary");failIfError(summary.error,"Editor workspace summary");

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/server/supabase/admin";
 import { hasSupabaseConfiguration } from "@/server/env";
+import { validPosterUpload } from "@/lib/poster-image";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
 
     // Sanitize folder & file name
     const safeFolder = folder === "podiums" ? "podiums" : "posters";
-    const timestamp = Date.now();
+    const timestamp = crypto.randomUUID();
     const cleanName = file.name
       .replace(/\.[^/.]+$/, "")
       .replace(/[^a-z0-9_-]/gi, "-")
@@ -95,6 +96,7 @@ export async function POST(request: Request) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    if (folder === "posters" && !validPosterUpload(buffer, file.type, file.size)) return NextResponse.json({ error:"Posters must be optimized WebP files under 500 KB. Choose the photo again to compress it." },{status:400,headers:noStoreHeaders});
 
     const admin = createAdminClient();
     const { error: uploadError } = await admin.storage
@@ -113,6 +115,14 @@ export async function POST(request: Request) {
     }
 
     const { data: urlData } = admin.storage.from("fest-media").getPublicUrl(storagePath);
+    if (folder === "posters" && formData.get("attach") === "true") {
+      const attached = await authClient.rpc("attach_event_poster", { p_event_id:eventId, p_path:storagePath, p_url:urlData.publicUrl });
+      if (attached.error) {
+        const cleanup = await admin.storage.from("fest-media").remove([storagePath]);
+        if (cleanup.error) console.error("Poster attachment cleanup failed",storagePath);
+        return NextResponse.json({ error:"Poster could not be attached. Your previous poster is unchanged; retry the upload." },{status:503,headers:noStoreHeaders});
+      }
+    }
 
     return NextResponse.json({
       ok: true,

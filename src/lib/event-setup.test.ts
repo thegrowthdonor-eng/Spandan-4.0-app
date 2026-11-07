@@ -3,10 +3,10 @@ import test from "node:test";
 import { eventDetailsSchema, fromIstInput, toIstInput, publicationMissing, type EventDetails } from "./event-setup";
 import { managementLinks, canEnterManagement, type ManagementSummary } from "./management";
 
-const draft:EventDetails={title:"Chess",category:"sport",format:"solo",scoreTemplate:"generic",summary:"",rules:"",venue:"",capacity:null,waitlistEnabled:false,reportingAt:null,startsAt:null,endsAt:null,rosterLockAt:null,eligibility:{division:"open"},applicationQuestions:[],groupMinSize:null,groupMaxSize:null,batchRestricted:false,posterUrl:null};
+const draft:EventDetails={registrationEnabled:true,title:"Chess",category:"sport",format:"solo",scoreTemplate:"generic",summary:"",rules:"",venue:"",capacity:null,waitlistEnabled:false,reportingAt:null,startsAt:null,endsAt:null,rosterLockAt:null,eligibility:{division:"open"},applicationQuestions:[],groupMinSize:null,groupMaxSize:null,batchRestricted:false,posterUrl:null};
 test("drafts allow incomplete content while publication identifies required fields",()=>{
   assert.equal(eventDetailsSchema.safeParse(draft).success,true);
-  assert.deepEqual(publicationMissing(draft),["summary","rules","venue","start time"]);
+  assert.deepEqual(publicationMissing(draft),["summary","rules","venue","start time","end time"]);
   assert.ok(publicationMissing({...draft,format:"sport"}).includes("team sizes"));
 });
 test("event schedule and choice questions reject inconsistent input",()=>{
