@@ -49,11 +49,24 @@ export function FestivalNotificationBell() {
 
           // Calculate unread
           const lastCheck = localStorage.getItem(STORAGE_KEY);
+          let readIds: Set<string>;
+          try {
+            const readIdsRaw = localStorage.getItem("spandan_read_notification_ids");
+            readIds = new Set(readIdsRaw ? JSON.parse(readIdsRaw) : []);
+          } catch {
+            readIds = new Set();
+          }
+
           if (!lastCheck) {
             setUnreadCount(Math.min(items.length, 5));
           } else {
             const lastTime = parseInt(lastCheck, 10);
-            const unread = items.filter((n) => new Date(n.timestamp).getTime() > lastTime).length;
+            const now = Date.now();
+            const unread = items.filter((n) => {
+              if (readIds.has(n.id)) return false;
+              const t = Math.min(new Date(n.timestamp).getTime(), now);
+              return t > lastTime;
+            }).length;
             setUnreadCount(unread);
           }
         }
@@ -72,11 +85,20 @@ export function FestivalNotificationBell() {
     };
   }, []);
 
+  function markAllRead(items: FestivalNotification[]) {
+    localStorage.setItem(STORAGE_KEY, Date.now().toString());
+    try {
+      const ids = items.map((i) => i.id);
+      localStorage.setItem("spandan_read_notification_ids", JSON.stringify(ids));
+    } catch {
+      // Ignore quota errors
+    }
+    setUnreadCount(0);
+  }
+
   function handleOpen() {
     setIsOpen(true);
-    // Mark as checked
-    localStorage.setItem(STORAGE_KEY, Date.now().toString());
-    setUnreadCount(0);
+    markAllRead(notifications);
   }
 
   function handleClose() {
@@ -84,8 +106,7 @@ export function FestivalNotificationBell() {
   }
 
   function handleMarkAllRead() {
-    localStorage.setItem(STORAGE_KEY, Date.now().toString());
-    setUnreadCount(0);
+    markAllRead(notifications);
   }
 
   // Handle ESC key

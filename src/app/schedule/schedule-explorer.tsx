@@ -12,7 +12,16 @@ const groups = [
   { key: "fixture", label: "Match fixtures", icon: "↔", caption: "Teams, venues and match timings", className: "sport" },
   { key: "evening", label: "After hours", icon: "☾", caption: "Stay a little longer", className: "evening" },
 ];
-const themes = ["Opening day", "Game on", "Colour & competition", "Finals & expression", "The stage is yours", "The grand finale"];
+const themes = [
+  "Sports Qualifiers — Day 1",
+  "Sports Qualifiers — Day 2",
+  "Opening day",
+  "Game on",
+  "Colour & competition",
+  "Finals & expression",
+  "The stage is yours",
+  "The grand finale",
+];
 function fullDate(day: string) {
   return new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Kolkata" }).format(new Date(`${day}T12:00:00+05:30`));
 }
@@ -43,11 +52,11 @@ export function ScheduleExplorer({ entries, unavailable, partial, official }: { 
   }
   if (day === null) return <>
     <section className={styles.hero} aria-labelledby="schedule-intro-title">
-      <div><p className={styles.eyebrow}>SPANDAN 4.0 / 2026</p><h1 id="schedule-intro-title">Six days.<br /><em>Make them yours.</em></h1><p className={styles.intro}>Pick a day. Find your event.</p></div>
-      <div className={styles.dateStamp}><span>DECEMBER</span><strong>03 <i>—</i> 08</strong><small>ASMC Firozabad</small><span>SPORTS / CULTURE / COMMUNITY</span></div>
+      <div><p className={styles.eyebrow}>SPANDAN 4.0 / 2026</p><h1 id="schedule-intro-title">Eight days.<br /><em>Make them yours.</em></h1><p className={styles.intro}>Pick a day. Find your event.</p></div>
+      <div className={styles.dateStamp}><span>DECEMBER</span><strong>01 <i>—</i> 08</strong><small>ASMC Firozabad</small><span>SPORTS / CULTURE / COMMUNITY</span></div>
     </section>
     <section className={styles.explorer} aria-label="Choose a festival day">
-      <div className={styles.topline}><h2>Your six-day escape</h2><span>Choose a day to explore →</span></div>
+      <div className={styles.topline}><h2>Your eight-day festival</h2><span>Choose a day to explore →</span></div>
       <div className={styles.dayGrid}>
       {festivalDays.map((date, index) => {
         const count = entries.filter(entry => entry.day === date).length;
@@ -64,7 +73,7 @@ export function ScheduleExplorer({ entries, unavailable, partial, official }: { 
     </section>
   </>;
   return <section className={styles.explorer} aria-label="Festival schedule">
-    <div ref={detail} tabIndex={-1} className={styles.detailNav} aria-label={day === "other" ? "Other dates" : `Day ${dayIndex + 1} programme`}><button type="button" onClick={() => setDay(null)}>← All days</button><span>{day === "other" ? "MORE OF THE FESTIVAL" : `DAY 0${dayIndex + 1} / 06`} · ALL TIMES IST</span></div>
+    <div ref={detail} tabIndex={-1} className={styles.detailNav} aria-label={day === "other" ? "Other dates" : `Day ${dayIndex + 1} programme`}><button type="button" onClick={() => setDay(null)}>← All days</button><span>{day === "other" ? "MORE OF THE FESTIVAL" : `DAY 0${dayIndex + 1} / 08`} · ALL TIMES IST</span></div>
     <div className={styles.tools}>
       <div className={styles.filters} role="group" aria-label="Filter programme"><button type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>All events <span>{dayEntries.length}</span></button>{groups.filter(group => dayEntries.some(entry => entry.category === group.key)).map(group => <button key={group.key} type="button" aria-pressed={filter === group.key} onClick={() => setFilter(group.key)}>{group.label}</button>)}</div>
       <label className={styles.search}><span className={styles.srOnly}>Search selected day by event or venue</span><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find an event or venue" /></label>
@@ -72,7 +81,7 @@ export function ScheduleExplorer({ entries, unavailable, partial, official }: { 
     {unavailable && <p role="alert" className={styles.alert}>The schedule could not be loaded. Please refresh to try again.</p>}
     {partial && !unavailable && <p role="status" className={styles.alert}>Some updates are temporarily unavailable. The available programme is shown below.</p>}
     <section id="day-programme" aria-labelledby="day-title" className={styles.panel}>
-      <div className={styles.dayHeading}><div><p className={styles.eyebrow}>{day === "other" ? "MORE OF THE PROGRAMME" : fullDate(day)}</p><h2 id="day-title">{day === "other" ? "Beyond the six days" : themes[dayIndex]}</h2></div><span className={styles.count} aria-live="polite">{visible.length} {visible.length === 1 ? "event" : "events"}</span></div>
+      <div className={styles.dayHeading}><div><p className={styles.eyebrow}>{day === "other" ? "MORE OF THE PROGRAMME" : fullDate(day)}</p><h2 id="day-title">{day === "other" ? "Beyond the eight days" : themes[dayIndex]}</h2></div><span className={styles.count} aria-live="polite">{visible.length} {visible.length === 1 ? "event" : "events"}</span></div>
       {official && <p className={styles.timingNote}>The day-wise programme is confirmed. Exact timings and individual venues will be announced.</p>}
       {highlight.length > 0 && filter === "all" && !query && <div className={styles.highlight}><span aria-hidden="true">☾</span><div><small>THE NIGHT BELONGS TO US</small><strong>{highlight.join(" · ")}</strong></div><span className={styles.nightLabel}>After hours</span></div>}
       {groups.map(group => {
@@ -92,6 +101,6 @@ export function ScheduleExplorer({ entries, unavailable, partial, official }: { 
       })}
       {!visible.length && !unavailable && <div className={styles.empty}><span aria-hidden="true">✦</span><h3>{query || filter !== "all" ? "No matching events" : "This day is taking shape"}</h3><p>{query || filter !== "all" ? "Try another search or explore all events for this day." : "The programme will appear here once organisers publish the schedule."}</p>{(query || filter !== "all") && <button type="button" onClick={() => { setQuery(""); setFilter("all"); }}>Clear filters</button>}</div>}
     </section>
-    {dayIndex >= 0 && <div className={styles.dayNavigation}><button type="button" disabled={dayIndex === 0} onClick={() => selectDay(festivalDays[dayIndex - 1])}>← Previous day</button><span>DAY {dayIndex + 1} / 06</span><button type="button" disabled={dayIndex === 5} onClick={() => selectDay(festivalDays[dayIndex + 1])}>Next day →</button></div>}
+    {dayIndex >= 0 && <div className={styles.dayNavigation}><button type="button" disabled={dayIndex === 0} onClick={() => selectDay(festivalDays[dayIndex - 1])}>← Previous day</button><span>DAY {dayIndex + 1} / 08</span><button type="button" disabled={dayIndex === festivalDays.length - 1} onClick={() => selectDay(festivalDays[dayIndex + 1])}>Next day →</button></div>}
   </section>;
 }

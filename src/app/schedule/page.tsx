@@ -8,7 +8,7 @@ import { ScheduleExplorer } from "./schedule-explorer";
 import home from "../homepage.module.css";
 
 export const revalidate = 30;
-export const metadata = { title: "Schedule | SPANDAN 4.0", description: "Explore Spandan 4.0 day by day, 3–8 December 2026. Sports, cultural programmes and festival nights at ASMC Firozabad." };
+export const metadata = { title: "Schedule | SPANDAN 4.0", description: "Explore Spandan 4.0 day by day, 1–8 December 2026. Sports qualifiers, cultural programmes and festival nights at ASMC Firozabad." };
 
 export default async function SchedulePage() {
   let entries: ScheduleEntry[] = [];
@@ -18,7 +18,7 @@ export default async function SchedulePage() {
   if (!unavailable) {
     const db = createPublicClient();
     const [programme, fixtures, events] = await Promise.all([
-      db.from("schedule_entries").select("id,edition_id,day,title,category,venue,starts_at,ends_at,notes,sort_order").eq("published", true).gte("day", "2026-12-03").lte("day", "2026-12-08").order("sort_order"),
+      db.from("schedule_entries").select("id,edition_id,day,title,category,venue,starts_at,ends_at,notes,sort_order").eq("published", true).gte("day", "2026-12-01").lte("day", "2026-12-08").order("sort_order"),
       db.from("fixtures").select("id,stage,participant_a_label,participant_b_label,venue,reporting_at,starts_at,state,events(title,slug,edition_id)").order("starts_at"),
       db.from("events").select("id,title,slug,category,venue,reporting_at,starts_at,ends_at,state").neq("state", "draft").order("starts_at"),
     ]);

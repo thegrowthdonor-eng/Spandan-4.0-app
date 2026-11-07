@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { festivalDays, scheduleDay, sortSchedule, type ScheduleEntry } from "./schedule";
 
-test("festival days cover December 3–8 and timestamps group by Indian local date", () => {
-  assert.deepEqual(festivalDays, ["2026-12-03", "2026-12-04", "2026-12-05", "2026-12-06", "2026-12-07", "2026-12-08"]);
+test("festival days cover December 1–8 and timestamps group by Indian local date", () => {
+  assert.deepEqual(festivalDays, ["2026-12-01", "2026-12-02", "2026-12-03", "2026-12-04", "2026-12-05", "2026-12-06", "2026-12-07", "2026-12-08"]);
   assert.equal(scheduleDay("2026-12-02T20:00:00Z"), "2026-12-03");
   assert.equal(scheduleDay(null), "unscheduled");
   assert.equal(scheduleDay("invalid"), "unscheduled");

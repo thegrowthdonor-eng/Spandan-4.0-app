@@ -21,7 +21,20 @@ export function HappeningNowRadar() {
   }, []);
 
   const current = data?.live[0];
-  const upcoming = data?.upcoming[0];
+  const upcomingCandidate = data?.upcoming[0];
+
+  // A match is only "Up next" on the live radar if it starts within 12 hours (today)
+  const isImminentToday = (iso: string | null | undefined): boolean => {
+    if (!iso) return false;
+    const time = new Date(iso).getTime();
+    const diffHours = (time - Date.now()) / (1000 * 3600);
+    return diffHours >= 0 && diffHours <= 12;
+  };
+
+  const upcoming = (upcomingCandidate?.startsAt && isImminentToday(upcomingCandidate.startsAt))
+    ? upcomingCandidate
+    : null;
+
   return <section className="radar-strip live" aria-labelledby="live-ground-title">
     <div className="radar-strip-content">
       <span className="radar-live-badge"><span className={`radar-pulse-dot ${current ? "active" : ""}`} aria-hidden />{current ? `${data?.live.length ?? 0} LIVE NOW` : "LIVE GROUND"}</span>

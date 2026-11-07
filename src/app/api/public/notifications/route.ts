@@ -68,13 +68,14 @@ export async function GET() {
       // 4. Live or imminent match fixtures
       client
         .from("fixtures")
-        .select("id, participant_a_label, participant_b_label, starts_at, state, venue, events(title, slug), score_snapshots(version,status)")
+        .select("id, participant_a_label, participant_b_label, starts_at, state, venue, created_at, events(title, slug), score_snapshots(version,status)")
         .in("state", ["scheduled", "ongoing"])
         .order("starts_at", { ascending: true })
-        .limit(6),
+        .limit(10),
     ]);
 
     const items: FestivalNotification[] = [];
+    const nowMs = Date.now();
 
     // Process notices
     if (noticesRes.data && Array.isArray(noticesRes.data)) {
@@ -137,23 +138,67 @@ export async function GET() {
       }
     }
 
-    // Process fixtures
+    // Process fixtures (accurately dated, no false "starting shortly" for distant dates)
     if (fixturesRes.data && Array.isArray(fixturesRes.data)) {
       for (const f of fixturesRes.data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const fix = f as any;
         const latestSnapshot = (fix.score_snapshots ?? []).reduce((latest: { version: number; status: string } | null, snapshot: { version: number; status: string }) => !latest || snapshot.version > latest.version ? snapshot : latest, null);
-        const isLive = latestSnapshot?.status === "live" || latestSnapshot?.status === "paused";
+        const isLive = latestSnapshot?.status === "live" || latestSnapshot?.status === "paused" || fix.state === "ongoing";
+
+        const startsAtMs = fix.starts_at ? new Date(fix.starts_at).getTime() : 0;
+        const diffHours = startsAtMs ? (startsAtMs - nowMs) / (1000 * 3600) : 999;
+        const isImminent = startsAtMs > 0 && diffHours >= 0 && diffHours <= 3;
+        const isWithin48h = startsAtMs > 0 && diffHours >= 0 && diffHours <= 48;
+        const createdMs = fix.created_at ? new Date(fix.created_at).getTime() : nowMs;
+        const isRecentAnnouncement = (nowMs - createdMs) < 48 * 3600 * 1000;
+
+        // Only include in notification bell if live, starting within 48h, or newly announced
+        if (!isLive && !isImminent && !isWithin48h && !isRecentAnnouncement) {
+          continue;
+        }
+
+        let bodyText = "";
+        let badgeText = "⏱️ Match Scheduled";
+        if (isLive) {
+          bodyText = `${fix.events?.title ?? "Match"} · ${fix.venue ?? "Campus Grounds"}. Currently in play!`;
+          badgeText = "⚡ Live Match";
+        } else if (isImminent) {
+          const timeStr = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "numeric", hour12: true, timeZone: "Asia/Kolkata" }).format(new Date(startsAtMs));
+          bodyText = `${fix.events?.title ?? "Match"} · ${fix.venue ?? "Campus Grounds"}. Starting shortly at ${timeStr}.`;
+          badgeText = "⏱️ Starting Soon";
+        } else if (fix.starts_at) {
+          const dateStr = new Intl.DateTimeFormat("en-IN", { month: "short", day: "numeric", hour: "numeric", minute: "numeric", hour12: true, timeZone: "Asia/Kolkata" }).format(new Date(startsAtMs));
+          bodyText = `${fix.events?.title ?? "Match"} · ${fix.venue ?? "Campus Grounds"}. Scheduled for ${dateStr}.`;
+          badgeText = "📅 Match Scheduled";
+        } else {
+          bodyText = `${fix.events?.title ?? "Match"} · ${fix.venue ?? "Campus Grounds"}. Match scheduled.`;
+        }
+
+        // Notification timestamp must NEVER be in the future (prevents unread badge loop)
+        const notificationTime = isLive
+          ? new Date().toISOString()
+          : fix.created_at && new Date(fix.created_at).getTime() <= nowMs
+            ? fix.created_at
+            : new Date(Math.min(startsAtMs || nowMs, nowMs)).toISOString();
+
         items.push({
           id: `fixture-${fix.id}`,
           type: "fixture",
           title: `${fix.participant_a_label} vs ${fix.participant_b_label}`,
-          body: `${fix.events?.title ?? "Match"} · ${fix.venue ?? "Campus Grounds"}. ${isLive ? "Currently in play!" : "Starting shortly."}`,
-          badge: isLive ? "⚡ Live Match" : "⏱️ Match Scheduled",
+          body: bodyText,
+          badge: badgeText,
           urgency: isLive ? "urgent" : "normal",
           href: "/live",
-          timestamp: fix.starts_at || new Date().toISOString(),
+          timestamp: notificationTime,
         });
+      }
+    }
+
+    // Clamp all timestamps to Date.now() to ensure no future dates cause unread persistence
+    for (const item of items) {
+      if (new Date(item.timestamp).getTime() > nowMs) {
+        item.timestamp = new Date(nowMs).toISOString();
       }
     }
 

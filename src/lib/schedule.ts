@@ -3,7 +3,7 @@ export type ScheduleEntry = {
   starts_at: string | null; ends_at?: string | null; reporting_at?: string | null;
   notes: string; sort_order: number; href?: string; state?: string;
 };
-export const festivalDays = Array.from({ length: 6 }, (_, i) => `2026-12-${String(i + 3).padStart(2, "0")}`);
+export const festivalDays = Array.from({ length: 8 }, (_, i) => `2026-12-${String(i + 1).padStart(2, "0")}`);
 export function scheduleDay(value: string | null) {
   if (!value) return "unscheduled";
   const date = new Date(value);
