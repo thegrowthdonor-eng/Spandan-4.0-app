@@ -82,6 +82,13 @@ const COMMON_STAGES = [
   "Custom…",
 ];
 
+export function formatTeamLabel(raw: string): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (/^\d{4}$/.test(trimmed)) return `Batch ${trimmed}`;
+  return trimmed;
+}
+
 function formatIST(iso: string | null) {
   if (!iso) return "To be announced";
   return new Intl.DateTimeFormat("en-IN", {
@@ -158,7 +165,6 @@ export function FixturesClient({
   const [soloSearchB, setSoloSearchB] = useState("");
 
   const [createPending, setCreatePending] = useState(false);
-  const [startMatchPending, setStartMatchPending] = useState(false);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState("");
@@ -191,7 +197,7 @@ export function FixturesClient({
 
   const [statusMessage, setStatusMessage] = useState<{ text: string; isError?: boolean } | null>(null);
 
-  // Batches list
+  // Batches list with "Batch" prefix
   const batchOptions = useMemo(() => {
     if (eligibleBatches.length > 0) {
       return eligibleBatches.map((b) => (b.label.toLowerCase().includes("batch") ? b.label : `Batch ${b.label}`));
@@ -246,8 +252,8 @@ export function FixturesClient({
       const q = searchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
-        f.participant_a_label.toLowerCase().includes(q) ||
-        f.participant_b_label.toLowerCase().includes(q) ||
+        formatTeamLabel(f.participant_a_label).toLowerCase().includes(q) ||
+        formatTeamLabel(f.participant_b_label).toLowerCase().includes(q) ||
         f.stage.toLowerCase().includes(q) ||
         (f.venue && f.venue.toLowerCase().includes(q));
 
@@ -307,8 +313,8 @@ export function FixturesClient({
           action: "create",
           eventId: event.id,
           stage: finalStage,
-          participantALabel: finalPartA,
-          participantBLabel: finalPartB,
+          participantALabel: formatTeamLabel(finalPartA),
+          participantBLabel: formatTeamLabel(finalPartB),
           venue: venueInput.trim() || undefined,
           reportingAt: reportingInput ? new Date(reportingInput).toISOString() : null,
           startsAt: startsInput ? new Date(startsInput).toISOString() : null,
@@ -316,7 +322,7 @@ export function FixturesClient({
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (data.ok) {
-        setStatusMessage({ text: `Fixture "${finalPartA} vs ${finalPartB}" created successfully.` });
+        setStatusMessage({ text: `Fixture "${formatTeamLabel(finalPartA)} vs ${formatTeamLabel(finalPartB)}" created successfully.` });
         setShowCreateForm(false);
         setChosenPartA("");
         setChosenPartB("");
@@ -333,67 +339,13 @@ export function FixturesClient({
     }
   }
 
-  // Check if scoring is permitted for a fixture
-  function canScoreMatch(f: FixtureItem): boolean {
-    if (f.state === "ongoing" || f.score_status === "live") return true;
+  // Strict Match Time Check for Scoring
+  function isScoringEnabled(f: FixtureItem): boolean {
     if (f.state === "completed" || f.score_status === "final") return true;
+    if (f.state === "ongoing" || f.score_status === "live") return true;
     if (event.state === "ongoing") return true;
     if (f.starts_at && new Date() >= new Date(f.starts_at)) return true;
     return false;
-  }
-
-  // 1-Tap "Start Match (Go Live)"
-  async function handleStartMatch(f: FixtureItem) {
-    if (startMatchPending) return;
-    setStartMatchPending(true);
-    setStatusMessage(null);
-
-    const initialPayload: Record<string, string> = { ...((f.score_payload || {}) as Record<string, string>) };
-    if (scoreTemplate === "cricket" && !initialPayload.teamA_runs) {
-      initialPayload.teamA_runs = "0";
-      initialPayload.teamA_wickets = "0";
-      initialPayload.teamA_overs = "0.0";
-      initialPayload.teamB_runs = "0";
-      initialPayload.teamB_wickets = "0";
-      initialPayload.teamB_overs = "0.0";
-    } else if (scoreTemplate === "football" && !initialPayload.teamA_goals) {
-      initialPayload.teamA_goals = "0";
-      initialPayload.teamB_goals = "0";
-    }
-
-    try {
-      const res = await fetch("/api/admin/fixtures", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "score",
-          fixtureId: f.fixture_id,
-          expectedVersion: f.score_version,
-          scorePayload: initialPayload,
-          status: "live",
-        }),
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (data.ok) {
-        setStatusMessage({ text: `Match is now LIVE! Scoring and Scorer App unlocked.` });
-        if (selectedFixture?.fixture_id === f.fixture_id) {
-          setSelectedFixture({
-            ...f,
-            state: "ongoing",
-            score_status: "live",
-            score_version: f.score_version + 1,
-            score_payload: initialPayload,
-          });
-        }
-        router.refresh();
-      } else {
-        setStatusMessage({ text: data.error ?? "Failed to start match.", isError: true });
-      }
-    } catch {
-      setStatusMessage({ text: "Network error starting match.", isError: true });
-    } finally {
-      setStartMatchPending(false);
-    }
   }
 
   // Delete Fixture
@@ -647,10 +599,10 @@ export function FixturesClient({
           </div>
 
           <form onSubmit={handleCreateFixture} className="quick-fixture-form">
-            {/* Stage Selector Chips (Quarters onwards) */}
+            {/* Stage Selector Grid (Full readable buttons, no cutoffs) */}
             <div className="chip-section">
               <label className="section-label">1. Match Stage / Round</label>
-              <div className="chip-scroller">
+              <div className="stage-chips-grid">
                 {COMMON_STAGES.map((s) => (
                   <button
                     type="button"
@@ -1069,6 +1021,9 @@ export function FixturesClient({
               scoreSnippet = `Winner: ${scoreObj.winner}`;
             }
 
+            const teamALabel = formatTeamLabel(f.participant_a_label);
+            const teamBLabel = formatTeamLabel(f.participant_b_label);
+
             return (
               <article
                 key={f.fixture_id}
@@ -1087,12 +1042,12 @@ export function FixturesClient({
                 <div className="strip-left">
                   <div className="strip-stage-pill">{f.stage}</div>
                   <div className="strip-matchup-names">
-                    <span className="team-text home" title={f.participant_a_label}>
-                      {f.participant_a_label}
+                    <span className="team-text home" title={teamALabel}>
+                      {teamALabel}
                     </span>
                     <span className="vs-sep">vs</span>
-                    <span className="team-text away" title={f.participant_b_label}>
-                      {f.participant_b_label}
+                    <span className="team-text away" title={teamBLabel}>
+                      {teamBLabel}
                     </span>
                   </div>
                   {scoreSnippet && <div className="strip-score-snippet">{scoreSnippet}</div>}
@@ -1127,7 +1082,7 @@ export function FixturesClient({
               <div>
                 <span className="modal-stage-tag">{selectedFixture.stage}</span>
                 <h2 id="fixture-detail-title">
-                  {selectedFixture.participant_a_label} <span className="vs-modal">vs</span> {selectedFixture.participant_b_label}
+                  {formatTeamLabel(selectedFixture.participant_a_label)} <span className="vs-modal">vs</span> {formatTeamLabel(selectedFixture.participant_b_label)}
                 </h2>
               </div>
               <button
@@ -1140,15 +1095,13 @@ export function FixturesClient({
               </button>
             </div>
 
-            {/* Stadium Matchup Card */}
+            {/* Stadium Matchup Card (No confusing 20/20 circles!) */}
             <div className="modal-stadium-card">
               <div className="stadium-competitor home">
-                <div className="competitor-avatar">
-                  {selectedFixture.participant_a_label.slice(0, 2).toUpperCase()}
-                </div>
+                <span className="team-indicator a">A</span>
                 <div className="competitor-info">
-                  <strong>{selectedFixture.participant_a_label}</strong>
-                  <span className="sub-role">Participant A</span>
+                  <strong>{formatTeamLabel(selectedFixture.participant_a_label)}</strong>
+                  <span className="sub-role">Home / 1st</span>
                 </div>
               </div>
 
@@ -1173,12 +1126,10 @@ export function FixturesClient({
 
               <div className="stadium-competitor away">
                 <div className="competitor-info right">
-                  <strong>{selectedFixture.participant_b_label}</strong>
-                  <span className="sub-role">Participant B</span>
+                  <strong>{formatTeamLabel(selectedFixture.participant_b_label)}</strong>
+                  <span className="sub-role">Away / 2nd</span>
                 </div>
-                <div className="competitor-avatar away">
-                  {selectedFixture.participant_b_label.slice(0, 2).toUpperCase()}
-                </div>
+                <span className="team-indicator b">B</span>
               </div>
             </div>
 
@@ -1189,7 +1140,7 @@ export function FixturesClient({
                 {scoreTemplate === "cricket" && (
                   <div className="scoreboard-cricket">
                     <div className="cricket-team-row">
-                      <span>{selectedFixture.participant_a_label}:</span>
+                      <span>{formatTeamLabel(selectedFixture.participant_a_label)}:</span>
                       <strong>
                         {String(selectedFixture.score_payload.teamA_runs ?? 0)}/
                         {String(selectedFixture.score_payload.teamA_wickets ?? 0)}
@@ -1197,7 +1148,7 @@ export function FixturesClient({
                       </strong>
                     </div>
                     <div className="cricket-team-row">
-                      <span>{selectedFixture.participant_b_label}:</span>
+                      <span>{formatTeamLabel(selectedFixture.participant_b_label)}:</span>
                       <strong>
                         {String(selectedFixture.score_payload.teamB_runs ?? 0)}/
                         {String(selectedFixture.score_payload.teamB_wickets ?? 0)}
@@ -1271,25 +1222,18 @@ export function FixturesClient({
               </div>
             </div>
 
-            {/* SCORING LOCK CONDITION & START MATCH BUTTON */}
-            {!canScoreMatch(selectedFixture) ? (
+            {/* STRICT TIME-BASED SCORING: Unlocks strictly at match start time */}
+            {!isScoringEnabled(selectedFixture) ? (
               <div className="scoring-locked-card">
-                <div className="lock-header">
-                  <span>🔒 Scoring Locked</span>
-                  <p>Match has not started yet. Scorer app and score entries unlock when play begins.</p>
-                </div>
-                <button
-                  type="button"
-                  className="start-match-btn"
-                  disabled={startMatchPending}
-                  onClick={() => handleStartMatch(selectedFixture)}
-                >
-                  {startMatchPending ? "Starting Match…" : "▶ Start Match (Go Live)"}
-                </button>
+                <span className="lock-title">🔒 Scoring Locked</span>
+                <p>
+                  Scoring and Scorer App will automatically enable when the scheduled match start time arrives (
+                  {formatIST(selectedFixture.starts_at)}).
+                </p>
               </div>
             ) : (
               <div className="scoring-unlocked-card">
-                <span className="unlocked-header">⚡ Match In Progress / Open for Scoring</span>
+                <span className="unlocked-header">⚡ Scoring Open</span>
                 <div className="scoring-actions-row">
                   <button
                     type="button"
@@ -1323,7 +1267,7 @@ export function FixturesClient({
                 onClick={() => {
                   setReminderFixture(selectedFixture);
                   setReminderBody(
-                    `Reminder: ${selectedFixture.stage} between ${selectedFixture.participant_a_label} and ${selectedFixture.participant_b_label} starts at ${formatIST(selectedFixture.starts_at)} at ${selectedFixture.venue ?? "the venue"}.`
+                    `Reminder: ${selectedFixture.stage} between ${formatTeamLabel(selectedFixture.participant_a_label)} and ${formatTeamLabel(selectedFixture.participant_b_label)} starts at ${formatIST(selectedFixture.starts_at)} at ${selectedFixture.venue ?? "the venue"}.`
                   );
                 }}
               >
@@ -1370,8 +1314,8 @@ export function FixturesClient({
               Are you sure you want to delete this match?
               <br />
               <strong>
-                {deleteFixtureTarget.stage}: {deleteFixtureTarget.participant_a_label} vs{" "}
-                {deleteFixtureTarget.participant_b_label}
+                {deleteFixtureTarget.stage}: {formatTeamLabel(deleteFixtureTarget.participant_a_label)} vs{" "}
+                {formatTeamLabel(deleteFixtureTarget.participant_b_label)}
               </strong>
             </p>
             <p className="reschedule-audit-notice">
@@ -1411,8 +1355,8 @@ export function FixturesClient({
           <div className="modal-card wide">
             <h2 id="reschedule-modal-title">Reschedule Fixture</h2>
             <p>
-              Match: <strong>{rescheduleFixture.participant_a_label}</strong> vs{" "}
-              <strong>{rescheduleFixture.participant_b_label}</strong> ({rescheduleFixture.stage})
+              Match: <strong>{formatTeamLabel(rescheduleFixture.participant_a_label)}</strong> vs{" "}
+              <strong>{formatTeamLabel(rescheduleFixture.participant_b_label)}</strong> ({rescheduleFixture.stage})
             </p>
             <p className="reschedule-audit-notice">
               ⚠️ Changing fixture timings increments the schedule version to{" "}
@@ -1493,7 +1437,7 @@ export function FixturesClient({
         >
           <div className="modal-card wide">
             <h2 id="score-modal-title">
-              Score Entry: {scoreFixture.participant_a_label} vs {scoreFixture.participant_b_label}
+              Score Entry: {formatTeamLabel(scoreFixture.participant_a_label)} vs {formatTeamLabel(scoreFixture.participant_b_label)}
             </h2>
             <p>
               Template: <strong>{scoreTemplate.toUpperCase()}</strong> · Current Version:{" "}
@@ -1522,7 +1466,7 @@ export function FixturesClient({
               {scoreTemplate === "cricket" && (
                 <div className="template-fields">
                   <div className="team-score-block">
-                    <h4>{scoreFixture.participant_a_label}</h4>
+                    <h4>{formatTeamLabel(scoreFixture.participant_a_label)}</h4>
                     <div className="form-grid-3">
                       <label>Runs<input type="number" min={0} value={scoreForm.teamA_runs ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, teamA_runs: e.target.value })} /></label>
                       <label>Wickets<input type="number" min={0} max={10} value={scoreForm.teamA_wickets ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, teamA_wickets: e.target.value })} /></label>
@@ -1531,7 +1475,7 @@ export function FixturesClient({
                   </div>
 
                   <div className="team-score-block">
-                    <h4>{scoreFixture.participant_b_label}</h4>
+                    <h4>{formatTeamLabel(scoreFixture.participant_b_label)}</h4>
                     <div className="form-grid-3">
                       <label>Runs<input type="number" min={0} value={scoreForm.teamB_runs ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, teamB_runs: e.target.value })} /></label>
                       <label>Wickets<input type="number" min={0} max={10} value={scoreForm.teamB_wickets ?? ""} onChange={(e) => setScoreForm({ ...scoreForm, teamB_wickets: e.target.value })} /></label>
@@ -1555,7 +1499,7 @@ export function FixturesClient({
                 <div className="template-fields">
                   <div className="form-grid-2">
                     <label className="modal-label">
-                      {scoreFixture.participant_a_label} Goals
+                      {formatTeamLabel(scoreFixture.participant_a_label)} Goals
                       <input
                         type="number"
                         min={0}
@@ -1564,7 +1508,7 @@ export function FixturesClient({
                       />
                     </label>
                     <label className="modal-label">
-                      {scoreFixture.participant_b_label} Goals
+                      {formatTeamLabel(scoreFixture.participant_b_label)} Goals
                       <input
                         type="number"
                         min={0}
@@ -1644,8 +1588,8 @@ export function FixturesClient({
           <div className="modal-card wide">
             <h2 id="history-modal-title">Schedule Audit History</h2>
             <p>
-              Match: <strong>{historyFixture.participant_a_label}</strong> vs{" "}
-              <strong>{historyFixture.participant_b_label}</strong> ({historyFixture.stage})
+              Match: <strong>{formatTeamLabel(historyFixture.participant_a_label)}</strong> vs{" "}
+              <strong>{formatTeamLabel(historyFixture.participant_b_label)}</strong> ({historyFixture.stage})
             </p>
 
             {historyLoading ? (
@@ -1693,8 +1637,8 @@ export function FixturesClient({
             <h2 id="reminder-modal-title">Send Match Reminder Notification</h2>
             <p>
               Send an instant push and in-app reminder to registered participants for{" "}
-              <strong>{reminderFixture.stage}</strong> ({reminderFixture.participant_a_label} vs{" "}
-              {reminderFixture.participant_b_label}).
+              <strong>{reminderFixture.stage}</strong> ({formatTeamLabel(reminderFixture.participant_a_label)} vs{" "}
+              {formatTeamLabel(reminderFixture.participant_b_label)}).
             </p>
 
             <form onSubmit={handleReminderSubmit}>

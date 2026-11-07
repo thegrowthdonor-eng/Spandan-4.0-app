@@ -222,7 +222,7 @@
   color: #261923;
 }
 
-/* Section Labels & Chips */
+/* Section Labels & Stage Chips Grid (Full readable buttons, responsive 2-col on mobile) */
 .section-label {
   display: block;
   font: 700 11px/1 "DM Mono", monospace;
@@ -232,34 +232,51 @@
   margin-bottom: 8px;
 }
 
-.chip-scroller {
-  display: flex;
+.stage-chips-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+@media (min-width: 600px) {
+  .stage-chips-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
 }
 
 .stage-chip {
   background: #f7f3ee;
   border: 1px solid #dcd3cb;
-  border-radius: 6px;
-  padding: 8px 14px;
-  font: 500 12px/1 "DM Mono", monospace;
+  border-radius: 8px;
+  padding: 10px 8px;
+  font: 600 12px/1.2 "DM Mono", monospace;
   color: #3b2c34;
   cursor: pointer;
-  white-space: nowrap;
+  text-align: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: normal;
+  word-break: normal;
   transition: all 0.15s ease;
+  user-select: none;
 }
 
 .stage-chip:hover {
   background: #ede5dc;
+  border-color: #261923;
 }
 
 .stage-chip.selected {
   background: #261923;
   color: #ffffff;
   border-color: #261923;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(38, 25, 35, 0.2);
 }
 
 .custom-text-input {
@@ -790,6 +807,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  min-width: 0;
 }
 
 .team-text {
@@ -799,6 +817,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .team-text.home {
@@ -881,13 +901,32 @@
 
 /* ==================================================== */
 /* FULL FIXTURE INSPECTION MODAL (PortalDialog)        */
+/* Dialog Overrides to eliminate horizontal / sideways scroll on mobile */
 /* ==================================================== */
+body dialog.portal-dialog {
+  padding: 0 !important;
+  border: 1px solid #ded6cd !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  width: min(540px, calc(100vw - 20px)) !important;
+  max-width: min(540px, calc(100vw - 20px)) !important;
+  max-height: min(92dvh, 760px) !important;
+  height: auto !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  box-sizing: border-box !important;
+  margin: auto !important;
+  box-shadow: 0 24px 60px rgba(38, 25, 35, 0.28) !important;
+}
+
 .fixture-modal-card {
-  width: min(540px, calc(100vw - 20px));
-  max-height: min(90dvh, 720px);
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
 }
 
 .fixture-modal-header {
@@ -895,8 +934,9 @@
   justify-content: space-between;
   align-items: flex-start;
   border-bottom: 1px solid #ede5dc;
-  padding: 16px 20px 12px;
+  padding: 16px 16px 12px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .modal-stage-tag {
@@ -946,19 +986,21 @@
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: #faf7f2;
   border: 1px solid #ded6cd;
   border-radius: 10px;
-  padding: 14px 16px;
-  margin: 14px 20px;
+  padding: 12px 14px;
+  margin: 12px 14px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .stadium-competitor {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .stadium-competitor.home {
@@ -969,9 +1011,33 @@
   justify-content: flex-end;
 }
 
+.team-indicator {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 13px/1 "DM Mono", monospace;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.team-indicator.a {
+  background: #14352b;
+  color: #ffffff;
+  border: 1px solid #0f2921;
+}
+
+.team-indicator.b {
+  background: #733228;
+  color: #ffffff;
+  border: 1px solid #5a271f;
+}
+
 .competitor-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #14352b;
   color: #ffffff;
@@ -986,9 +1052,13 @@
   background: #733228;
 }
 
+.competitor-info {
+  min-width: 0;
+}
+
 .competitor-info strong {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   color: #261923;
   word-break: break-word;
 }
@@ -1007,6 +1077,7 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .vs-circle {
@@ -1048,8 +1119,9 @@
   background: #ffffff;
   border: 1px solid #ded6cd;
   border-radius: 8px;
-  padding: 12px 16px;
-  margin: 0 20px 14px;
+  padding: 12px 14px;
+  margin: 0 14px 12px;
+  box-sizing: border-box;
 }
 
 .modal-scoreboard-section h4 {
@@ -1111,13 +1183,14 @@
 .modal-meta-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
   background: #fdfbf8;
   border: 1px solid #ede5dc;
   border-radius: 8px;
-  padding: 12px 16px;
-  margin: 0 20px 14px;
+  padding: 12px 14px;
+  margin: 0 14px 12px;
   font-size: 12px;
+  box-sizing: border-box;
 }
 
 .m-label {
@@ -1131,6 +1204,7 @@
 .m-val {
   color: #261923;
   font-weight: 500;
+  word-break: break-word;
 }
 
 .m-val.highlight {
@@ -1142,51 +1216,35 @@
   background: #fff8e1;
   border: 1px solid #ffe082;
   border-radius: 8px;
-  padding: 12px 16px;
-  margin: 0 20px 14px;
+  padding: 12px 14px;
+  margin: 0 14px 12px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
 }
 
-.lock-header span {
-  display: block;
-  font: 700 12px/1 "DM Mono", monospace;
+.scoring-locked-card .lock-title {
+  font: 700 11px/1 "DM Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: #b78103;
-  margin-bottom: 2px;
 }
 
-.lock-header p {
-  font-size: 11px;
-  color: #795548;
+.scoring-locked-card p {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #6d4c41;
   margin: 0;
-}
-
-.start-match-btn {
-  background: #14352b;
-  color: #ffffff;
-  border: 1px solid #14352b;
-  border-radius: 6px;
-  padding: 8px 14px;
-  font: 700 12px/1 "DM Mono", monospace;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.start-match-btn:hover {
-  background: #1f4e3f;
 }
 
 .scoring-unlocked-card {
   background: #e6f4ea;
   border: 1px solid #b7e1cd;
   border-radius: 8px;
-  padding: 12px 16px;
-  margin: 0 20px 14px;
+  padding: 12px 14px;
+  margin: 0 14px 12px;
+  box-sizing: border-box;
 }
 
 .unlocked-header {
@@ -1222,12 +1280,13 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 14px 20px;
+  padding: 12px 14px;
   border-top: 1px solid #ede5dc;
   background: #faf7f2;
   border-bottom-left-radius: 12px;
   border-bottom-right-radius: 12px;
   margin-top: auto;
+  box-sizing: border-box;
 }
 
 .modal-action-btn {
@@ -1262,8 +1321,11 @@
 
 /* General Modal Dialog Card Overrides */
 .modal-card.wide {
-  max-width: 540px;
-  width: 100%;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 18px 16px !important;
+  overflow-x: hidden !important;
 }
 
 .modal-label {
