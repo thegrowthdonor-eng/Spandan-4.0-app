@@ -11,12 +11,13 @@ function formatIST(iso: string | null) {
 
 export function HappeningNowRadar() {
   const [data, setData] = useState<LiveGroundPayload | null>(null);
+  const [now, setNow] = useState(0);
   useEffect(() => {
     const load = async () => {
-      try { const response = await fetch("/api/public/live"); if (response.ok) setData(await response.json() as LiveGroundPayload); } catch { /* retain the last successful update */ }
+      try { const response = await fetch("/api/public/live"); if (response.ok) { setData(await response.json() as LiveGroundPayload); setNow(Date.now()); } } catch { /* retain the last successful update */ }
     };
     void load();
-    const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 120_000);
+    const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 60_000);
     return () => clearInterval(timer);
   }, []);
 
@@ -27,7 +28,7 @@ export function HappeningNowRadar() {
   const isImminentToday = (iso: string | null | undefined): boolean => {
     if (!iso) return false;
     const time = new Date(iso).getTime();
-    const diffHours = (time - Date.now()) / (1000 * 3600);
+    const diffHours = (time - now) / (1000 * 3600);
     return diffHours >= 0 && diffHours <= 12;
   };
 

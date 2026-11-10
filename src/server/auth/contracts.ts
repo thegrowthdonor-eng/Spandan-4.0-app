@@ -97,6 +97,7 @@ export const bulkSoloSelectionSchema = z.object({
 });
 
 export const fixtureCommandSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("start"), fixtureId: z.string().uuid() }),
   z.object({
     action: z.literal("create"),
     eventId: z.string().uuid(),

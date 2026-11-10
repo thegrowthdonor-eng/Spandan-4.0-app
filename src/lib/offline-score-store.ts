@@ -10,6 +10,7 @@ export type PreparedFixture = {
   participantBLabel: string;
   venue: string | null;
   startsAt: string | null;
+  actualStartedAt?: string | null;
   scoreTemplate: "cricket" | "football" | "badminton" | "basketball" | "set_based" | "generic";
   scoreProvider: "internal" | "cricheroes";
   externalScoreUrl: string | null;
@@ -89,4 +90,14 @@ export function initialPayload(template: PreparedFixture["scoreTemplate"]) {
   if (template === "basketball") return { teamA_score: "0", teamB_score: "0", quarter: "Q1", teamA_fouls: "0", teamB_fouls: "0", clock_seconds: 600, clock_running: false, clock_started_at: null, summary: "" };
   if (template === "badminton" || template === "set_based") return { teamA_points: "0", teamB_points: "0", sets: [], best_of: 3, winner: "", summary: "" };
   return { teamA_score: "0", teamB_score: "0", round: "", winner: "", summary: "" };
+}
+
+export function scorerPayload(template: PreparedFixture["scoreTemplate"], payload: Record<string, unknown>) {
+  if (template === "badminton" && typeof payload.set1 === "string") {
+    return { ...initialPayload(template), winner: payload.winner ?? "", sets: [payload.set1, payload.set2, payload.set3].filter(value => typeof value === "string" && /^\d{1,3}-\d{1,3}$/.test(value)).map(value => {
+      const [teamA, teamB] = String(value).split("-").map(Number);
+      return { teamA, teamB };
+    }) };
+  }
+  return { ...initialPayload(template), ...payload };
 }

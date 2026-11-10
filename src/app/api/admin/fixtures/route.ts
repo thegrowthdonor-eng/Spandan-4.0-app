@@ -98,6 +98,15 @@ export async function POST(request: Request) {
 
   if (!(await client.auth.getUser()).data.user) return denied;
 
+  if (command.action === "start") {
+    const { data, error } = await client.rpc("start_fixture", { p_fixture_id: command.fixtureId });
+    if (error) {
+      if (["42501", "28000"].includes(error.code)) return denied;
+      return NextResponse.json({ error: error.code === "22023" ? error.message : "Unable to start this match. Refresh and try again." }, { status: error.code === "22023" ? 400 : 503, headers });
+    }
+    return NextResponse.json({ ok: true, data }, { headers });
+  }
+
   if (command.action === "create") {
     const { data, error } = await client.rpc("create_fixture", {
       p_event_id: command.eventId,
@@ -112,7 +121,7 @@ export async function POST(request: Request) {
     if (error) {
       if (error.code === "42501" || error.code === "28000") return denied;
       if (error.code === "22023") {
-        return NextResponse.json({ error: "This fixture does not meet event requirements." }, { status: 400, headers });
+        return NextResponse.json({ error: error.message || "This fixture does not meet event requirements." }, { status: 400, headers });
       }
       return NextResponse.json({ error: "Unable to create fixture right now." }, { status: 503, headers });
     }
@@ -169,7 +178,7 @@ export async function POST(request: Request) {
         );
       }
       if (error.code === "22023") {
-        return NextResponse.json({ error: "Invalid score payload or status." }, { status: 400, headers });
+        return NextResponse.json({ error: error.message || "Invalid score payload or status." }, { status: 400, headers });
       }
       return NextResponse.json({ error: "Unable to save score snapshot right now." }, { status: 503, headers });
     }

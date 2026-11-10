@@ -1,6 +1,7 @@
 import { fixtureCommandSchema, fixtureCreateSchema } from "@/server/auth/contracts";
 
 export type FixtureCommand =
+  | { action: "start"; fixtureId: string }
   | { action: "create"; eventId: string; stage: string; participantALabel: string; participantBLabel: string; venue?: string; reportingAt: string | null; startsAt: string | null }
   | { action: "reschedule"; fixtureId: string; reportingAt: string | null; startsAt: string | null; venue?: string; reason: string }
   | { action: "score"; fixtureId: string; expectedVersion: number; scorePayload: Record<string, unknown>; status: "scheduled" | "live" | "paused" | "final" | "cancelled" }

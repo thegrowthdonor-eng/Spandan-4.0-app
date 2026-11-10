@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  getOfflineFixture, initialPayload, listOfflineFixtures, putOfflineFixture, removeOfflineFixture,
+  getOfflineFixture, scorerPayload, listOfflineFixtures, putOfflineFixture, removeOfflineFixture,
   type OfflineFixtureRecord, type PreparedFixture, type ScoreStatus,
 } from "@/lib/offline-score-store";
 import styles from "./scorer.module.css";
+import { formatMatchClock, matchClockSeconds } from "@/lib/match-clock";
 
 function deviceId() {
   const key = "spandan_scorer_device_id";
@@ -25,13 +26,6 @@ function ScoreControl({ label, value, onChange, steps = [1] }: { label: string; 
     <button type="button" onClick={() => onChange(Math.max(0, value - 1))} aria-label={`Subtract one from ${label}`}>−1</button>
     {steps.map(step => <button type="button" key={step} onClick={() => onChange(value + step)}>+{step}</button>)}
   </div></section>;
-}
-
-function clockValue(payload: Record<string, unknown>, countdown: boolean) {
-  const base = number(payload, "clock_seconds");
-  if (!payload.clock_running || typeof payload.clock_started_at !== "string") return base;
-  const elapsed = Math.max(0, Math.floor((Date.now() - new Date(payload.clock_started_at).getTime()) / 1000));
-  return countdown ? Math.max(0, base - elapsed) : base + elapsed;
 }
 
 export function OfflineScorer() {
@@ -74,7 +68,7 @@ export function OfflineScorer() {
     const next: OfflineFixtureRecord = current?.pending ? current : {
       id: fixtureId,
       fixture: body.fixture,
-      payload: Object.keys(body.fixture.scorePayload ?? {}).length ? body.fixture.scorePayload : initialPayload(body.fixture.scoreTemplate),
+      payload: scorerPayload(body.fixture.scoreTemplate, body.fixture.scorePayload),
       status: body.fixture.status,
       localRevision: current?.localRevision ?? 0,
       history: current?.history ?? [],
@@ -140,6 +134,8 @@ export function OfflineScorer() {
 
   const commit = useCallback(async (payload: Record<string, unknown>, status = record?.status ?? "live", immediate = false) => {
     if (!record) return;
+    if (!record.fixture.actualStartedAt) { setMessage("Start this match from Fixtures before scoring."); return; }
+    if (payload.clock_running === true && status !== "live") payload = { ...payload, clock_seconds: matchClockSeconds(payload, record.fixture.scoreTemplate === "basketball"), clock_running: false, clock_started_at: null };
     const latest = await getOfflineFixture(record.id) ?? record;
     const nextRevision = latest.localRevision + 1;
     const next: OfflineFixtureRecord = {
@@ -215,6 +211,7 @@ export function OfflineScorer() {
   if (reconciliation) return <section className={styles.empty}><h1>Scorer transfer detected</h1><p>{reconciliation}</p><p>This device will not overwrite the replacement scorer. Download its recovery copy for an administrator to reconcile.</p><button type="button" onClick={exportRecovery}>Download recovery copy</button></section>;
 
   const f = record.fixture; const p = record.payload;
+  if (!f.actualStartedAt) return <section className={styles.empty}><h1>Match has not started</h1><p>Start this match from Fixtures on its scheduled day before scoring.</p><a href={`/admin/fixtures?event=${f.eventId}`}>Open fixtures</a><button type="button" onClick={exportRecovery}>Download recovery copy</button></section>;
   const change = (key: string, value: unknown) => void commit({ ...p, [key]: value });
   return <div className={styles.console}>
     <section className={`${styles.connection} ${online ? styles.online : styles.offline}`} role="status">
@@ -224,7 +221,7 @@ export function OfflineScorer() {
     <header className={styles.matchHeader}><div><p>{f.eventTitle} · {f.stage}</p><h1>{f.participantALabel} <span>vs</span> {f.participantBLabel}</h1><small>{f.venue ?? "Venue to be confirmed"}</small></div><div className={styles.syncState}><b>Local r{record.localRevision}</b><span>Server v{f.serverVersion}</span></div></header>
 
     <div className={styles.statusRow}>
-      <label>Status <select value={record.status} onChange={event => void commit(p, event.target.value as ScoreStatus, true)}><option value="scheduled">Scheduled</option><option value="live">Live</option><option value="paused">Paused</option><option value="final">Final</option><option value="cancelled">Cancelled</option></select></label>
+      <label>Status <select aria-label="Match status" value={record.status} onChange={event => void commit(p, event.target.value as ScoreStatus, true)}><option value="live">Live</option><option value="paused">Paused</option><option value="final">Final</option><option value="cancelled">Cancelled</option></select></label>
       <button type="button" onClick={() => void undo()} disabled={!record.history.length}>Undo</button>
       <button type="button" onClick={() => void sync()} disabled={!record.pending || !online || syncing}>{syncing ? "Syncing…" : "Sync now"}</button>
     </div>
@@ -232,9 +229,13 @@ export function OfflineScorer() {
     {f.scoreTemplate === "cricket" && <><label className={styles.innings}>Innings<select value={String(p.innings ?? "First innings")} onChange={event => change("innings", event.target.value)}><option>First innings</option><option>Second innings</option></select></label><div className={styles.cricketGrid}>{["A","B"].map(side => <section key={side} className={styles.teamControl}><h3>{side === "A" ? f.participantALabel : f.participantBLabel}</h3><div className={styles.fieldRow}><label>Runs<input inputMode="numeric" value={String(p[`team${side}_runs`] ?? 0)} onChange={e => change(`team${side}_runs`, e.target.value)} /></label><label>Wickets<input inputMode="numeric" value={String(p[`team${side}_wickets`] ?? 0)} onChange={e => change(`team${side}_wickets`, e.target.value)} /></label><label>Overs<input inputMode="decimal" value={String(p[`team${side}_overs`] ?? "0.0")} onChange={e => change(`team${side}_overs`, e.target.value)} /></label></div></section>)}</div></>}
     {f.scoreTemplate === "football" && <div className={styles.scoreGrid}><ScoreControl label={f.participantALabel} value={number(p,"teamA_goals")} onChange={v => change("teamA_goals",String(v))}/><ScoreControl label={f.participantBLabel} value={number(p,"teamB_goals")} onChange={v => change("teamB_goals",String(v))}/></div>}
     {f.scoreTemplate === "basketball" && <div className={styles.scoreGrid}><ScoreControl label={f.participantALabel} value={number(p,"teamA_score")} steps={[1,2,3]} onChange={v => change("teamA_score",String(v))}/><ScoreControl label={f.participantBLabel} value={number(p,"teamB_score")} steps={[1,2,3]} onChange={v => change("teamB_score",String(v))}/></div>}
+    {f.scoreTemplate === "football" && <><label className={styles.innings}>Match phase<select value={String(p.period ?? "First half")} onChange={e => change("period", e.target.value)}>{["First half", "Half-time", "Second half", "Extra time", "Penalties"].map(value => <option key={value}>{value}</option>)}</select></label><label className={styles.summary}>Penalty shootout (if needed)<input maxLength={160} value={String(p.penalties ?? "")} onChange={e => change("penalties", e.target.value)} placeholder="e.g. 4–3" /></label></>}
+    {f.scoreTemplate === "basketball" && <label className={styles.innings}>Quarter<select value={String(p.quarter ?? "Q1")} onChange={e => change("quarter", e.target.value)}>{["Q1", "Q2", "Q3", "Q4", "Overtime"].map(value => <option key={value}>{value}</option>)}</select></label>}
     {(f.scoreTemplate === "football" || f.scoreTemplate === "basketball") && <ClockControl payload={p} countdown={f.scoreTemplate === "basketball"} commit={payload => void commit(payload, record.status, true)} />}
     {(f.scoreTemplate === "badminton" || f.scoreTemplate === "set_based") && <><div className={styles.scoreGrid}><ScoreControl label={f.participantALabel} value={number(p,"teamA_points")} onChange={v => change("teamA_points",String(v))}/><ScoreControl label={f.participantBLabel} value={number(p,"teamB_points")} onChange={v => change("teamB_points",String(v))}/></div><button className={styles.finishSet} type="button" onClick={() => void commit({ ...p, sets: [...(Array.isArray(p.sets) ? p.sets : []), { teamA:number(p,"teamA_points"),teamB:number(p,"teamB_points") }], teamA_points:"0",teamB_points:"0" }, record.status, true)}>Finish current set</button></>}
-    {f.scoreTemplate === "generic" && <div className={styles.scoreGrid}><ScoreControl label={f.participantALabel} value={number(p,"teamA_score")} onChange={v => change("teamA_score",String(v))}/><ScoreControl label={f.participantBLabel} value={number(p,"teamB_score")} onChange={v => change("teamB_score",String(v))}/></div>}
+    {(f.scoreTemplate === "badminton" || f.scoreTemplate === "set_based") && <><label className={styles.innings}>Best of<select value={String(p.best_of ?? 3)} onChange={e => change("best_of", Number(e.target.value))}>{[1,3,5,7,9].map(value => <option key={value} value={value}>{value} sets</option>)}</select></label>{Array.isArray(p.sets) && p.sets.length > 0 && <p className={styles.sets}>Completed sets: {p.sets.map((set, index) => { const s = set as { teamA: number; teamB: number }; return <span key={index}>{s.teamA}–{s.teamB}</span>; })}</p>}</>}
+    {f.scoreTemplate === "generic" && !/chess/i.test(f.eventTitle) && <div className={styles.scoreGrid}><ScoreControl label={f.participantALabel} value={number(p,"teamA_score")} onChange={v => change("teamA_score",String(v))}/><ScoreControl label={f.participantBLabel} value={number(p,"teamB_score")} onChange={v => change("teamB_score",String(v))}/></div>}
+    {["generic", "badminton", "set_based"].includes(f.scoreTemplate) && <label className={styles.summary}>Outcome<select aria-label="Match outcome" value={String(p.winner ?? "")} onChange={e => change("winner", e.target.value)}><option value="">Select outcome</option><option>{f.participantALabel}</option><option>{f.participantBLabel}</option>{f.scoreTemplate === "generic" && <option value="Draw">Draw</option>}</select></label>}
 
     <label className={styles.summary}>Ground update / outcome<textarea maxLength={500} value={String(p.summary ?? "")} onChange={e => change("summary",e.target.value)} placeholder="Short public match update" /></label>
     {f.scoreTemplate === "cricket" && <div className={styles.providerNote}><p>CricHeroes is the official cricket source. Offline scores stay private until this device score is checked against the official scorecard.</p><div className={styles.providerForm}><input type="url" value={cricHeroesUrl} onChange={event => setCricHeroesUrl(event.target.value)} placeholder="https://cricheroes.com/…"/><button type="button" disabled={Boolean(record.pending) || !online || !cricHeroesUrl} onClick={() => void reconcileCricket()}>Reconciled &amp; publish</button></div></div>}
@@ -244,8 +245,8 @@ export function OfflineScorer() {
 }
 
 function ClockControl({ payload, countdown, commit }: { payload: Record<string, unknown>; countdown: boolean; commit: (payload: Record<string, unknown>) => void }) {
-  const seconds = clockValue(payload, countdown);
+  const seconds = matchClockSeconds(payload, countdown);
   const running = payload.clock_running === true;
   const update = (nextSeconds: number, nextRunning = running) => commit({ ...payload, clock_seconds: Math.max(0, nextSeconds), clock_running: nextRunning, clock_started_at: nextRunning ? new Date().toISOString() : null });
-  return <section className={styles.clock}><p>{countdown ? "Game clock" : "Match clock"}</p><strong>{String(Math.floor(seconds / 60)).padStart(2, "0")}:{String(seconds % 60).padStart(2, "0")}</strong><div><button type="button" onClick={() => update(seconds, !running)}>{running ? "Pause" : "Start"}</button><button type="button" onClick={() => update(seconds - 60)}>−1 min</button><button type="button" onClick={() => update(seconds + 60)}>+1 min</button></div></section>;
+  return <section className={styles.clock}><p>{countdown ? "Game clock" : "Match clock"}</p><strong>{formatMatchClock(seconds)}</strong><div><button type="button" onClick={() => update(seconds, !running)}>{running ? "Pause clock" : "Start clock"}</button><button type="button" onClick={() => update(seconds - 60)}>−1 min</button><button type="button" onClick={() => update(seconds + 60)}>+1 min</button></div></section>;
 }

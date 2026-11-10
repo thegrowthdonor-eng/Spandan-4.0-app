@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     p_device_id: parsed.data.deviceId,
   });
   if (error) {
+    if (error.code === "22023") return NextResponse.json({ error: error.message }, { status: 400, headers: noStore });
     if (error.code === "40001") return NextResponse.json({ error: "This fixture is already prepared on another device." }, { status: 409, headers: noStore });
     if (["42501", "28000"].includes(error.code)) return NextResponse.json({ error: "You are not assigned to score this fixture." }, { status: 403, headers: noStore });
     return NextResponse.json({ error: "Unable to prepare offline scoring." }, { status: 503, headers: noStore });

@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { parseFixturePayload } from "./fixture-request";
 
+test("explicit start accepts only a valid fixture identifier", () => {
+  assert.equal(parseFixturePayload({ action: "start", fixtureId: "c0a80101-0000-4000-8000-000000000001" }).success, true);
+  assert.equal(parseFixturePayload({ action: "start", fixtureId: "invalid" }).success, false);
+});
+
 test("fixture payload parser rejects JSON null as a client error", () => {
   const result = parseFixturePayload(null);
   assert.equal(result.success, false);

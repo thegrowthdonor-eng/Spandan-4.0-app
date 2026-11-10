@@ -20,7 +20,7 @@ const football = z.object({
   period: z.string().max(40).optional(),
   clock_seconds: wholeNumber.optional(),
   clock_running: z.boolean().optional(),
-  clock_started_at: z.string().datetime().nullable().optional(),
+  clock_started_at: z.string().datetime({ offset: true }).nullable().optional(),
   summary: z.string().max(500).optional(),
 }).strict();
 const badmintonLegacy = z.object({
@@ -42,7 +42,7 @@ const basketball = z.object({
   teamB_fouls: wholeNumber.refine((value) => Number(value) <= 99).optional(),
   clock_seconds: wholeNumber.optional(),
   clock_running: z.boolean().optional(),
-  clock_started_at: z.string().datetime().nullable().optional(),
+  clock_started_at: z.string().datetime({ offset: true }).nullable().optional(),
   summary: z.string().max(500).optional(),
 }).strict();
 
