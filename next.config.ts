@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NODE_ENV === "development";
-const isVisualQa = process.env.QA_PROJECT_REF === "rgcevrvxfunmwephhomy";
-if (isVisualQa && !process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("rgcevrvxfunmwephhomy")) throw new Error("QA build must use the isolated database.");
+if (process.env.QA_PROJECT_REF || process.env.NEXT_PUBLIC_SUPABASE_URL?.includes("rgcevrvxfunmwephhomy")) {
+  throw new Error("The retired QA database is disconnected. Remove QA environment overrides before running the app.");
+}
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -34,8 +35,6 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  distDir: isVisualQa ? ".next-qa" : ".next",
-  ...(isVisualQa ? { env: { NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!, NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! } } : {}),
   poweredByHeader: false,
   devIndicators: false,
   experimental: {

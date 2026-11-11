@@ -8,17 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts",
-    "qa:seed": "node --env-file=.env.qa.local --import tsx scripts/seed-qa.ts",
-    "qa:events": "node --env-file=.env.qa.local --import tsx scripts/sync-qa-events.ts",
-    "qa:requests": "node --env-file=.env.qa.local --import tsx scripts/sync-qa-event-requests.ts",
-    "qa:reset": "node --env-file=.env.qa.local --import tsx scripts/seed-qa.ts",
-    "qa:verify": "node --env-file=.env.qa.local --import tsx scripts/verify-qa.ts",
-    "qa:competition": "node --env-file=.env.qa.local --import tsx scripts/verify-competition.ts",
-    "qa:competition:browser": "node --env-file=.env.qa.local --import tsx scripts/verify-competition.ts --browser",
-    "qa:schedule": "node --env-file=.env.qa.local --import tsx scripts/verify-schedule.ts",
-    "dev:qa": "node scripts/run-qa-next.mjs dev",
-    "build:qa": "node scripts/run-qa-next.mjs build"
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1165.0",
