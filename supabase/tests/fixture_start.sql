@@ -10,7 +10,7 @@ begin
   select profile_id into actor from public.staff_assignments where role='main_admin' and revoked_at is null limit 1;
   assert actor is not null, 'A QA main admin is required';
   perform set_config('request.jwt.claim.sub',actor::text,true);
-  select * into target from public.fixtures order by created_at limit 1;
+  select f.* into target from public.fixtures f join public.events e on e.id=f.event_id where e.operating_method='live_matches' order by f.created_at limit 1;
   assert target.id is not null, 'A QA fixture is required';
   select * into parent from public.events where id=target.event_id;
   update public.events set state='open' where id=parent.id;

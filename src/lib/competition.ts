@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { OperatingMethod, ValueUnit } from "./event-operations";
 
 export const scheduleModes = ["match", "heat", "flight", "running_order", "session", "submission", "information"] as const;
 export const resultModes = ["sport_score", "time", "distance", "count", "faculty_places", "public_vote", "none"] as const;
@@ -19,7 +20,7 @@ export type CompetitionSession = {
 };
 export type CompetitionEntry = { id: string; application_id: string | null; group_id: string | null; entry_number: number; title: string; description: string; media_id: string | null; public_media_url: string | null; state: string; note: string; version: number };
 export type CompetitionWorkspace = {
-  event: { id: string; title: string; format: string; state: string; registration_enabled: boolean }; staff: boolean;
+  event: { id: string; title: string; format: string; state: string; registration_enabled: boolean; operating_method?: OperatingMethod; entry_format?: "image" | "text"; result_unit?: ValueUnit | null }; staff: boolean;
   settings: (CompetitionSettings & { version: number; verified: boolean }) | null;
   candidates: Entrant[]; sessions: CompetitionSession[]; entries: CompetitionEntry[];
   programme?:Array<{id:string;title:string;starts_at:string|null}>;

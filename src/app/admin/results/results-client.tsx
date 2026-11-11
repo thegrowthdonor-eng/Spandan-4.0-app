@@ -4,599 +4,102 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ImageUploadWidget } from "@/components/admin/image-upload-widget";
+import { finalValueLabel, finalValueSchema, type OperatingMethod, type ValueUnit } from "@/lib/event-operations";
+import { batchName } from "@/lib/results";
 
-export type PointRule = {
-  placing: number;
-  points: number;
-};
-
+export type PointRule = { placing: number; points: number };
 export type ResultPublication = {
-  publication_id: string;
-  version: number;
-  state: string;
-  reason: string | null;
-  published_by_name: string | null;
-  published_at: string;
-  podium_photo_url?: string | null;
-  podium_caption?: string | null;
-  positions: Array<{
-    placing: number;
-    batch_id: string | null;
-    batch_label: string;
-    winner_name?: string | null;
-    participant_category?: string | null;
-    application_id?: string | null;
-    group_id?: string | null;
-    points: number;
-    note: string | null;
-  }>;
+  publication_id: string; version: number; state: string; reason: string | null; published_by_name: string | null; published_at: string;
+  podium_photo_url?: string | null; podium_caption?: string | null;
+  positions: Array<{ placing: number; batch_id: string | null; batch_label: string; winner_name?: string | null; participant_category?: string | null; application_id?: string | null; group_id?: string | null; points: number; note: string | null; final_value?: string | number | null; value_unit?: string | null }>;
 };
+export type ResultParticipant = { target_id: string; target_kind: "application" | "group"; label: string; category: string; batch_id: string | null; roll_canonical: string | null; batch_label: string | null };
+type Position = { placing: number; targetKey: string; note: string; finalValue: string };
+type EventMeta = { id: string; title: string; category: string; format: string; operating_method: OperatingMethod; result_unit: ValueUnit | null };
 
-export type ResultParticipant = {
-  target_id: string;
-  target_kind: "application" | "group";
-  label: string;
-  category: string;
-  batch_id: string | null;
-  roll_canonical: string | null;
-  batch_label: string | null;
-};
+function participantLabel(participant: ResultParticipant) {
+  return [participant.label, participant.target_kind === "application" && participant.roll_canonical ? `Roll ${participant.roll_canonical}` : "", participant.batch_label ? batchName(participant.batch_label) : ""].filter(Boolean).join(" · ");
+}
 
-type EventMeta = {
-  id: string;
-  title: string;
-  category: string;
-  format: string;
-};
-
-export function ResultsClient({
-  event,
-  pointRules,
-  results,
-  participants = [],
-  isMainAdmin,
-  confirmedPositions=[],
-  competitionPointsLocked=false,
-}: {
-  event: EventMeta;
-  pointRules: PointRule[];
-  results: ResultPublication[];
-  participants?: ResultParticipant[];
-  isMainAdmin: boolean;
-  confirmedPositions?:Array<{placing:number;targetKey:string;note:string}>;
-  competitionPointsLocked?:boolean;
+export function ResultsClient({ event, pointRules, results, participants = [], isMainAdmin, confirmedPositions = [], competitionPointsLocked = false, votingVerified = true }: {
+  event: EventMeta; pointRules: PointRule[]; results: ResultPublication[]; participants?: ResultParticipant[]; isMainAdmin: boolean;
+  confirmedPositions?: Array<{ placing: number; targetKey: string; note: string }>; competitionPointsLocked?: boolean; votingVerified?: boolean;
 }) {
   const router = useRouter();
-
-  // Point rules editing state
-  const [rules, setRules] = useState<PointRule[]>(
-    pointRules.length > 0
-      ? pointRules
-      : [
-          { placing: 1, points: 10 },
-          { placing: 2, points: 7 },
-          { placing: 3, points: 5 },
-        ]
-  );
-  const [rulesPending, setRulesPending] = useState(false);
-
-  // Result publication form state
-  const currentPublished = results.find((r) => r.state === "published");
-  const isCorrection = Boolean(currentPublished);
-  const pointsLocked = results.length > 0 || competitionPointsLocked;
-  const rosterHref = event.format === "solo" ? `/admin/selection?event=${event.id}` : `/admin/groups?event=${event.id}`;
-  const winnerKind = event.format === "solo" ? "participant" : event.format === "pair" ? "pair" : event.format === "group" ? "group" : "team";
-
-  const defaultTarget = (idx: number) => {
-    if (participants[idx]) return `${participants[idx].target_kind}:${participants[idx].target_id}`;
-    return "";
-  };
-
-  function participantLabel(participant: ResultParticipant) {
-    if (participant.target_kind === "group") {
-      return [participant.label, participant.batch_label ? `Batch ${participant.batch_label}` : null]
-        .filter(Boolean)
-        .join(" · ");
-    }
-    return [
-      participant.label,
-      participant.roll_canonical ? `Roll No. ${participant.roll_canonical}` : participant.category.toUpperCase(),
-      participant.batch_label ? `Batch ${participant.batch_label}` : null,
-    ].filter(Boolean).join(" · ");
-  }
-
-  const [positions, setPositions] = useState<Array<{ placing: number; targetKey: string; note: string }>>(
-    currentPublished && currentPublished.positions.length > 0
-      ? currentPublished.positions.map((p) => ({
-          placing: p.placing,
-          targetKey: p.application_id
-            ? `application:${p.application_id}`
-            : p.group_id
-            ? `group:${p.group_id}`
-            : p.batch_id
-            ? `batch:${p.batch_id}`
-            : "",
-          note: p.note ?? "",
-        }))
-      : confirmedPositions.length ? confirmedPositions : [
-          { placing: 1, targetKey: defaultTarget(0), note: "" },
-          { placing: 2, targetKey: defaultTarget(1), note: "" },
-          { placing: 3, targetKey: defaultTarget(2), note: "" },
-        ]
-  );
-  const [podiumPhotoUrl, setPodiumPhotoUrl] = useState(currentPublished?.podium_photo_url ?? "");
-  const [podiumCaption, setPodiumCaption] = useState(currentPublished?.podium_caption ?? "");
-  const [publishReason, setPublishReason] = useState("");
-  const [publishPending, setPublishPending] = useState(false);
-
-  // Status message
-  const [statusMessage, setStatusMessage] = useState<{ text: string; isError?: boolean } | null>(null);
-
-  // Add placing row
-  function addPositionRow() {
-    const nextPlace = positions.length + 1;
-    setPositions([...positions, { placing: nextPlace, targetKey: defaultTarget(positions.length), note: "" }]);
-  }
-
-  // Remove placing row
-  function removePositionRow(index: number) {
-    if (positions.length <= 1) return;
-    const next = positions.filter((_, i) => i !== index).map((pos, idx) => ({ ...pos, placing: idx + 1 }));
-    setPositions(next);
-  }
-
-  // Add point rule row
-  function addRuleRow() {
-    const nextPlace = rules.length + 1;
-    setRules([...rules, { placing: nextPlace, points: 1 }]);
-  }
-
-  function removeRuleRow(index: number) {
-    if (rules.length <= 1) return;
-    const next = rules.filter((_, i) => i !== index).map((r, idx) => ({ ...r, placing: idx + 1 }));
-    setRules(next);
-  }
-
-  // Save point rules
-  async function handleSavePointRules(e: React.FormEvent) {
-    e.preventDefault();
-    if (rulesPending || pointsLocked) return;
-    setRulesPending(true);
-    setStatusMessage(null);
+  const current = results.find(result => result.state === "published");
+  const voting = event.operating_method === "voting";
+  const [rules, setRules] = useState<PointRule[]>(pointRules.length ? pointRules : [{ placing: 1, points: 10 }, { placing: 2, points: 7 }, { placing: 3, points: 5 }]);
+  const [positions, setPositions] = useState<Position[]>(() => {
+    if (current) return current.positions.map(p => ({ placing: p.placing, targetKey: p.application_id ? `application:${p.application_id}` : p.group_id ? `group:${p.group_id}` : `batch:${p.batch_id}`, note: p.note ?? "", finalValue: p.final_value == null ? "" : String(p.final_value) }));
+    if (voting) return confirmedPositions.map(p => ({ ...p, finalValue: "" }));
+    return (pointRules.length ? pointRules : [{ placing: 1, points: 0 }, { placing: 2, points: 0 }, { placing: 3, points: 0 }]).slice(0, participants.length || 3).map(rule => ({ placing: rule.placing, targetKey: "", note: "", finalValue: "" }));
+  });
+  const [photo, setPhoto] = useState(current?.podium_photo_url ?? "");
+  const [caption, setCaption] = useState(current?.podium_caption ?? "");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
+  const [review, setReview] = useState(false);
+  const locked = results.length > 0 || competitionPointsLocked;
+  const valueName = event.result_unit === "seconds" || event.result_unit === "minutes" ? "Final time" : event.result_unit === "metres" ? "Final distance" : event.result_unit === "count" ? "Final count" : "Final marks";
+  const update = (index: number, patch: Partial<Position>) => { setPositions(rows => rows.map((row, i) => i === index ? { ...row, ...patch } : row)); setReview(false); };
+  const winnerName = (position: Position) => participants.find(p => `${p.target_kind}:${p.target_id}` === position.targetKey)?.label ?? current?.positions.find(p => p.placing === position.placing)?.winner_name ?? position.targetKey;
+  async function saveRules() {
+    if (busy || locked) return; setBusy(true); setMessage(null);
     try {
-      const res = await fetch("/api/admin/results", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "setPointRules",
-          eventId: event.id,
-          rules,
-        }),
-        cache: "no-store",
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (data.ok) {
-        setStatusMessage({ text: "Point rules successfully saved." });
-        router.refresh();
-      } else {
-        setStatusMessage({ text: data.error ?? "Failed to save point rules.", isError: true });
-      }
-    } catch {
-      setStatusMessage({ text: "Network error saving point rules.", isError: true });
-    } finally {
-      setRulesPending(false);
-    }
+      const response = await fetch("/api/admin/results", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "setPointRules", eventId: event.id, rules }) });
+      const data = await response.json(); if (!response.ok) throw new Error(data.error);
+      setMessage({ text: "Award points saved." }); router.refresh();
+    } catch (error) { setMessage({ text: error instanceof Error ? error.message : "Unable to save award points.", error: true }); }
+    finally { setBusy(false); }
   }
-
-  // Publish / Correct Results
-  async function handlePublishResults(e: React.FormEvent) {
-    e.preventDefault();
-    if (publishPending) return;
-
-    if (isCorrection && !publishReason.trim()) {
-      setStatusMessage({ text: "A correction reason is required when re-publishing results.", isError: true });
-      return;
+  function validate() {
+    if (voting && !votingVerified) return "Voting must close and its ranking must be verified first.";
+    if (!positions.length) return "Add the award positions first.";
+    if (current && !reason.trim()) return "Enter a reason for this correction.";
+    const seen = new Set<string>();
+    for (const row of positions) {
+      if (!row.targetKey) return `Choose the winner for position ${row.placing}.`;
+      if (seen.has(row.targetKey)) return "Each position needs a different participant or team."; seen.add(row.targetKey);
+      if (!pointRules.some(rule => rule.placing === row.placing)) return `Ask the Main Admin to save award points for position ${row.placing}.`;
+      if (row.finalValue && (!finalValueSchema.safeParse(row.finalValue).success || (event.result_unit === "count" && !Number.isInteger(Number(row.finalValue))))) return "Check the final values. Counts must be whole numbers.";
     }
-
-    // Check for duplicate winners in placements
-    const usedWinners = new Set<string>();
-    for (const pos of positions) {
-      if (!pos.targetKey) {
-        setStatusMessage({ text: `Choose a winner for placing #${pos.placing}.`, isError: true });
-        return;
-      }
-      if (usedWinners.has(pos.targetKey)) {
-        setStatusMessage({ text: "Each placing must be awarded to a distinct participant or team.", isError: true });
-        return;
-      }
-      usedWinners.add(pos.targetKey);
-    }
-
-    // Check that point rules exist for each placing
-    const rulePlacings = new Set(rules.map((r) => r.placing));
-    for (const pos of positions) {
-      if (!rulePlacings.has(pos.placing)) {
-        setStatusMessage({
-          text: `Point rules are not configured for placing #${pos.placing}. Save point rules first.`,
-          isError: true,
-        });
-        return;
-      }
-    }
-
-    setPublishPending(true);
-    setStatusMessage(null);
+    return null;
+  }
+  async function publish() {
+    if (busy) return; const error = validate(); if (error) { setMessage({ text: error, error: true }); return; }
+    setBusy(true); setMessage(null);
     try {
-      const payloadPositions = positions.map((p) => {
-        const [kind, id] = p.targetKey.includes(":") ? p.targetKey.split(":") : ["batch", p.targetKey];
-        return {
-          placing: p.placing,
-          applicationId: kind === "application" ? id : undefined,
-          groupId: kind === "group" ? id : undefined,
-          batchId: kind === "batch" ? id : undefined,
-          note: p.note.trim() || undefined,
-        };
-      });
-
-      const res = await fetch("/api/admin/results", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "publish",
-          eventId: event.id,
-          positions: payloadPositions,
-          reason: publishReason.trim() || undefined,
-          podiumPhotoUrl: podiumPhotoUrl.trim() || undefined,
-          podiumCaption: podiumCaption.trim() || undefined,
-        }),
-        cache: "no-store",
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (data.ok) {
-        setStatusMessage({
-          text: isCorrection
-            ? "Results correction published successfully. Standings board updated."
-            : "Official results published successfully! Standings board updated.",
-        });
-        setPublishReason("");
-        router.refresh();
-      } else {
-        setStatusMessage({ text: data.error ?? "Failed to publish results.", isError: true });
-      }
-    } catch {
-      setStatusMessage({ text: "Network error publishing results.", isError: true });
-    } finally {
-      setPublishPending(false);
-    }
+      const response = await fetch("/api/admin/results", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "publish", eventId: event.id, expectedVersion: Math.max(0, ...results.map(r => r.version)), reason: reason.trim() || undefined, podiumPhotoUrl: photo || undefined, podiumCaption: caption.trim() || undefined, positions: positions.map(row => { const [kind, id] = row.targetKey.split(":"); return { placing: row.placing, applicationId: kind === "application" ? id : undefined, groupId: kind === "group" ? id : undefined, batchId: kind === "batch" ? id : undefined, note: row.note.trim() || undefined, finalValue: voting || !event.result_unit ? null : row.finalValue.trim() || null }; }) }) });
+      const data = await response.json(); if (!response.ok) throw new Error(data.error ?? "Unable to publish results.");
+      setReview(false); setReason(""); setMessage({ text: "Official results published. Batch standings have been updated." }); router.refresh();
+    } catch (error) { setMessage({ text: error instanceof Error ? error.message : "Connection unavailable. Review the latest result before retrying.", error: true }); }
+    finally { setBusy(false); }
   }
-
-  return (
-    <div className="results-workspace">
-
-      {statusMessage && (
-        <div className={`status-banner ${statusMessage.isError ? "error" : "success"}`} role="status">
-          {statusMessage.text}
-        </div>
-      )}
-
-      <div className="results-grid">
-        {/* LEFT COLUMN: Point Rules Configuration */}
-        <section className="results-panel point-rules-panel">
-          <div className="panel-header">
-            <h2>Point Rules Configuration</h2>
-            <span className="panel-subtitle">Points for this event only</span>
-          </div>
-
-          {pointsLocked && <p className="points-lock-badge">Locked after first official result</p>}
-
-          <form onSubmit={handleSavePointRules} className="point-rules-form">
-            <p className="rules-note">
-              These points apply only to {event.title}. They can be adjusted until the first official result is published,
-              then they are permanently locked.
-            </p>
-
-            <div className="point-rules-list">
-              {rules.map((rule, idx) => (
-                <div key={idx} className="rule-row">
-                  <span className="placing-badge">#{rule.placing}</span>
-                  <label className="points-input-label">
-                    Points:
-                    <input
-                      type="number"
-                      min={0}
-                      value={rule.points}
-                      disabled={rulesPending || !isMainAdmin || pointsLocked}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        setRules(rules.map((r, i) => (i === idx ? { ...r, points: isNaN(val) ? 0 : val } : r)));
-                      }}
-                    />
-                  </label>
-                  {isMainAdmin && !pointsLocked && rules.length > 1 && (
-                    <button
-                      type="button"
-                      className="remove-btn"
-                      onClick={() => removeRuleRow(idx)}
-                      disabled={rulesPending}
-                      title="Remove placing"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {isMainAdmin && !pointsLocked && (
-              <div className="rules-actions">
-                <button
-                  type="button"
-                  className="secondary-btn"
-                  onClick={addRuleRow}
-                  disabled={rulesPending}
-                >
-                  + Add Placing Rule
-                </button>
-                <button type="submit" className="primary-btn" disabled={rulesPending}>
-                  {rulesPending ? "Saving Rules…" : "Save Point Rules"}
-                </button>
-              </div>
-            )}
-            {!isMainAdmin && (
-              <p className="admin-only-note">Point rules can only be modified by the Main Admin.</p>
-            )}
-            {isMainAdmin && pointsLocked && (
-              <p className="admin-only-note">Published results and future corrections will continue using these locked values.</p>
-            )}
-          </form>
-        </section>
-
-        {/* RIGHT COLUMN: Official Result Publication */}
-        <section className="results-panel publish-panel">
-          <div className="panel-header">
-            <h2>
-              {isCorrection ? "Official Results (Published v" + currentPublished?.version + ")" : "Publish Official Results"}
-            </h2>
-            <span className="panel-subtitle">Final batch podium & points award</span>
-          </div>
-
-          {isCorrection && currentPublished && (
-            <div className="correction-warning">
-              ⚠️ Official results are currently published. Submitting this form will supersede the previous result and
-              bump the version to <strong>v{currentPublished.version + 1}</strong>. A reason is mandatory.
-            </div>
-          )}
-
-          <form onSubmit={handlePublishResults} className="publish-form">
-            {participants.length === 0 && (
-              <div className="roster-empty" role="status">
-                <strong>No selected {winnerKind}s are ready for results.</strong>
-                <span>
-                  {event.format === "solo"
-                    ? "Approve applications and select the final participant roster first."
-                    : event.format === "pair" ? "Review and publish a mutually confirmed pair first." : "Review the appointed leader's proposal and publish the final roster first."}
-                </span>
-                <Link href={rosterHref}>Open {event.format === "solo" ? "participant selection" : `${winnerKind} review`} →</Link>
-              </div>
-            )}
-            <div className="positions-list">
-              {positions.map((pos, idx) => {
-                const publishedPosition = currentPublished?.positions.find((item) => item.placing === pos.placing);
-                const legacyBatch = publishedPosition?.batch_id && !publishedPosition.application_id && !publishedPosition.group_id
-                  ? publishedPosition
-                  : null;
-                const hasWinnerOptions = participants.length > 0 || Boolean(legacyBatch);
-                return (
-                <div key={pos.placing} className="position-card">
-                  <div className="position-place-col">
-                    <span className="medal-icon">
-                      {pos.placing === 1 ? "🥇 1st" : pos.placing === 2 ? "🥈 2nd" : pos.placing === 3 ? "🥉 3rd" : `#${pos.placing}`}
-                    </span>
-                    <span className="award-points">
-                      ({rules.find((r) => r.placing === pos.placing)?.points ?? 0} pts)
-                    </span>
-                  </div>
-
-                  <div className="position-inputs">
-                    <label>
-                      Winner ({event.format === "solo" ? "Selected Participant" : `Published ${winnerKind}`})
-                      <select
-                        value={pos.targetKey}
-                        onChange={(e) =>
-                          setPositions(
-                            positions.map((p, i) => (i === idx ? { ...p, targetKey: e.target.value } : p))
-                          )
-                        }
-                        className="batch-select"
-                        required
-                        disabled={!hasWinnerOptions || publishPending}
-                      >
-                        <option value="">{hasWinnerOptions ? "Select Winner" : `No selected ${winnerKind}s available`}</option>
-                        {participants.length > 0 && (
-                          <optgroup label={event.format === "solo" ? "Selected Participants" : `Published ${winnerKind}s`}>
-                            {participants.map((item) => (
-                              <option key={`${item.target_kind}:${item.target_id}`} value={`${item.target_kind}:${item.target_id}`}>
-                                {participantLabel(item)}
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-                        {legacyBatch && (
-                          <option value={`batch:${legacyBatch.batch_id}`}>
-                            Legacy result · Batch {legacyBatch.batch_label}
-                          </option>
-                        )}
-                      </select>
-                    </label>
-
-                    <label>
-                      Note / Description (Optional)
-                      <input
-                        type="text"
-                        maxLength={500}
-                        value={pos.note}
-                        onChange={(e) =>
-                          setPositions(positions.map((p, i) => (i === idx ? { ...p, note: e.target.value } : p)))
-                        }
-                        placeholder="e.g. Winner of 5-set final thriller"
-                      />
-                    </label>
-                  </div>
-
-                  {positions.length > 1 && (
-                    <button
-                      type="button"
-                      className="remove-btn"
-                      onClick={() => removePositionRow(idx)}
-                      disabled={publishPending}
-                      title="Remove place"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </div>
-              )})}
-            </div>
-
-            <button
-              type="button"
-              className="secondary-btn"
-              onClick={addPositionRow}
-              disabled={publishPending || participants.length === 0}
-            >
-              + Add Another Placement
-            </button>
-
-            <div className="podium-media-box">
-              <h3>🏆 Podium Celebration &amp; Winner Media</h3>
-              <p>Attach official trophy lifting, medal presentation photo, and victory caption for public standings and event showcase.</p>
-              
-              <ImageUploadWidget
-                eventId={event.id}
-                folder="podiums"
-                onUploadSuccess={(url) => setPodiumPhotoUrl(url)}
-                label="Upload Podium Photo (Auto-Compress to WebP)"
-              />
-
-              {podiumPhotoUrl && (
-                <div className="podium-preview-container">
-                  <div className="podium-preview-thumb">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={podiumPhotoUrl}
-                      alt="Podium Celebration preview"
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.opacity = "0.3";
-                      }}
-                    />
-                  </div>
-                  <div className="podium-preview-info">
-                    <span>✦ Podium Celebration Photo Attached</span>
-                    <button type="button" onClick={() => setPodiumPhotoUrl("")}>
-                      Remove Photo
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <label>
-                Victory Caption / Celebration Note
-                <input
-                  type="text"
-                  value={podiumCaption}
-                  onChange={(e) => setPodiumCaption(e.target.value)}
-                  maxLength={500}
-                  placeholder="e.g. Batch 2022 MBBS lifting the trophy after a thrilling final!"
-                />
-              </label>
-            </div>
-
-            {isCorrection && (
-              <label className="modal-label mandatory correction-reason">
-                Reason for Results Correction (Mandatory)
-                <textarea
-                  required
-                  rows={2}
-                  maxLength={500}
-                  value={publishReason}
-                  onChange={(e) => setPublishReason(e.target.value)}
-                  placeholder="e.g. Scorer correction on disqualification / re-calculated set difference"
-                />
-              </label>
-            )}
-
-            <div className="publish-actions">
-              <button
-                type="submit"
-                className="primary-btn publish-submit"
-                disabled={publishPending || (isCorrection && !publishReason.trim())}
-              >
-                {publishPending
-                  ? "Publishing Results…"
-                  : isCorrection && currentPublished
-                  ? `Publish Results Correction (v${currentPublished.version + 1})`
-                  : "Publish Official Results"}
-              </button>
-            </div>
-          </form>
-        </section>
-      </div>
-
-      {/* Publication History */}
-      {results.length > 0 && (
-        <section className="results-history-section">
-          <h2>Results Audit History</h2>
-          <div className="history-publications-list">
-            {results.map((pub) => (
-              <article key={pub.publication_id} className={`pub-card state-${pub.state}`}>
-                <div className="pub-card-header">
-                  <span className="pub-version">Version v{pub.version}</span>
-                  <span className={`pub-state-tag ${pub.state}`}>{pub.state.toUpperCase()}</span>
-                  <span className="pub-meta">
-                    Published by {pub.published_by_name || "Organiser"} at{" "}
-                    {new Intl.DateTimeFormat("en-IN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                      timeZone: "Asia/Kolkata",
-                    }).format(new Date(pub.published_at))}
-                  </span>
-                </div>
-
-                {pub.reason && (
-                  <p className="pub-reason">
-                    <strong>Correction Reason:</strong> {pub.reason}
-                  </p>
-                )}
-
-                {pub.podium_photo_url && (
-                  <div className="pub-podium-media">
-                    <div className="pub-podium-thumb">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={pub.podium_photo_url} alt="Podium celebration" loading="lazy" />
-                    </div>
-                    <div className="pub-podium-details">
-                      <span className="pub-podium-tag">Podium Celebration Media</span>
-                      {pub.podium_caption && <p className="pub-podium-caption">{pub.podium_caption}</p>}
-                    </div>
-                  </div>
-                )}
-
-                  <div className="pub-podium-preview">
-                    {pub.positions.map((pos) => (
-                      <div key={pos.placing} className="pub-podium-item">
-                        <span className="pos-place">#{pos.placing}</span>
-                        <span className="pos-batch">{pos.winner_name ? `${pos.winner_name} (${pos.batch_label})` : pos.batch_label}</span>
-                        <span className="pos-points">{pos.points > 0 ? `${pos.points} pts` : "No batch points"}</span>
-                        {pos.note && <span className="pos-note">({pos.note})</span>}
-                      </div>
-                    ))}
-                  </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  );
+  return <div className="results-workspace">
+    {message && <p role={message.error ? "alert" : "status"} className={`status-banner ${message.error ? "error" : "success"}`}>{message.text}</p>}
+    <section className="results-panel publish-panel">
+      <div className="panel-header"><h2>{current ? `Official results · v${current.version}` : voting ? "Publish vote-ranked winners" : "Enter official award positions"}</h2><span className="panel-subtitle">{voting ? "Winners are determined by verified public votes" : "Choose winners, add optional final values, then review"}</span></div>
+      {voting && !votingVerified && <p className="roster-empty">Voting results are not verified yet. <Link href={`/admin/fixtures?event=${event.id}`}>Open entries & voting →</Link></p>}
+      <form className="publish-form" onSubmit={e => { e.preventDefault(); const error = validate(); setMessage(error ? { text: error, error: true } : null); if (!error) setReview(true); }}>
+        <fieldset disabled={busy || review} className="result-fields">
+          {!participants.length && !current && <p className="roster-empty">No eligible winners are available yet. <Link href={event.format === "solo" ? `/admin/selection?event=${event.id}` : `/admin/groups?event=${event.id}`}>Review participants / published rosters →</Link></p>}
+          <div className="positions-list">{positions.map((row, index) => <section key={row.placing} className="position-card">
+            <div className="position-place-col"><strong className="medal-icon">{row.placing === 1 ? "1st" : row.placing === 2 ? "2nd" : row.placing === 3 ? "3rd" : `#${row.placing}`}</strong><span className="award-points">{pointRules.find(rule => rule.placing === row.placing)?.points ?? "—"} batch pts</span></div>
+            <div className="position-inputs"><label>Participant / team<select aria-label={`Participant / team for position ${row.placing}`} required value={row.targetKey} disabled={voting} onChange={e => update(index, { targetKey: e.target.value })}><option value="">Choose the winner</option>{participants.map(p => <option key={p.target_id} value={`${p.target_kind}:${p.target_id}`} disabled={positions.some((other, i) => i !== index && other.targetKey === `${p.target_kind}:${p.target_id}`)}>{participantLabel(p)}</option>)}{current?.positions.filter(p => p.placing === row.placing && (!p.application_id && !p.group_id)).map(p => <option key={p.placing} value={`batch:${p.batch_id}`}>Historical result · Batch {p.batch_label}</option>)}</select></label>
+              {!voting && event.result_unit && <label>{valueName} · {event.result_unit} (optional)<input inputMode={event.result_unit === "count" ? "numeric" : "decimal"} maxLength={16} value={row.finalValue} onChange={e => update(index, { finalValue: e.target.value })} placeholder="Enter the official final value" /></label>}
+              <label>Coordinator note (optional)<input maxLength={500} value={row.note} onChange={e => update(index, { note: e.target.value })} /></label></div>
+            {!voting && positions.length > 1 && <button type="button" className="remove-btn" aria-label={`Remove position ${row.placing}`} onClick={() => setPositions(positions.filter((_, i) => i !== index).map((p, i) => ({ ...p, placing: i + 1 })))}>×</button>}
+          </section>)}</div>
+          {!voting && positions.length < pointRules.length && <button type="button" className="secondary-btn" onClick={() => { const next = pointRules.find(rule => !positions.some(row => row.placing === rule.placing)); if (next) setPositions([...positions, { placing: next.placing, targetKey: "", note: "", finalValue: "" }]); }}>Add award position</button>}
+          <details className="result-secondary"><summary>Podium photo & caption (optional)</summary><ImageUploadWidget eventId={event.id} folder="podiums" onUploadSuccess={setPhoto} label="Upload podium photo" />{photo && <p><a href={photo} target="_blank" rel="noopener noreferrer">View attached photo ↗</a> <button type="button" onClick={() => setPhoto("")}>Remove photo</button></p>}<label>Caption<input maxLength={500} value={caption} onChange={e => { setCaption(e.target.value); setReview(false); }} /></label></details>
+          {current && <label className="correction-reason">Reason for correction (required)<textarea required maxLength={500} rows={2} value={reason} onChange={e => { setReason(e.target.value); setReview(false); }} /></label>}
+          <div className="publish-actions"><button className="primary-btn" type="submit" disabled={busy || (voting && !votingVerified)}>Review results →</button></div>
+        </fieldset>
+        {review && <section className="result-review" aria-label="Review result publication"><h3>Check before publishing</h3>{positions.map(row => <p key={row.placing}><strong>#{row.placing} · {winnerName(row)}</strong>{row.finalValue && ` · ${finalValueLabel(row.finalValue, event.result_unit)}`}<small> · {pointRules.find(rule => rule.placing === row.placing)?.points ?? 0} batch points</small></p>)}<p>{current ? "This creates a correction version and retains the previous result." : "These award positions will be visible publicly and update batch standings."}</p><div className="publish-actions"><button type="button" className="primary-btn" disabled={busy} onClick={() => void publish()}>{busy ? "Publishing…" : "Confirm & publish"}</button><button type="button" className="secondary-btn" disabled={busy} onClick={() => setReview(false)}>Back to edit</button></div></section>}
+      </form>
+    </section>
+    <details className="results-panel result-secondary" open={!pointRules.length && isMainAdmin}><summary>Award points {locked ? "· locked" : !isMainAdmin ? "· Main Admin manages these" : "· Main Admin settings"}</summary><p>Batch leaderboard points are separate from an event’s final time, distance or marks. Points lock after voting is scheduled or results are published.</p><form onSubmit={e => { e.preventDefault(); void saveRules(); }}><div className="point-rules-list">{rules.map((rule, index) => <div className="rule-row" key={rule.placing}><span className="placing-badge">#{rule.placing}</span><label className="points-input-label">Batch points<input type="number" min={0} value={rule.points} disabled={busy || locked || !isMainAdmin} onChange={e => setRules(rules.map((r, i) => i === index ? { ...r, points: Number(e.target.value) } : r))} /></label>{isMainAdmin && !locked && rules.length > 1 && <button className="remove-btn" type="button" aria-label={`Remove award rule ${rule.placing}`} onClick={() => setRules(rules.filter((_, i) => i !== index).map((r, i) => ({ ...r, placing: i + 1 })))}>×</button>}</div>)}</div>{isMainAdmin && !locked && <div className="rules-actions"><button className="secondary-btn" type="button" disabled={busy} onClick={() => setRules([...rules, { placing: rules.length + 1, points: 0 }])}>Add award position</button><button className="primary-btn" disabled={busy}>Save award points</button></div>}</form></details>
+    {results.length > 0 && <details className="results-panel result-secondary"><summary>Publication history · {results.length} versions</summary>{results.map(pub => <article className="pub-card" key={pub.publication_id}><h3>Version {pub.version} · {pub.state}</h3><p>{pub.published_by_name ?? "Organiser"} · {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(pub.published_at))}</p>{pub.reason && <p>{pub.reason}</p>}{pub.positions.map(p => <p key={p.placing}>#{p.placing} · {p.winner_name ?? p.batch_label}{p.final_value != null ? ` · ${finalValueLabel(p.final_value, p.value_unit)}` : ""} · {p.points} batch pts{p.note ? ` · ${p.note}` : ""}</p>)}</article>)}</details>}
+  </div>;
 }

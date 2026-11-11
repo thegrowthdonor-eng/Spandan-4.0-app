@@ -15,7 +15,8 @@ export async function GET(request: Request) {
   if (user && fixtureId) {
     const { data: fixture } = await client.from("fixtures").select("id,event_id,stage,participant_a_label,participant_b_label,venue,starts_at,state,actual_started_at").eq("id", fixtureId).maybeSingle();
     if (!fixture || !(await client.rpc("can_manage_event", { p_event_id: fixture.event_id })).data) return NextResponse.json({ error: "Fixture unavailable or not assigned." }, { status: 403, headers: noStore });
-    const { data: event } = await client.from("events").select("title,state").eq("id", fixture.event_id).single();
+    const { data: event } = await client.from("events").select("title,state,operating_method").eq("id", fixture.event_id).single();
+    if (event?.operating_method !== "live_matches") return NextResponse.json({error:"This event has no live scoring. Open its fixtures or final results."},{status:403,headers:noStore});
     return NextResponse.json({ match: { ...fixture, event_title: event?.title ?? "Match", event_state: event?.state ?? "draft" } }, { headers: noStore });
   }
   return user ? NextResponse.json({ userId: user.id }, { headers: noStore }) : NextResponse.json({ error: "Sign in again." }, { status: 401, headers: noStore });

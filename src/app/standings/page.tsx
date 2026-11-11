@@ -91,7 +91,7 @@ export default async function StandingsPage() {
                               <span className={`batch-finish-place place-${Math.min(finish.placing, 4)}`}>{placingLabel(finish.placing)}</span>
                               <span className="batch-finish-event">
                                 {finish.event_slug ? <Link href={`/events/${finish.event_slug}`}>{finish.event_title}</Link> : <strong>{finish.event_title}</strong>}
-                                <small>{identity.primary} · {identity.secondary}</small>
+                                <small>{identity.primary} · {identity.secondary}{finish.final_value!=null?` · ${finalValueLabel(finish.final_value,finish.value_unit)}`:""}</small>
                               </span>
                               {finish.points > 0 && <span className="result-points">+{finish.points} pts</span>}
                             </article>
@@ -133,3 +133,4 @@ export default async function StandingsPage() {
     </main>
   );
 }
+import { finalValueLabel } from "@/lib/event-operations";

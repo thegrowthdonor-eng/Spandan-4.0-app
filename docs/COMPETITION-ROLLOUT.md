@@ -2,6 +2,8 @@
 
 Branch: `feature/competition-voting-r2`. No production migrations, media-reference switches, deployment, purchases or paid subscription changes have been performed.
 
+Read [SIMPLIFIED-OPERATIONS.md](SIMPLIFIED-OPERATIONS.md) first for the current revision. Its saved event methods, retired session controls, manual values and versioned-publication compatibility rules supersede the earlier operator steps below.
+
 ## Operator flow
 
 1. Open **Competition & Schedule**, choose an existing event, confirm its scheduling/result method. Participation format, event names, registrations and existing fixtures are unchanged. Photography/rangoli presets suggest voting; other creative events are not automatically converted.

@@ -233,12 +233,14 @@ export const resultSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("publish"),
     eventId: z.string().uuid(),
+    expectedVersion: z.number().int().nonnegative().default(0),
     positions: z.array(z.object({
       placing: z.number().int().min(1),
       applicationId: z.string().uuid().optional().nullable(),
       groupId: z.string().uuid().optional().nullable(),
       batchId: z.string().uuid().optional().nullable(),
       note: z.string().trim().max(500).optional().nullable(),
+      finalValue: z.string().trim().regex(/^\d{1,12}(?:\.\d{1,3})?$/).nullable().optional(),
     }).refine((val) => Boolean(val.applicationId || val.groupId || val.batchId), {
       message: "Each placing requires a participant, team, or batch.",
     })).min(1),

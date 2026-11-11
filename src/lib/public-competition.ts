@@ -1,5 +1,6 @@
 export type PublicCompetition = {
   eventId:string; title:string; serverTime:string;
+  operatingMethod?:string; entryFormat?:"image"|"text";
   settings:{ schedule_mode:string;result_mode:string;submission_closes_at:string|null;verified:boolean }|null;
   entries:Array<{id:string;entry_number:number;title:string;description:string;image_url:string|null;thumbnail_url?:string|null}>;
   rounds:Array<{id:string;round:number;opens_at:string;closes_at:string;options:Array<{id:string;entry_id:string;votes:number|null}>}>;

@@ -5,6 +5,7 @@ export type PreparedFixture = {
   eventId: string;
   editionId: string;
   eventTitle: string;
+  operatingMethod?: "live_matches" | "fixtures_only" | "results_only" | "voting" | "programme";
   stage: string;
   participantALabel: string;
   participantBLabel: string;

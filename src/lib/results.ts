@@ -9,6 +9,8 @@ export type ResultPosition = {
   group_id: string | null;
   points: number;
   note: string | null;
+  final_value?: string | number | null;
+  value_unit?: string | null;
 };
 
 export type PublishedEventResult = {

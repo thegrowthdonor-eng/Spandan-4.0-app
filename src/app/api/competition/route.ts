@@ -44,7 +44,8 @@ export async function POST(request: Request) {
     try {
       const admin = createAdminClient();
       const { data: entry } = await admin.from("competition_entries").select("id,media_id,version,state").eq("id",parsed.data.data.entry_id).single();
-      if (!entry || entry.state !== "approved" || !entry.media_id) throw new Error("Entry changed; refresh before publishing its image.");
+      if (!entry || entry.state !== "approved") throw new Error("Entry changed; refresh before publishing its image.");
+      if (!entry.media_id) return reply({ok:true});
       const { data: asset } = await admin.from("media_assets").select("*").eq("id",entry.media_id).single();
       if (!asset) throw new Error("Entry image unavailable.");
       const published = await publishMedia(asset as MediaAsset);

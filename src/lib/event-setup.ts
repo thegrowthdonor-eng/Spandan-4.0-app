@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { operationFields } from "./event-operations";
 
 export const eventDetailsSchema = z.object({
+  ...operationFields,
   title: z.string().trim().min(1, "Enter an event title.").max(160),
   category: z.enum(["sport", "cultural", "literary", "creative", "other"]),
   format: z.enum(["solo", "pair", "group", "sport"]),

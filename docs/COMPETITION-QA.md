@@ -1,5 +1,23 @@
 # Competition delivery: observed QA and remaining gates
 
+## Latest revision: simplified operations and student schedule
+
+The implementation now follows [SIMPLIFIED-OPERATIONS.md](SIMPLIFIED-OPERATIONS.md). Earlier heat/session checks below describe the preceding revision, not currently exposed functionality.
+
+- **76 unit tests passed**, typecheck and optimised QA/normal production builds passed. Lint has zero errors and the same eight existing warnings.
+- Updated rollback-wrapped SQL suites passed for manual values without sessions, public value projection, preserved correction identity/history, stale-write rejection, stage-result prohibition, chess fixtures without scoring, atomic start failure, image requirements and text-only entry approval. Existing six-template fixture tests and voting security/window/counter/disqualification tests passed.
+- Full real API/Chromium suite passed: atomic event/method creation, manual results and correction review, blank winner defaults, all simplified event workspaces, direct scorer restrictions (including navigating away from an already-open match), future-date lock, one-action Start, offline checkpoint/reconnect, lawn-tennis games/sets and table-tennis points/sets, direct text-entry voting, runoffs and official points.
+- Mobile schedule date changes, browser Back, search URL persistence/reload and desktop/mobile overflow checks passed. Screenshots of schedule/results were inspected; a mobile rank-ordering layout defect found during inspection was corrected and reverified.
+- Dedicated `qa:schedule` checks passed with scoped fictional programme records: chronological order across categories, separate unknown timings, missing-venue fallback, Scheduled/Live/Finished/Cancelled states, all programme category filters and empty search. Filter/search controls produced no schedule RSC requests. The programme rows and their live-state children were removed afterwards.
+- Real written submissions were submitted/approved through the API, without mocked media or R2. Image security tests still use rollback-only mock registry records, not a real R2 provider.
+- Latest bounded voting p95 at concurrency **1 / 4 / 8**: retries **60 / 110 / 143 ms**; fresh ballots **66 / 67 / 90 ms**. No unexpected errors or counter mismatches. These tiny observations are not an audience-capacity guarantee.
+- Local clock observation and hidden notification polling checks passed again. Supabase advisor review found no missing FK indexes for the new competition/media work; restricted RPC/definer notices and pre-existing findings remain as described below.
+- Post-cleanup QA database snapshot: **19,912,371 bytes**, zero temporary competition/configuration event rows. Historical audit data was retained.
+
+Production was inspected read-only to prepare the two-event mapping; no production mutation, push or deployment occurred. R2 delivery/migration, actual monthly quota headroom, real CDN behavior and physical-device testing remain unverified. No deliberate provider outage was injected; partial-source failure behavior was inspected in code.
+
+---
+
 Verified 11 November 2026 on `feature/competition-voting-r2`. Only isolated Supabase QA (`rgcevrvxfunmwephhomy`) was mutated. Production database, deployments, media references and original objects were untouched.
 
 ## Passing checks

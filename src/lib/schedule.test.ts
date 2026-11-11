@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { festivalDays, scheduleDay, sortSchedule, type ScheduleEntry } from "./schedule";
+import { defaultScheduleDay, festivalDays, scheduleDay, scheduleStatus, sortSchedule, type ScheduleEntry } from "./schedule";
 
 test("festival days cover December 1–8 and timestamps group by Indian local date", () => {
   assert.deepEqual(festivalDays, ["2026-12-01", "2026-12-02", "2026-12-03", "2026-12-04", "2026-12-05", "2026-12-06", "2026-12-07", "2026-12-08"]);
@@ -23,4 +23,14 @@ test("production brochure import has stable, unique source keys", () => {
   const keys = rows.map((row) => row.source_key);
   assert.ok(keys.every((key) => /^brochure-2026-[3-8]-\d+-\d+$/.test(key ?? "")));
   assert.equal(new Set(keys).size, keys.length);
+});
+
+test("agenda opens the IST festival day or first/last published day and uses authoritative status", () => {
+  const entries = ["2026-12-03","2026-12-08"].map(day => ({day}) as ScheduleEntry);
+  assert.equal(defaultScheduleDay(entries,"2026-11-11T10:00:00Z"),"2026-12-03");
+  assert.equal(defaultScheduleDay(entries,"2026-12-04T20:00:00Z"),"2026-12-05");
+  assert.equal(defaultScheduleDay(entries,"2026-12-10T10:00:00Z"),"2026-12-08");
+  assert.equal(scheduleStatus("live"),"Live");
+  assert.equal(scheduleStatus("completed"),"Finished");
+  assert.equal(scheduleStatus("scheduled"),"Scheduled");
 });

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { festivalSetupSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { archiveMedia } from "@/server/media/storage";
+import { suggestedOperations, suggestedUnit } from "@/lib/event-operations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,17 +43,10 @@ export async function POST(request: Request) {
   const data = parsed.data;
 
   if (data.action === "createEvent") {
-    result = await client.rpc("create_admin_event", {
+    result = await client.rpc("save_management_event", {
+      p_event_id:null,
       p_edition_id: data.editionId,
-      p_title: data.title,
-      p_category: data.category,
-      p_format: data.format,
-      p_score_template: data.scoreTemplate,
-      p_summary: data.summary,
-      p_venue: data.venue || null,
-      p_application_capacity: data.capacity,
-      p_starts_at: data.startsAt,
-      p_division: data.division,
+      p_details:{title:data.title,category:data.category,format:data.format,scoreTemplate:data.scoreTemplate,summary:data.summary,rules:"",venue:data.venue??"",capacity:data.capacity,startsAt:data.startsAt,endsAt:null,reportingAt:null,rosterLockAt:null,registrationEnabled:true,waitlistEnabled:false,eligibility:{division:data.division},applicationQuestions:[],groupMinSize:data.format==="pair"?2:null,groupMaxSize:data.format==="pair"?2:null,batchRestricted:data.format==="sport",posterUrl:null,operatingMethod:suggestedOperations(data.title),entryFormat:"image",resultUnit:suggestedUnit(data.title)},
     });
   } else if (data.action === "setRegistrationWindow") {
     result = await client.rpc("set_global_registration_window", {

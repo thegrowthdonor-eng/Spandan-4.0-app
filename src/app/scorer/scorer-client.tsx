@@ -10,6 +10,7 @@ import styles from "./scorer.module.css";
 import { formatMatchClock, matchClockSeconds } from "@/lib/match-clock";
 import { MatchScoreAction } from "@/components/admin/match-score-action";
 import type { ScoringMatch } from "@/lib/match-scoring";
+import { eventMethod } from "@/lib/event-operations";
 
 function number(payload: Record<string, unknown>, key: string) {
   const value = Number(payload[key] ?? 0);
@@ -52,6 +53,8 @@ export function OfflineScorer() {
   }, []);
 
   const prepare = useCallback(async (fixtureId: string) => {
+    setRecord(null);setPrestart(null);
+    try {
     const local = await getOfflineFixture(fixtureId);
     if (!navigator.onLine) {
       if (local) { setRecord(local); setMessage(local.pending ? "Unsynced score restored from this device." : "Offline scorer ready."); }
@@ -71,6 +74,7 @@ export function OfflineScorer() {
     await refreshPrepared();
     setMessage("Prepared and saved on this device. Airplane-mode scoring is ready.");
     if (navigator.storage?.persist) setPersistent(await navigator.storage.persist());
+    } catch { setRecord(null);setMessage("Device preparation could not finish. Check your connection and browser storage, then reload to retry. Existing local checkpoints are retained."); }
   }, [refreshPrepared]);
 
   useEffect(() => {
@@ -201,6 +205,8 @@ export function OfflineScorer() {
   if (reconciliation) return <section className={styles.empty}><h1>Scorer transfer detected</h1><p>{reconciliation}</p><p>This device will not overwrite the replacement scorer. Download its recovery copy for an administrator to reconcile.</p><button type="button" onClick={exportRecovery}>Download recovery copy</button></section>;
 
   const f = record.fixture; const p = record.payload;
+  if(eventMethod({title:f.eventTitle,operating_method:f.operatingMethod})!=="live_matches")return <section className={styles.empty}><h1>Live scoring unavailable</h1><p>This event uses its fixtures or official results workspace. Older local checkpoints are retained for recovery.</p><a href={`/admin/fixtures?event=${f.eventId}`}>Open event workspace</a><button type="button" onClick={exportRecovery}>Download retained recovery copy</button></section>;
+  const lawnTennis=/tennis/i.test(f.eventTitle)&&!/table/i.test(f.eventTitle);
   if (!f.actualStartedAt) return <section className={styles.empty}><h1>Match has not started</h1><p>Start this match from Fixtures on its scheduled day before scoring.</p><a href={`/admin/fixtures?event=${f.eventId}`}>Open fixtures</a><button type="button" onClick={exportRecovery}>Download recovery copy</button></section>;
   const change = (key: string, value: unknown) => void commit({ ...p, [key]: value });
   return <div className={styles.console}>
@@ -208,7 +214,7 @@ export function OfflineScorer() {
       <strong>{online ? "Online" : "Offline — scoring continues"}</strong><span>{record.pending ? "1 local checkpoint waiting" : "All changes synced"}</span>
     </section>
     {persistent === false && <p className={styles.warning}>Persistent storage was not granted. Keep this installed app on the device and download a recovery copy.</p>}
-    <header className={styles.matchHeader}><div><p>{f.eventTitle} · {f.stage}</p><h1>{f.participantALabel} <span>vs</span> {f.participantBLabel}</h1><small>{f.venue ?? "Venue to be confirmed"}</small></div><div className={styles.syncState}><b>Local r{record.localRevision}</b><span>Server v{f.serverVersion}</span></div></header>
+    <header className={styles.matchHeader}><div><p>{f.eventTitle} · {f.stage}</p><h1>{f.participantALabel} <span>vs</span> {f.participantBLabel}</h1><small>{f.venue ?? "Venue to be confirmed"}</small></div><details className={styles.syncState}><summary>Sync details</summary><b>Local r{record.localRevision}</b><span>Server v{f.serverVersion}</span></details></header>
 
     <div className={styles.statusRow}>
       <label>Status <select aria-label="Match status" value={record.status} onChange={event => void commit(p, event.target.value as ScoreStatus, true)}><option value="live">Live</option><option value="paused">Paused</option><option value="final">Final</option><option value="cancelled">Cancelled</option></select></label>
@@ -222,7 +228,7 @@ export function OfflineScorer() {
     {f.scoreTemplate === "football" && <><label className={styles.innings}>Match phase<select value={String(p.period ?? "First half")} onChange={e => change("period", e.target.value)}>{["First half", "Half-time", "Second half", "Extra time", "Penalties"].map(value => <option key={value}>{value}</option>)}</select></label><label className={styles.summary}>Penalty shootout (if needed)<input maxLength={160} value={String(p.penalties ?? "")} onChange={e => change("penalties", e.target.value)} placeholder="e.g. 4–3" /></label></>}
     {f.scoreTemplate === "basketball" && <label className={styles.innings}>Quarter<select value={String(p.quarter ?? "Q1")} onChange={e => change("quarter", e.target.value)}>{["Q1", "Q2", "Q3", "Q4", "Overtime"].map(value => <option key={value}>{value}</option>)}</select></label>}
     {(f.scoreTemplate === "football" || f.scoreTemplate === "basketball") && <ClockControl payload={p} countdown={f.scoreTemplate === "basketball"} commit={payload => void commit(payload, record.status, true)} />}
-    {(f.scoreTemplate === "badminton" || f.scoreTemplate === "set_based") && <><div className={styles.scoreGrid}><ScoreControl label={f.participantALabel} value={number(p,"teamA_points")} onChange={v => change("teamA_points",String(v))}/><ScoreControl label={f.participantBLabel} value={number(p,"teamB_points")} onChange={v => change("teamB_points",String(v))}/></div><button className={styles.finishSet} type="button" onClick={() => void commit({ ...p, sets: [...(Array.isArray(p.sets) ? p.sets : []), { teamA:number(p,"teamA_points"),teamB:number(p,"teamB_points") }], teamA_points:"0",teamB_points:"0" }, record.status, true)}>Finish current set</button></>}
+    {(f.scoreTemplate === "badminton" || f.scoreTemplate === "set_based") && <><p>{lawnTennis ? "Current set · games" : "Current set · points"}</p><div className={styles.scoreGrid}><ScoreControl label={f.participantALabel} value={number(p,"teamA_points")} onChange={v => change("teamA_points",String(v))}/><ScoreControl label={f.participantBLabel} value={number(p,"teamB_points")} onChange={v => change("teamB_points",String(v))}/></div><button className={styles.finishSet} type="button" disabled={number(p,"teamA_points")===number(p,"teamB_points") || (Array.isArray(p.sets) ? p.sets.length : 0)>=Number(p.best_of ?? 3)} onClick={() => void commit({ ...p, sets: [...(Array.isArray(p.sets) ? p.sets : []), { teamA:number(p,"teamA_points"),teamB:number(p,"teamB_points") }], teamA_points:"0",teamB_points:"0" }, record.status, true)}>Finish current set</button></>}
     {(f.scoreTemplate === "badminton" || f.scoreTemplate === "set_based") && <><label className={styles.innings}>Best of<select value={String(p.best_of ?? 3)} onChange={e => change("best_of", Number(e.target.value))}>{[1,3,5,7,9].map(value => <option key={value} value={value}>{value} sets</option>)}</select></label>{Array.isArray(p.sets) && p.sets.length > 0 && <p className={styles.sets}>Completed sets: {p.sets.map((set, index) => { const s = set as { teamA: number; teamB: number }; return <span key={index}>{s.teamA}–{s.teamB}</span>; })}</p>}</>}
     {f.scoreTemplate === "generic" && !/chess/i.test(f.eventTitle) && <div className={styles.scoreGrid}><ScoreControl label={f.participantALabel} value={number(p,"teamA_score")} onChange={v => change("teamA_score",String(v))}/><ScoreControl label={f.participantBLabel} value={number(p,"teamB_score")} onChange={v => change("teamB_score",String(v))}/></div>}
     {["generic", "badminton", "set_based"].includes(f.scoreTemplate) && <label className={styles.summary}>Outcome<select aria-label="Match outcome" value={String(p.winner ?? "")} onChange={e => change("winner", e.target.value)}><option value="">Select outcome</option><option>{f.participantALabel}</option><option>{f.participantBLabel}</option>{f.scoreTemplate === "generic" && <option value="Draw">Draw</option>}</select></label>}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { eventCategoryLabel } from "@/lib/event-categories";
 import { placingLabel, resultIdentity, type PublishedEventResult } from "@/lib/results";
+import { finalValueLabel } from "@/lib/event-operations";
 
 export function PodiumCard({ result }: { result: PublishedEventResult }) {
   return <div className="podium-card">
@@ -18,7 +19,7 @@ export function PodiumCard({ result }: { result: PublishedEventResult }) {
       {result.podium_caption && <p className="podium-card-caption">✦ {result.podium_caption}</p>}
       {result.positions.length > 0 && <div className="podium-card-placings">{result.positions.map((position) => {
         const identity = resultIdentity(position);
-        return <div key={position.placing} className={`podium-place-row place-${Math.min(position.placing, 4)}`}><span className="podium-place-rank">{placingLabel(position.placing)}</span><span className="podium-winner"><strong>{identity.primary}</strong><small>{identity.secondary}</small></span>{position.points > 0 && <span className="result-points">+{position.points}</span>}</div>;
+        return <div key={position.placing} className={`podium-place-row place-${Math.min(position.placing, 4)}`}><span className="podium-place-rank">{placingLabel(position.placing)}</span><span className="podium-winner"><strong>{identity.primary}</strong><small>{identity.secondary}</small>{position.final_value!=null&&<small>{finalValueLabel(position.final_value,position.value_unit)}</small>}</span>{position.points > 0 && <span className="result-points">+{position.points} pts</span>}</div>;
       })}</div>}
       {result.event_slug && <Link className="podium-view-event" href={`/events/${result.event_slug}`}>View event details <span aria-hidden="true">→</span></Link>}
     </div>

@@ -11,6 +11,7 @@ import { EventRegistrationDock } from "../event-registration-dock";
 import { EventParticipantsDialog } from "../event-participants-dialog";
 import { FestTopNav } from "@/components/spandan-branding";
 import "../events.css";
+import { finalValueLabel, type OperatingMethod } from "@/lib/event-operations";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ type EventDetail = {
   category: string;
   format: string;
   registration_enabled: boolean;
+  operating_method: OperatingMethod;
   summary: string;
   rules_markdown: string;
   venue: string | null;
@@ -55,6 +57,9 @@ type PublishedResult = {
     batch_label: string;
     points: number;
     note: string | null;
+    winner_name?: string | null;
+    final_value?: string | number | null;
+    value_unit?: string | null;
   }>;
 };
 
@@ -81,20 +86,21 @@ async function getEventResult(eventId: string): Promise<PublishedResult | null> 
   try {
     const { data, error } = await createPublicClient()
       .from("result_publications")
-      .select("id, podium_photo_url, podium_caption, result_positions(placing, note, batches(label))")
+      .select("id, podium_photo_url, podium_caption, result_positions(placing, note, winner_name,awarded_points,final_value,value_unit,batches(label))")
       .eq("event_id", eventId)
       .eq("state", "published")
       .maybeSingle();
 
     if (error || !data) return null;
 
-    type RawPos = { placing: number; note: string | null; batches: { label: string } | null };
+    type RawPos = { placing: number; note: string | null; winner_name:string|null;awarded_points:number;final_value:string|number|null;value_unit:string|null;batches: { label: string } | null };
     const rawPositions = ((data.result_positions ?? []) as unknown as RawPos[]);
     const positions = rawPositions
       .map((p) => ({
         placing: p.placing,
         batch_label: p.batches?.label ? `Batch ${p.batches.label}` : "Batch",
-        points: 0,
+        points: p.awarded_points,
+        winner_name:p.winner_name,final_value:p.final_value,value_unit:p.value_unit,
         note: p.note,
       }))
       .sort((a, b) => a.placing - b.placing);
@@ -115,7 +121,7 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
   try {
     const { data, error } = await createPublicClient()
       .from("events")
-      .select("id,slug,title,category,format,registration_enabled,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,poster_url,eligibility,group_min_size,group_max_size")
+      .select("id,slug,title,category,format,registration_enabled,operating_method,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,poster_url,eligibility,group_min_size,group_max_size")
       .eq("slug", slug)
       .maybeSingle();
 
@@ -516,7 +522,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
                   <span className="place-rank">
                     {pos.placing === 1 ? "🥇 1st Place" : pos.placing === 2 ? "🥈 2nd Place" : pos.placing === 3 ? "🥉 3rd Place" : `#${pos.placing}`}
                   </span>
-                  <strong className="place-batch">{pos.batch_label}</strong>
+                  <strong className="place-batch">{pos.winner_name??pos.batch_label}</strong>
+                  {pos.final_value!=null&&<span className="place-note">{finalValueLabel(pos.final_value,pos.value_unit)}</span>}
                   {pos.note && <span className="place-note">{pos.note}</span>}
                 </div>
               ))}
@@ -555,7 +562,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         </section>
       )}
 
-      <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Event operations</p><h2>Schedule, entries & public voting</h2><p>Published sessions and approved work appear here when configured by the event coordinator.</p><Link href={`/competition/${event.id}`}>Open event competition →</Link></div></section>
+      <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Event updates</p><h2>{event.operating_method==="voting"?"Entries & public voting":"Schedule & official updates"}</h2><p>{event.operating_method==="voting"?"View approved work, submit your entry and vote during the announced window.":event.operating_method==="programme"?"Find the programme details and follow festival gallery updates.":"Check your event timings and published award positions."}</p><Link href={event.operating_method==="voting"?`/competition/${event.id}`:"/schedule"}>{event.operating_method==="voting"?"Open entries & voting →":"View schedule →"}</Link>{event.operating_method==="programme"&&<Link href="/gallery">Open gallery →</Link>}</div></section>
       {event.registration_enabled&&event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
       {(event.registration_enabled&&["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Your squad</p><p>Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster.</p><Link href={`/my-fest/teams?event=${event.id}`}>My team / Leader workspace →</Link></div></section>}
       {event.registration_enabled&&<EventRegistrationDock

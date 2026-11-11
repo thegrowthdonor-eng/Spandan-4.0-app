@@ -5,6 +5,7 @@ import { useState } from "react";
 import { eventCategoryLabel } from "@/lib/event-categories";
 import type { WorkspaceEvent } from "@/lib/management";
 import { participationTools } from "@/lib/event-participation";
+import { eventMethod, operatingLabels } from "@/lib/event-operations";
 
 export function ManagementEvents({events,editableIds=[],editing=false}:{events:WorkspaceEvent[];editableIds?:string[];editing?:boolean}){
   const [query,setQuery]=useState("");
@@ -20,7 +21,12 @@ export function ManagementEvents({events,editableIds=[],editing=false}:{events:W
       <div className="portal-event-actions">{editing?<Link href={"/admin/events?event="+event.id}>Edit event →</Link>:<>
         <Link href={"/admin/review?event="+event.id}>Participants →</Link>
         {participationTools(event.format) && <Link href={participationTools(event.format)!.href+"?event="+event.id}>{participationTools(event.format)!.label}</Link>}
-        <Link href="/admin/scoring">Score matches</Link><Link href={"/admin/fixtures?event="+event.id}>Fixtures</Link><Link href={"/admin/results?event="+event.id}>Results</Link>
+        {eventMethod(event)==="live_matches"&&<Link href={"/admin/scoring?event="+event.id}>Live scoring</Link>}
+        {["live_matches","fixtures_only"].includes(eventMethod(event))&&<Link href={"/admin/fixtures?event="+event.id}>Fixtures</Link>}
+        {eventMethod(event)==="voting"&&<Link href={"/admin/fixtures?event="+event.id}>Entries & voting</Link>}
+        {eventMethod(event)!=="programme"&&<Link href={"/admin/results?event="+event.id}>Results</Link>}
+        {eventMethod(event)==="programme"&&<Link href={"/admin/fixtures?event="+event.id}>Information & gallery</Link>}
+        <span className="portal-badge">{operatingLabels[eventMethod(event)]}</span>
         {editableIds.includes(event.id)&&<Link href={"/admin/events?event="+event.id}>Edit event</Link>}
       </>}</div>
     </article>)}</div>

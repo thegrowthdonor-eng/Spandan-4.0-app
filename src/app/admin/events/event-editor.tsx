@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { PosterPicker } from "@/components/admin/poster-picker";
 import { eventDetailsSchema, publicationMissing, eventStepError, toIstInput, fromIstInput, type EventDetails } from "@/lib/event-setup";
+import { operatingLabels, operatingMethods, suggestedOperations, suggestedScoreTemplate, suggestedUnit, valueUnits, type OperatingMethod, type ValueUnit } from "@/lib/event-operations";
 
 export type EventData = {
+  operating_method?: OperatingMethod; entry_format?: "image" | "text"; result_unit?: ValueUnit | null; operations_locked?: boolean;
   structure_locked: boolean;
   registration_enabled: boolean;
   event_id: string; title: string; category: EventDetails["category"]; format: EventDetails["format"];
@@ -19,7 +21,7 @@ export type EventData = {
 };
 export type EditionData = { edition_id: string; name: string; registration_opens_at: string | null; registration_closes_at: string | null };
 function detailsFrom(e?: EventData): EventDetails {
-  return { registrationEnabled:e?.registration_enabled??true,title:e?.title??"", category:e?.category??"sport", format:e?.format??"solo", scoreTemplate:e?.score_template??"generic",
+  return { operatingMethod:e?.operating_method??suggestedOperations(e?.title??"",e?.registration_enabled),entryFormat:e?.entry_format??"image",resultUnit:e?.result_unit??null,registrationEnabled:e?.registration_enabled??true,title:e?.title??"", category:e?.category??"sport", format:e?.format??"solo", scoreTemplate:e?.score_template??"generic",
     summary:e?.summary??"", rules:e?.rules_markdown??"",venue:e?.venue??"",capacity:e?.application_capacity??null,
     waitlistEnabled:e?.waitlist_enabled??false,reportingAt:e?.reporting_at??null,startsAt:e?.starts_at??null,
     endsAt:e?.ends_at??null,rosterLockAt:e?.roster_lock_at??null,eligibility:e?.eligibility??{division:"open"},
@@ -32,6 +34,7 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
 }) {
   const router=useRouter();
   const current=creating?undefined:events.find(e=>e.event_id===selectedId);
+  const methodChosen=useRef(Boolean(current));
   const showForm=Boolean(creating||current);
   const [details,setDetails]=useState<EventDetails>(()=>detailsFrom(current));
   const [step,setStep]=useState(0);
@@ -58,8 +61,10 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
     return()=>{window.removeEventListener("beforeunload",leave);document.removeEventListener("click",links,true);};
   },[dirty]);
   function change<K extends keyof EventDetails>(key:K,value:EventDetails[K]) {
+    if(key==="operatingMethod")methodChosen.current=true;
     setDetails(v=>({...v,[key]:value,...(key==="format"&&value==="pair"?{groupMinSize:2,groupMaxSize:2}:key==="format"&&value==="solo"?{groupMinSize:null,groupMaxSize:null}:key==="format"&&value==="sport"?{batchRestricted:true}:{}),
-      ...(key==="registrationEnabled"&&value===false?{format:"solo" as const,scoreTemplate:"generic" as const,applicationQuestions:[],groupMinSize:null,groupMaxSize:null,batchRestricted:false,eligibility:{...v.eligibility,division:"open"}}:{}),
+      ...(key==="title"&&!current&&!methodChosen.current?{operatingMethod:suggestedOperations(String(value)),scoreTemplate:suggestedScoreTemplate(String(value)),resultUnit:suggestedUnit(String(value))}:{}),
+      ...(key==="registrationEnabled"&&value===false?{operatingMethod:"programme" as const,format:"solo" as const,scoreTemplate:"generic" as const,applicationQuestions:[],groupMinSize:null,groupMaxSize:null,batchRestricted:false,eligibility:{...v.eligibility,division:"open"}}:{}),
       ...(key==="startsAt"&&typeof value==="string"&&v.startsAt&&v.reportingAt?{reportingAt:new Date(new Date(value).getTime()+new Date(v.reportingAt).getTime()-new Date(v.startsAt).getTime()).toISOString()}:{}),
     }));setDirty(true);
   }
@@ -115,7 +120,7 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
       {!visible.length&&<p className="portal-message">No events match. Create an event or change your filters.</p>}
     </>:<>
       {current&&<p><span className="portal-badge">{current.state}</span> {dirty?"Unsaved changes":"Saved event"}</p>}
-      {current && !current.registration_enabled && <p><Link href={`/admin/fixtures?event=${current.event_id}`}>Manage programme sessions & live status →</Link></p>}
+      {current && <p><Link href={`/admin/fixtures?event=${current.event_id}`}>Open event workspace →</Link></p>}
       <nav className="portal-steps" aria-label="Event setup steps">{steps.map((name,i)=><button type="button" key={name} aria-current={step===i?"step":undefined} onClick={()=>goStep(i)}>{i+1}. {name}</button>)}</nav>
       <form className="portal-form" onSubmit={e=>{e.preventDefault();if(step<3)goStep(step+1);else void save();}} noValidate>
         <fieldset disabled={pending}>
@@ -124,11 +129,14 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
           <label>Event title<input value={details.title} onChange={e=>change("title",e.target.value)} maxLength={160} required placeholder="e.g. Inter-batch football"/></label>
           <label>Category<select disabled={current?.structure_locked} value={details.category} onChange={e=>change("category",e.target.value as EventDetails["category"])}>{Object.entries(eventCategoryLabels).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
           <label>Event type<select disabled={current?.structure_locked} value={details.registrationEnabled?"competition":"information"} onChange={e=>change("registrationEnabled",e.target.value==="competition")}><option value="competition">Competition — registration enabled</option><option value="information">Information only — no registration</option></select></label>
+          <label>How will this event be managed?<select disabled={current?.operations_locked || !details.registrationEnabled} value={details.operatingMethod} onChange={e=>change("operatingMethod",e.target.value as OperatingMethod)}>{operatingMethods.map(method=><option key={method} value={method}>{operatingLabels[method]}</option>)}</select><small>Stage performances use Information & gallery. For art/literary events, choose Public voting or Publish final results.</small></label>
+          {details.operatingMethod==="voting"&&<label>Submission format<select disabled={current?.operations_locked} value={details.entryFormat} onChange={e=>change("entryFormat",e.target.value as "image"|"text")}><option value="image">Image — artwork or photography</option><option value="text">Written work — optional image</option></select><small>Submission deadline and voting dates are managed in the event workspace.</small></label>}
+          {["results_only","fixtures_only"].includes(details.operatingMethod??"")&&<label>Optional final value<select disabled={current?.operations_locked} value={details.resultUnit??""} onChange={e=>change("resultUnit",(e.target.value||null) as ValueUnit|null)}><option value="">Positions only — no value field</option>{valueUnits.map(unit=><option key={unit} value={unit}>{unit==="seconds"?"Final time (seconds)":unit==="minutes"?"Final time (minutes)":unit==="metres"?"Final distance (metres)":unit==="count"?"Final count":"Final marks"}</option>)}</select></label>}
           <PosterPicker currentUrl={details.posterUrl} selectedFile={posterFile} onBusy={setImageBusy} onChange={file=>{setPosterFile(file);setDirty(true);}} onRemove={()=>{setPosterFile(null);change("posterUrl",null);}}/>
           {details.registrationEnabled&&<>
           <label>Participation format<select disabled={current?.structure_locked} value={details.format} onChange={e=>change("format",e.target.value as EventDetails["format"])}><option value="solo">Individual / solo</option><option value="pair">Pair / doubles</option><option value="group">Group performance</option><option value="sport">Sports team / squad</option></select><small>Choose Individual for singles, races and other individual sports. This determines the participant and winner workflow.</small></label>
           {details.category==="sport"&&<label>Sport discipline<select value={String(details.eligibility.sub_category??"")} onChange={e=>change("eligibility",{...details.eligibility,sub_category:e.target.value})}><option value="">General sport</option><option value="field">Field sport</option><option value="racket">Racket sport</option><option value="athletics">Athletics</option><option value="indoor">Indoor</option><option value="strength">Strength</option></select></label>}
-          <label>Scoring<select disabled={current?.structure_locked} value={details.scoreTemplate} onChange={e=>change("scoreTemplate",e.target.value as EventDetails["scoreTemplate"])}>{Object.entries({generic:"Standard",cricket:"Cricket",football:"Football",basketball:"Basketball",set_based:"Set-based sport",badminton:"Badminton"}).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>
+          {details.operatingMethod==="live_matches"&&<label>Scoreboard style<select disabled={current?.structure_locked} value={details.scoreTemplate} onChange={e=>change("scoreTemplate",e.target.value as EventDetails["scoreTemplate"])}>{Object.entries({generic:"Score / rounds",cricket:"Cricket",football:"Football",basketball:"Basketball",set_based:"Points or games & sets",badminton:"Badminton"}).map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label>}
           {current&&<small>Category, format and scoring can change only while this event has no registrations or competition records.</small>}
           <label>Division<select value={String(details.eligibility.division??"open")} onChange={e=>change("eligibility",{...details.eligibility,division:e.target.value})}><option value="open">Open / mixed</option><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
           </>}

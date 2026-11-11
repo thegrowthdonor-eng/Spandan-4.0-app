@@ -61,7 +61,7 @@ export async function GET(request: Request) {
     const lines = result.positions.map((position) => {
       const medal = position.placing === 1 ? "1st" : position.placing === 2 ? "2nd" : position.placing === 3 ? "3rd" : `#${position.placing}`;
       const identity = position.winner_name ?? position.batch_label ?? "Winner";
-      return `${medal} · ${identity}${position.winner_roll ? ` · Roll No. ${position.winner_roll}` : ""}${position.batch_label ? ` · ${position.batch_label}` : ""}`;
+      return `${medal} · ${identity}${position.winner_roll ? ` · Roll No. ${position.winner_roll}` : ""}${position.batch_label ? ` · ${position.batch_label}` : ""}${position.final_value!=null?` · ${finalValueLabel(position.final_value,position.value_unit)}`:""}`;
     });
     return png(feedDownloadFilename("result", id), "Official result", result.event_title, lines.length ? lines : ["Official festival result"]);
   }
@@ -71,3 +71,4 @@ export async function GET(request: Request) {
   const rows = data as Standing[];
   return png(feedDownloadFilename("standings", "current"), "Batch championship", "Current batch standings", rows.slice(0, 6).map((standing, index) => `#${index + 1} · ${standing.label} · ${standing.points} pts`));
 }
+import { finalValueLabel } from "@/lib/event-operations";

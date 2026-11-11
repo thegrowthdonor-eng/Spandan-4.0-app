@@ -6,6 +6,8 @@ import { ResultsClient, PointRule, ResultPublication, ResultParticipant } from "
 import { AdminEventPicker } from "@/components/admin/event-picker";
 import "./results.css";
 import type { CompetitionWorkspace } from "@/lib/competition";
+import { eventMethod } from "@/lib/event-operations";
+import type { WorkspaceEvent } from "@/lib/management";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +37,13 @@ export default async function AdminResultsPage({
   if (!(await client.auth.getUser()).data.user) redirect("/account");
 
   const [{ data: eventData }, { data: isAdmin }] = await Promise.all([
-    client.rpc("list_managed_events"),
+    client.rpc("get_management_summary"),
     client.rpc("is_main_admin"),
   ]);
 
-  const events = (eventData ?? []) as ManagedEvent[];
+  const wanted = (await searchParams).event;
+  const allEvents = (eventData?.events ?? []) as WorkspaceEvent[];
+  const events = allEvents.filter(event=>eventMethod(event)!=="programme"||event.id===wanted) as ManagedEvent[];
   if (!events.length) {
     return (
       <main className="results-page">
@@ -64,7 +68,6 @@ export default async function AdminResultsPage({
     );
   }
 
-  const wanted = (await searchParams).event;
   if (wanted && !events.some(event => event.id === wanted)) return <main className="portal-unavailable"><h1>Event unavailable</h1><p>This event is outside your responsibility or has been removed.</p><Link href="/admin">Back to my workspace</Link></main>;
   const selected = events.find((event) => event.id === wanted) ?? events[0];
 
@@ -79,7 +82,10 @@ export default async function AdminResultsPage({
   const participants = (participantData ?? []) as ResultParticipant[];
   const {data:operations}=await client.rpc("competition_workspace",{p_event_id:selected.id});
   const workspace=operations as CompetitionWorkspace|null;
-  const confirmedPositions=(workspace?.settings?.result_mode === "public_vote" && workspace.settings.verified ? workspace.placements.map(place=>{const entry=workspace.entries.find(entry=>entry.id === place.entry_id)!;return {placing:place.placing,targetKey:entry.application_id ? `application:${entry.application_id}` : `group:${entry.group_id}`,note:"Verified public voting"};}) : workspace?.sessions.filter(session=>session.is_final && session.state === "completed").flatMap(session=>session.entrants.filter(row=>row.placing!==null).map(row=>({placing:row.placing!,targetKey:row.application_id ? `application:${row.application_id}` : `group:${row.group_id}`,note:row.note}))) ?? []).sort((a,b)=>a.placing-b.placing);
+  if(!workspace)return <main className="results-page"><p role="alert">Event result settings could not be verified. Refresh to retry.</p></main>;
+  const method=eventMethod(workspace.event);
+  if(method==="programme")return <main className="results-page"><h1>{selected.title}</h1><p>This event uses information and gallery updates. There are no new official result publications.</p><Link href={`/admin/fixtures?event=${selected.id}`}>Open event workspace →</Link></main>;
+  const confirmedPositions=(method==="voting"&&workspace.settings?.verified ? workspace.placements.map(place=>{const entry=workspace.entries.find(entry=>entry.id===place.entry_id)!;return {placing:place.placing,targetKey:entry.application_id?`application:${entry.application_id}`:`group:${entry.group_id}`,note:"Verified public voting"};}) : []).sort((a,b)=>a.placing-b.placing);
 
   return (
     <main className="results-page">
@@ -89,7 +95,7 @@ export default async function AdminResultsPage({
         </Link>
         <div className="header-nav-links">
           <Link href="/admin">Organiser Hub</Link>
-          <Link href={`/admin/fixtures?event=${selected.id}`}>Fixtures</Link>
+          <Link href={`/admin/fixtures?event=${selected.id}`}>Event workspace</Link>
           <Link href="/standings">Public Standings</Link>
           <Link href="/my-fest">My Fest</Link>
         </div>
@@ -99,22 +105,22 @@ export default async function AdminResultsPage({
         <p className="eyebrow">Competition operations</p>
         <h1>Results & podium</h1>
         <p>
-          Configure point rules and publish final event positions to update the batch leaderboard. Any later correction
-          supersedes the prior version with an audited reason.
+          Choose the award winners, add any final values and review before publishing. Corrections retain the earlier result and update batch standings.
         </p>
       </section>
 
-      <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/results" />
+      <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/results" compact />
 
       <ResultsClient
         key={selected.id}
-        event={selected}
+        event={{...selected,operating_method:method,result_unit:workspace.event.result_unit??null}}
         pointRules={pointRules}
         results={results}
         participants={participants}
         isMainAdmin={isAdmin === true}
         confirmedPositions={confirmedPositions}
         competitionPointsLocked={Boolean(workspace?.rounds.length)}
+        votingVerified={method!=="voting"||workspace.settings?.verified===true}
       />
     </main>
   );

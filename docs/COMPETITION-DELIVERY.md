@@ -2,6 +2,8 @@
 
 Branch: `feature/competition-voting-r2`. Production changes and deployment require approval.
 
+The subsequent simplified-operation revision supersedes the heat/flight/session and faculty-place UI below. Current behavior, reviewed event mapping and rollback requirements are in [SIMPLIFIED-OPERATIONS.md](SIMPLIFIED-OPERATIONS.md).
+
 ## Accepted scope
 
 - Preserve fixtures, explicit IST-day start, offline checkpoints and cricket reconciliation.

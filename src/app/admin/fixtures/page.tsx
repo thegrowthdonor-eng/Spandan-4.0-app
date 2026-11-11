@@ -80,7 +80,7 @@ export default async function FixturesPage({
     client.rpc("list_event_eligible_batches", { p_event_id: selected.id }),
     client.rpc("list_event_participant_groups", { p_event_id: selected.id }),
     client.rpc("list_event_selection_queue", { p_event_id: selected.id }),
-    client.from("events").select("venue, starts_at, ends_at, score_template").eq("id", selected.id).single(),
+    client.from("events").select("venue, starts_at, ends_at, score_template,operating_method").eq("id", selected.id).single(),
     client.from("fixtures").select("id, actual_started_at").eq("event_id", selected.id),
   ]);
   const fixtures = ((data ?? []) as FixtureItem[]).map(f => ({ ...f, actual_started_at: startData?.find(s => s.id === f.fixture_id)?.actual_started_at ?? null }));
@@ -89,9 +89,6 @@ export default async function FixturesPage({
   const soloStudents = (soloData ?? []) as Array<{ application_id: string; student_id: string; full_name: string; batch_label: string; course_label?: string | null; roll_canonical: string }>;
   const defaultVenue = eventDetails?.venue ?? "";
   const { data: workspace, error: workspaceError } = await client.rpc("competition_workspace", { p_event_id: selected.id });
-  // Request-time display snapshot; the database independently enforces the IST start boundary.
-  // eslint-disable-next-line react-hooks/purity
-  const serverNow=Date.now();
 
   return (
     <main className="fixtures-page">
@@ -109,19 +106,20 @@ export default async function FixturesPage({
       <section className="fixtures-intro">
         <p className="eyebrow">Competition operations</p>
         <h1>Competition &amp; Schedule</h1>
-        <p>Matches, heats, running orders and submissions — the right workspace for each event.</p>
+        <p>Fixtures, final results or public voting — the controls your event needs.</p>
       </section>
 
       <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/fixtures" compact />
 
       {workspaceError && <p role="alert">Competition settings unavailable. Existing match operations remain accessible.</p>}
       {
-        <CompetitionWorkspacePanel key={selected.id} initial={(workspace ?? { event: { ...selected, registration_enabled:true },staff:true,settings:null,candidates:[],sessions:[],entries:[],rounds:[],placements:[] }) as CompetitionWorkspace} serverNow={serverNow} defaultVenue={defaultVenue} defaultStart={eventDetails?.starts_at ?? null} existingMatches={fixtures.length > 0}>
+        <CompetitionWorkspacePanel key={selected.id} initial={(workspace ?? { event: { ...selected,operating_method:eventDetails?.operating_method, registration_enabled:true },staff:true,settings:null,candidates:[],sessions:[],entries:[],rounds:[],placements:[] }) as CompetitionWorkspace}>
         {error || startError ? <p role="alert">Match operations unavailable. Refresh to retry.</p> :
         <FixturesClient
           key={selected.id}
           event={{
             ...selected,
+            operating_method:eventDetails?.operating_method,
             score_template: eventDetails?.score_template ?? selected.score_template,
             venue: defaultVenue,
             starts_at: eventDetails?.starts_at ?? null,

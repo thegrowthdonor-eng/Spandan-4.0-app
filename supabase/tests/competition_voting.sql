@@ -1,16 +1,27 @@
 -- Isolated QA/local only. Mock media references test database rules, not Cloudflare delivery.
 begin;
 do $test$
-declare actor uuid; voter uuid; session_id uuid; eid uuid:=gen_random_uuid(); app uuid; app_owner uuid; asset uuid:=gen_random_uuid(); entry uuid; round_id uuid; option_id uuid; token text:=repeat('a',64); result jsonb; version integer;
+declare actor uuid; voter uuid; session_id uuid; eid uuid:=gen_random_uuid(); text_event uuid:=gen_random_uuid(); text_app uuid; text_entry uuid; app uuid; app_owner uuid; asset uuid:=gen_random_uuid(); entry uuid; round_id uuid; option_id uuid; token text:=repeat('a',64); result jsonb; version integer;
 begin
   select profile_id into actor from public.staff_assignments where role='main_admin' and revoked_at is null limit 1;
   select id into session_id from auth.sessions where user_id=actor limit 1;
   if actor is null or session_id is null then raise exception 'Sign into the fictional QA owner once before capability tests'; end if;
   perform set_config('request.jwt.claims',jsonb_build_object('sub',actor,'role','authenticated','session_id',session_id)::text,true);
-  insert into public.events select (jsonb_populate_record(null::public.events,to_jsonb(e)||jsonb_build_object('id',eid,'slug','qa-voting-'||replace(eid::text,'-',''),'title','QA voting '||eid,'state','open','registration_enabled',true))).* from public.events e where e.format='solo' and e.registration_enabled limit 1;
+  insert into public.events select (jsonb_populate_record(null::public.events,to_jsonb(e)||jsonb_build_object('id',eid,'slug','qa-voting-'||replace(eid::text,'-',''),'title','QA voting '||eid,'state','open','registration_enabled',true,'operating_method','voting'))).* from public.events e where e.format='solo' and e.registration_enabled limit 1;
   insert into public.applications select (jsonb_populate_record(null::public.applications,to_jsonb(a)||jsonb_build_object('id',gen_random_uuid(),'event_id',eid,'idempotency_key',gen_random_uuid()))).* from public.applications a join public.events e on e.id=a.event_id where e.format='solo' and a.review_state='approved' and a.selection_state<>'not_selected' limit 1;
   select id,student_id into app,app_owner from public.applications where event_id=eid;
-  perform public.competition_command(eid,'settings',jsonb_build_object('schedule_mode','submission','result_mode','public_vote','attempts',1,'submission_closes_at',now()+interval '1 day','version',0));
+  perform public.competition_command(eid,'settings',jsonb_build_object('schedule_mode','submission','result_mode','public_vote','attempts',1,'submission_closes_at',now()+interval '1 day','version',1));
+  begin perform public.competition_command(eid,'entry',jsonb_build_object('application_id',app,'group_id',null,'title','Missing image','description','QA','media_id',null,'submit',true,'version',0));raise exception 'Image event accepted no image';exception when sqlstate '22023' then null;end;
+  insert into public.events select (jsonb_populate_record(null::public.events,to_jsonb(e)||jsonb_build_object('id',text_event,'slug','qa-text-'||text_event,'title','QA written voting','entry_format','text'))).* from public.events e where id=eid;
+  insert into public.applications select (jsonb_populate_record(null::public.applications,to_jsonb(a)||jsonb_build_object('id',gen_random_uuid(),'event_id',text_event,'idempotency_key',gen_random_uuid()))).* from public.applications a where id=app returning id into text_app;
+  perform public.competition_command(text_event,'settings',jsonb_build_object('schedule_mode','submission','result_mode','public_vote','attempts',1,'submission_closes_at',now()+interval '1 day','version',1));
+  begin perform public.competition_command(text_event,'entry',jsonb_build_object('application_id',text_app,'group_id',null,'title','Missing work','description','  ','media_id',null,'submit',true,'version',0));raise exception 'Empty literary work accepted';exception when sqlstate '22023' then null;end;
+  perform public.competition_command(text_event,'entry',jsonb_build_object('application_id',text_app,'group_id',null,'title','Written work','description',E'First paragraph\nSecond paragraph <script>literal</script>','media_id',null,'submit',true,'version',0));
+  select id,competition_entries.version into text_entry,version from public.competition_entries where event_id=text_event;
+  perform public.competition_command(text_event,'review_entry',jsonb_build_object('entry_id',text_entry,'version',version,'state','approved','reason',''));
+  assert (select state='approved' and media_id is null from public.competition_entries where id=text_entry),'Text-only approval failed';
+  result:=public.public_competition(text_event);
+  assert result->>'entryFormat'='text' and jsonb_array_length(result->'entries')=1,'Approved text absent from public projection';
   insert into public.media_assets(id,owner_id,event_id,purpose,provider,object_key,state,input_mime,input_size,expires_at,public_url)
     values(asset,actor,eid,'competition','supabase','qa-mock/'||asset,'public','image/webp',100,now()+interval '1 day','https://example.test/qa-image.webp');
   perform public.competition_command(eid,'entry',jsonb_build_object('application_id',app,'group_id',null,'title','Staff upload','description','QA','media_id',asset,'submit',true,'version',0));

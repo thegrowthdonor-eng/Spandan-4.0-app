@@ -1,4 +1,5 @@
-export type WorkspaceEvent = { id: string; title: string; category: string; format: string; state: string; pending?: number };
+import { eventMethod, type OperatingMethod } from "./event-operations";
+export type WorkspaceEvent = { id: string; title: string; category: string; format: string; state: string; pending?: number; operating_method?: OperatingMethod };
 export type ManagementSummary = {
   isAdmin: boolean; canVerify: boolean; canCreate: boolean; canNotice: boolean;
   canGallery: boolean; canLive: boolean; canHelp: boolean; roles: string[];
@@ -10,9 +11,9 @@ export function managementLinks(s: ManagementSummary) {
     { href: "/admin/events", label: "Events", show: s.canCreate },
     { href: "/admin/review", label: "Participants", show: s.events.length > 0 },
     { href: "/admin/groups", label: "Pairs, groups & teams", show: s.events.some(e => ["pair","group","sport"].includes(e.format)) },
-    { href: "/admin/scoring", label: "Run events", show: s.events.length > 0 },
+    { href: "/admin/scoring", label: "Live scoring", show: s.events.some(e => eventMethod(e) === "live_matches") },
     { href: "/admin/fixtures", label: "Competition & Schedule", show: s.events.length > 0 },
-    { href: "/admin/results", label: "Results", show: s.events.length > 0 },
+    { href: "/admin/results", label: "Results", show: s.events.some(e => eventMethod(e) !== "programme") },
     { href: "/admin/activation", label: "Student verification", show: s.canVerify },
     { href: "/admin/live", label: "Live desk", show: s.canLive },
     { href: "/admin/notices", label: "Notices", show: s.canNotice },

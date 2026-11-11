@@ -26,3 +26,4 @@
 .resultRow { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr)); gap:.7rem; padding:1rem; border:1px solid #dfe3d8; border-radius:12px; }
 .resultRow strong { grid-column:1/-1; }
 .message { padding:1rem; background:#edf3e8; border-radius:12px; overflow-wrap:anywhere; }
+.writtenWork{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.8}.writtenWork summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:650}.writtenWork>div{padding-top:12px}.workspace input,.workspace select,.workspace textarea{min-height:44px}.workspace textarea{width:100%;resize:vertical}.workspace summary:focus-visible,.workspace button:focus-visible,.workspace a:focus-visible{outline:2px solid #345747;outline-offset:3px}

@@ -123,10 +123,12 @@ export async function POST(request: Request) {
       p_reason: parsed.data.reason || null,
       p_podium_photo_url: parsed.data.podiumPhotoUrl || null,
       p_podium_caption: parsed.data.podiumCaption || null,
+      p_expected_version: parsed.data.expectedVersion,
     });
 
     if (error) {
       if (error.code === "42501") return denied;
+      if (error.code === "PT409") return NextResponse.json({error:error.message},{status:409,headers});
       if (error.code === "22023") {
         return NextResponse.json({ error: error.message || "Invalid result positions or missing point configuration." }, { status: 400, headers });
       }

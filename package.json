@@ -16,6 +16,7 @@
     "qa:verify": "node --env-file=.env.qa.local --import tsx scripts/verify-qa.ts",
     "qa:competition": "node --env-file=.env.qa.local --import tsx scripts/verify-competition.ts",
     "qa:competition:browser": "node --env-file=.env.qa.local --import tsx scripts/verify-competition.ts --browser",
+    "qa:schedule": "node --env-file=.env.qa.local --import tsx scripts/verify-schedule.ts",
     "dev:qa": "node scripts/run-qa-next.mjs dev",
     "build:qa": "node scripts/run-qa-next.mjs build"
   },

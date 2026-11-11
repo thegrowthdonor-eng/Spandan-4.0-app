@@ -7,6 +7,7 @@ import { PortalDialog } from "@/components/admin/portal-dialog";
 import { canStartMatch, fromISTInput, toISTInput } from "@/lib/match-clock";
 import { formatLiveScore } from "@/lib/live-ground";
 import { MatchScoreAction } from "@/components/admin/match-score-action";
+import { eventMethod, type OperatingMethod } from "@/lib/event-operations";
 
 export type FixtureItem = {
   fixture_id: string; stage: string; participant_a_label: string; participant_b_label: string;
@@ -14,7 +15,7 @@ export type FixtureItem = {
   schedule_version: number; score_version: number; score_status: string | null;
   score_payload: Record<string, unknown> | null; actual_started_at?: string | null;
 };
-type EventMeta = { id: string; title: string; category: string; format: string; state: string; score_template?: string; venue?: string | null; starts_at?: string | null; ends_at?: string | null };
+type EventMeta = { id: string; title: string; category: string; format: string; state: string; operating_method?: OperatingMethod; score_template?: string; venue?: string | null; starts_at?: string | null; ends_at?: string | null };
 type BatchItem = { batch_id: string; label: string; course_label?: string | null };
 type GroupItem = { group_id: string; name: string; batch_id: string; state: string };
 export type SoloStudentItem = { application_id: string; student_id: string; full_name: string; batch_label: string; course_label?: string | null; roll_canonical: string; review_state?: string; selection_state?: string };
@@ -23,7 +24,8 @@ type Operation = "reschedule" | "reminders" | "history" | "delete" | null;
 
 export function formatTeamLabel(raw: string) { return /^\d{4}$/.test(raw.trim()) ? `Batch ${raw.trim()}` : raw.trim(); }
 function time(value: string | null) { return value ? new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(value)) : "Time to be announced"; }
-function status(f: FixtureItem) {
+function fixtureStatus(f: FixtureItem, scoring: boolean) {
+  if (!scoring) return f.state === "cancelled" ? "cancelled" : f.state === "completed" ? "final" : "scheduled";
   if (f.state === "cancelled" || f.score_status === "cancelled") return "cancelled";
   if (f.state === "completed" || f.score_status === "final") return "final";
   if (f.score_status === "paused" && f.actual_started_at) return "paused";
@@ -34,6 +36,8 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
   event: EventMeta; fixtures: FixtureItem[]; eligibleBatches?: BatchItem[]; registeredGroups?: GroupItem[]; soloStudents?: SoloStudentItem[]; isMainAdmin: boolean;
 }) {
   const router = useRouter();
+  const scoring = eventMethod(event) === "live_matches";
+  const status = (fixture: FixtureItem) => fixtureStatus(fixture, scoring);
   const grouped = ["pair", "group", "sport"].includes(event.format);
   const participantType = event.format === "pair" ? "pair" : grouped ? "team" : "player";
   const participants = useMemo(() => grouped
@@ -98,7 +102,7 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
     const a = participants.find(p => p.id === sideA), b = participants.find(p => p.id === sideB);
     if (!a || !b || a.id === b.id) { setNotice({ text: "Choose two different approved participants.", error: true }); return; }
     if (reporting && reporting > starts) { setNotice({ text: "Reporting time must be before match start.", error: true }); return; }
-    if (await send({ action: "create", eventId: event.id, stage: round, participantALabel: a.label, participantBLabel: b.label, venue, startsAt: fromISTInput(starts), reportingAt: fromISTInput(reporting) }, "Match scheduled. Scoring opens after Start Match.")) { setCreating(false); setSideA(""); setSideB(""); }
+    if (await send({ action: "create", eventId: event.id, stage: round, participantALabel: a.label, participantBLabel: b.label, venue, startsAt: fromISTInput(starts), reportingAt: fromISTInput(reporting) }, scoring ? "Match scheduled. Start & Score is available on match day." : "Pairing and match time published.")) { setCreating(false); setSideA(""); setSideB(""); }
   }
   async function openOperation(next: Operation) {
     if (!current) return;
@@ -136,9 +140,9 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
 
   return <div className="fx-workspace">
     <section className="fx-command"><div><span className="fx-eyebrow">Match centre</span><h2>{event.title}</h2><p>{participants.length} approved {participantType}s <span>·</span> {fixtures.length} matches</p></div><div className="fx-actions"><Link href={participantHref}>{grouped ? "Manage teams & pairs" : "Player roster"} ↗</Link><button className="fx-primary" type="button" onClick={openCreate}>{creating ? "Close creator" : "+ Schedule match"}</button></div></section>
-    {!grouped && <p className="fx-guidance">Choose approved players for head-to-head matches. For heats, performances or submissions, choose the appropriate operation settings above before creating records.</p>}
+    {!grouped && <p className="fx-guidance">Choose two approved players and publish their pairing and match time.</p>}
     {!current && message}
-    {creating && <section className="fx-creator"><div className="fx-section-heading"><div><span className="fx-eyebrow">New fixture</span><h3>Build the next matchup.</h3></div><span className="fx-step">Roster → Match → Start → Score</span></div>
+    {creating && <section className="fx-creator"><div className="fx-section-heading"><div><span className="fx-eyebrow">New fixture</span><h3>Build the next matchup.</h3></div><span className="fx-step">{scoring ? "Roster → Match → Start → Score" : "Players → Pairing → Publish"}</span></div>
       {participants.length < 2 ? <div className="fx-empty"><h3>{grouped ? "Publish your rosters first" : "Approve at least two players"}</h3><p>{grouped ? "Captains choose their team name and squad. Approve and publish those teams before scheduling. Pairs must be confirmed and approved." : "Your approved participant roster will appear here automatically."}</p><Link className="fx-primary" href={participantHref}>{grouped ? "Open team workspace" : "Open player roster"} →</Link></div> : <form onSubmit={create}>
         <div className="fx-two">{["A", "B"].map(side => <label key={side} className="fx-participant"><span className="fx-eyebrow">{participantType} {side === "A" ? "1" : "2"}</span><select required aria-label={`${participantType} ${side === "A" ? "1" : "2"}`} value={side === "A" ? sideA : sideB} onChange={e => (side === "A" ? setSideA : setSideB)(e.target.value)}><option value="">Choose {participantType}</option>{participants.map(p => <option key={p.id} value={p.id} disabled={p.id === (side === "A" ? sideB : sideA)}>{p.label} · {p.detail}</option>)}</select></label>)}</div>
         <label>Round<input value={round} onChange={e => setRound(e.target.value)} list="fixture-rounds" required maxLength={100} placeholder="Round 1, Group A, Semi-final…" /><datalist id="fixture-rounds">{["Round 1", "Group A", "Group B", "Quarter-final", "Semi-final", "Final", "Third place"].map(r => <option key={r} value={r} />)}</datalist></label>
@@ -149,7 +153,7 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
       <div className="fx-filters"><div className="fx-tabs" aria-label="Match status">{[["all", "All"], ["scheduled", "Upcoming"], ["live", "Live"], ["final", "Finished"], ["cancelled", "Cancelled"]].map(([key, label]) => <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}<span>{matches.filter(f => key === "all" || (key === "live" ? ["live", "paused"].includes(status(f)) : status(f) === key)).length}</span></button>)}</div><div className="fx-two"><input aria-label="Search matches" type="search" placeholder="Search players, teams or venue" value={query} onChange={e => setQuery(e.target.value)} /><select aria-label="Filter by round" value={roundFilter} onChange={e => setRoundFilter(e.target.value)}><option value="">All rounds</option>{rounds.map(r => <option key={r}>{r}</option>)}</select></div></div>
       <div className="fx-match-grid">{visible.map(f => <button type="button" className="fx-match" key={f.fixture_id} onClick={() => { setSelectedId(f.fixture_id); setOperation(null); setNotice(null); }}>
         <div className="fx-match-top"><span>{f.stage}</span><span className="fx-state" data-state={status(f)}>{status(f) === "final" ? "Finished" : status(f)}</span></div><div className="fx-matchup"><strong>{formatTeamLabel(f.participant_a_label)}</strong><span>vs</span><strong>{formatTeamLabel(f.participant_b_label)}</strong></div>
-        {f.actual_started_at && f.score_payload && <p className="fx-score">{score(f)}</p>}<div className="fx-match-meta"><span>{time(f.starts_at)}</span><span>{f.venue ?? "Venue to be confirmed"}</span></div><div className="fx-match-footer"><span>{status(f) === "scheduled" ? canStartMatch(f.starts_at, f.state, now) ? "Ready to start today" : "Scoring locked until match starts" : status(f) === "live" ? "Open scorer & match controls" : "View match details"}</span><span aria-hidden="true">↗</span></div>
+        {scoring && f.actual_started_at && f.score_payload && <p className="fx-score">{score(f)}</p>}<div className="fx-match-meta"><span>{time(f.starts_at)}</span><span>{f.venue ?? "Venue to be confirmed"}</span></div><div className="fx-match-footer"><span>{!scoring ? "View pairing & match information" : status(f) === "scheduled" ? canStartMatch(f.starts_at, f.state, now) ? "Ready to start today" : "Scoring locked until match starts" : status(f) === "live" ? "Open scorer & match controls" : "View match details"}</span><span aria-hidden="true">↗</span></div>
       </button>)}</div>
       {!visible.length && <div className="fx-empty"><h3>{fixtures.length ? "No matching fixtures" : "Your next match starts here"}</h3><p>{fixtures.length ? "Try another filter or search." : "Choose approved participants, add a round and set the match time."}</p>{!fixtures.length && <button className="fx-primary" type="button" onClick={() => { if (!creating) openCreate(); }}>Schedule first match</button>}</div>}
     </section>
@@ -157,11 +161,11 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
       <header><div><span className="fx-eyebrow">{current.stage}</span><h2 id="fixture-title">{operation === "reschedule" ? "Reschedule match" : operation === "history" ? "Schedule history" : operation === "delete" ? "Delete match?" : operation === "reminders" ? "Send reminder" : "Match details"}</h2></div><button type="button" className="fx-close" aria-label="Close match details" disabled={busy} onClick={() => { setSelectedId(null); setOperation(null); }}>×</button></header>
       <div className="fx-duel"><strong>{formatTeamLabel(current.participant_a_label)}</strong><span>vs</span><strong>{formatTeamLabel(current.participant_b_label)}</strong><span className="fx-state" data-state={status(current)}>{status(current) === "final" ? "Finished" : status(current)}</span></div>{message}
       {operation === null && <>
-        {current.actual_started_at && current.score_payload && <p className="fx-detail-score">{score(current)}</p>}
+        {scoring && current.actual_started_at && current.score_payload && <p className="fx-detail-score">{score(current)}</p>}
         <dl className="fx-details"><div><dt>Match starts · IST</dt><dd>{time(current.starts_at)}</dd></div><div><dt>Reporting time · IST</dt><dd>{time(current.reporting_at)}</dd></div><div><dt>Venue</dt><dd>{current.venue || "To be confirmed"}</dd></div></dl>
-        {status(current) === "scheduled" ? <section className="fx-start"><h3>{canStartMatch(current.starts_at, current.state, now) ? "Ready when the ground is." : "Match has not started"}</h3><p>Start & Score unlocks only on the scheduled IST day. Starting also prepares and claims this scoring device.</p><MatchScoreAction match={{id:current.fixture_id,event_id:event.id,event_title:event.title,event_state:event.state,stage:current.stage,participant_a_label:current.participant_a_label,participant_b_label:current.participant_b_label,venue:current.venue,starts_at:current.starts_at,state:current.state,actual_started_at:current.actual_started_at ?? null}} now={now} /></section> : current.actual_started_at && status(current) !== "cancelled" ? <Link className="fx-primary fx-score-link" href={`/scorer?fixture=${current.fixture_id}`}>{status(current) === "final" ? "Review / correct score" : "Open match scorer"} →</Link> : null}
+        {scoring && (status(current) === "scheduled" ? <section className="fx-start"><h3>{canStartMatch(current.starts_at, current.state, now) ? "Ready when the ground is." : "Match has not started"}</h3><p>Start & Score unlocks only on the scheduled IST day. Starting also prepares and claims this scoring device.</p><MatchScoreAction match={{id:current.fixture_id,event_id:event.id,event_title:event.title,event_state:event.state,stage:current.stage,participant_a_label:current.participant_a_label,participant_b_label:current.participant_b_label,venue:current.venue,starts_at:current.starts_at,state:current.state,actual_started_at:current.actual_started_at ?? null}} now={now} /></section> : current.actual_started_at && status(current) !== "cancelled" ? <Link className="fx-primary fx-score-link" href={`/scorer?fixture=${current.fixture_id}`}>{status(current) === "final" ? "Review / correct score" : "Open match scorer"} →</Link> : null)}
         <div className="fx-detail-actions"><button type="button" onClick={() => void openOperation("reschedule")}>Reschedule</button><button type="button" onClick={() => void openOperation("reminders")}>Send reminder</button><button type="button" onClick={() => void openOperation("history")}>Schedule history</button></div>
-        <details className="fx-advanced"><summary>More match controls</summary><p>Schedule v{current.schedule_version} · Score v{current.score_version}</p>{isMainAdmin && current.actual_started_at && <button type="button" disabled={busy} onClick={() => void releaseDevice()}>Release scoring device</button>}<button className="fx-danger" type="button" onClick={() => void openOperation("delete")}>Delete match</button></details>
+        <details className="fx-advanced"><summary>More match controls</summary><p>Schedule v{current.schedule_version}{scoring ? ` · Score v${current.score_version}` : ""}</p>{scoring && isMainAdmin && current.actual_started_at && <button type="button" disabled={busy} onClick={() => void releaseDevice()}>Release scoring device</button>}<button className="fx-danger" type="button" onClick={() => void openOperation("delete")}>Delete match</button></details>
       </>}
       {operation === "history" && <section className="fx-history">{historyError ? <p role="alert">History could not be loaded. Close and retry.</p> : history === null ? <p role="status">Loading history…</p> : !history.length ? <p>No schedule changes yet.</p> : history.map(h => <article key={h.id}><strong>{h.actor_name ?? "Organiser"}</strong><small>{time(h.created_at)}</small><p>{h.reason}</p><p>Previously: {time(h.previous_schedule.starts_at ?? null)} · {h.previous_schedule.venue ?? "Venue not set"}</p></article>)}</section>}
       {operation && operation !== "history" && <form onSubmit={submitOperation}>

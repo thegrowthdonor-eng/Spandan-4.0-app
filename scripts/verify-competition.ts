@@ -20,36 +20,34 @@ async function main() {
   const workspace=async(eventId:string)=>{const response=await fetch(`${base}/api/competition?event=${eventId}`,{headers:{Cookie:cookie}});assert.equal(response.status,200);return (await response.json()).workspace;};
   const {data:source,error:sourceError}=await admin.from("events").select("*").eq("format","solo").eq("registration_enabled",true).limit(1).single();failIfError(sourceError,"Read QA source event");
   const {data:apps,error:appError}=await admin.from("applications").select("*").eq("event_id",source!.id).eq("review_state","approved").neq("selection_state","not_selected").limit(3);failIfError(appError,"Read QA approved entrants");assert.equal(apps?.length,3);
-  const owner=(await admin.from("staff_assignments").select("profile_id").eq("role","main_admin").is("revoked_at",null).limit(1).single()).data!.profile_id;
   const ids:string[]=[];const reports:unknown[]=[];
-  async function event(title:string,scoreTemplate="generic",registrationEnabled=true) {const id=randomUUID();ids.push(id);const created=await admin.from("events").insert({...source,id,slug:`qa-competition-${id}`,title:`QA ${title} ${id}`,state:registrationEnabled ? "open" : "published",score_template:scoreTemplate,registration_enabled:registrationEnabled});failIfError(created.error,"Create QA event");const entrants=registrationEnabled ? apps!.map(app=>({...app,id:randomUUID(),event_id:id,idempotency_key:randomUUID()})) : [];if(entrants.length)failIfError((await admin.from("applications").insert(entrants)).error,"Create QA entrants");return {id,entrants};}
+  async function event(title:string,scoreTemplate="generic",registrationEnabled=true,method:"live_matches"|"fixtures_only"|"results_only"|"voting"|"programme"="results_only",unit:"seconds"|"metres"|"count"|null=null,entryFormat:"image"|"text"="image") {const id=randomUUID();ids.push(id);const created=await admin.from("events").insert({...source,id,slug:`qa-competition-${id}`,title:`QA ${title} ${id}`,state:registrationEnabled ? "open" : "published",score_template:scoreTemplate,registration_enabled:registrationEnabled,operating_method:method,result_unit:unit,entry_format:entryFormat});failIfError(created.error,"Create QA event");const entrants=registrationEnabled ? apps!.map(app=>({...app,id:randomUUID(),event_id:id,idempotency_key:randomUUID()})) : [];if(entrants.length)failIfError((await admin.from("applications").insert(entrants)).error,"Create QA entrants");return {id,entrants};}
   try {
-    const measurement=await event("measurement");
-    await command(measurement.id,"settings",{schedule_mode:"flight",result_mode:"distance",attempts:3,measurement_method:"QA measuring tape",submission_closes_at:null,version:0});
-    await command(measurement.id,"sessions",{sessions:[{title:"QA final",venue:"QA field",starts_at:new Date().toISOString(),reporting_at:null,ends_at:null,is_final:true,entrants:measurement.entrants.map((app,i)=>({application_id:app.id,group_id:null,position:i+1}))}]});
-    let w=await workspace(measurement.id);let s=w.sessions[0];
-    await command(measurement.id,"session_state",{session_id:s.id,version:s.version,state:"scheduled"});w=await workspace(measurement.id);s=w.sessions[0];
-    await command(measurement.id,"session_state",{session_id:s.id,version:s.version,state:"live"});w=await workspace(measurement.id);s=w.sessions[0];
-    const liveResponse=await fetch(`${base}/api/public/live`,{credentials:"omit"});assert.equal(liveResponse.status,200);assert.equal(liveResponse.headers.get("set-cookie"),null);assert.match(liveResponse.headers.get("cache-control") ?? "",/s-maxage=60/);
-    const ground=await liveResponse.json();assert.ok(ground.live.some((item:{id:string;kind:string})=>item.id===s.id && item.kind==="competition"),"Live Ground omitted the live measurement session");
-    await command(measurement.id,"session_results",{session_id:s.id,version:s.version,reason:"",results:s.entrants.map((row:{id:string},i:number)=>({id:row.id,status:"valid",attempts:[5000-i*100,null,4800],placing:i+1,note:"Confirmed by official"}))});
-    w=await workspace(measurement.id);s=w.sessions[0];await command(measurement.id,"session_state",{session_id:s.id,version:s.version,state:"completed"});
-    assert.equal((await anon.rpc("public_competition",{p_event_id:measurement.id})).data.sessions[0].state,"completed");
-    reports.push({check:"measurement and final session API",ok:true});
-    const families:Array<{eventId:string;title:string}>=[];
-    for (const [scheduleMode,resultMode] of [["heat","time"],["session","count"],["running_order","faculty_places"],["information","none"]] as const) {
-      const item=await event(scheduleMode,"generic",scheduleMode!=="information");
-      await command(item.id,"settings",{schedule_mode:scheduleMode,result_mode:resultMode,attempts:1,submission_closes_at:null,version:0});
-      const title=`QA ${scheduleMode} final`;
-      await command(item.id,"sessions",{sessions:[{title,venue:"QA venue",starts_at:new Date().toISOString(),reporting_at:null,ends_at:null,is_final:resultMode!=="none",entrants:item.entrants.map((app,i)=>({application_id:app.id,group_id:null,position:i+1}))}]});
-      let current=(await workspace(item.id)).sessions[0];
-      for (const state of ["scheduled","live"]) {await command(item.id,"session_state",{session_id:current.id,version:current.version,state});current=(await workspace(item.id)).sessions[0];}
-      if (resultMode!=="none") {await command(item.id,"session_results",{session_id:current.id,version:current.version,reason:"",results:current.entrants.map((row:{id:string},i:number)=>({id:row.id,status:"valid",attempts:resultMode==="faculty_places" ? [] : [resultMode==="time" ? 12000+i*100 : 30-i],placing:i+1,note:"Official confirmation"}))});current=(await workspace(item.id)).sessions[0];}
-      await command(item.id,"session_state",{session_id:current.id,version:current.version,state:"completed"});families.push({eventId:item.id,title});
-    }
-    reports.push({check:"heats/time, challenges/count, faculty places and information-only sessions",ok:true});
-
-    const match=await event("atomic start","football");
+    const saved=await api("/api/admin/events",{eventId:null,editionId:source!.edition_id,details:{title:"QA configured literary "+randomUUID(),category:"literary",format:"solo",registrationEnabled:true,scoreTemplate:"generic",operatingMethod:"voting",entryFormat:"text",resultUnit:null,summary:"QA event configuration",rules:"QA only",venue:"QA room",capacity:null,waitlistEnabled:false,reportingAt:null,startsAt:new Date().toISOString(),endsAt:new Date(Date.now()+3_600_000).toISOString(),rosterLockAt:null,eligibility:{division:"open"},applicationQuestions:[],groupMinSize:null,groupMaxSize:null,batchRestricted:false,posterUrl:null}});
+    ids.push(saved.eventId);
+    const configured=(await admin.from("events").select("operating_method,entry_format").eq("id",saved.eventId).single()).data!;
+    assert.deepEqual(configured,{operating_method:"voting",entry_format:"text"});
+    const measurement=await event("manual results","generic",true,"results_only","metres");
+    const rules=[{placing:1,points:10},{placing:2,points:7},{placing:3,points:5}];
+    await api("/api/admin/results",{action:"setPointRules",eventId:measurement.id,rules});
+    const manualPositions=measurement.entrants.map((app,index)=>({placing:index+1,applicationId:app.id,finalValue:String(5-index*.1)}));
+    await api("/api/admin/results",{action:"publish",eventId:measurement.id,positions:manualPositions,expectedVersion:0});
+    await api("/api/admin/results",{action:"publish",eventId:measurement.id,positions:manualPositions,expectedVersion:0,reason:"Stale attempt"},409);
+    assert.equal((await admin.from("result_positions").select("final_value,value_unit").eq("application_id",measurement.entrants[0].id).single()).data!.value_unit,"metres");
+    await command(measurement.id,"sessions",{sessions:[]},400);
+    const stage=await event("Stage performance","generic",true,"programme");
+    await api("/api/admin/results",{action:"publish",eventId:stage.id,positions:manualPositions},400);
+    const board=await event("Chess pairings","generic",true,"fixtures_only");
+    await api("/api/admin/fixtures",{action:"create",eventId:board.id,stage:"QA board pairing",participantALabel:"QA A",participantBLabel:"QA B",venue:"QA room",reportingAt:null,startsAt:new Date().toISOString()});
+    const boardFixture=(await admin.from("fixtures").select("id").eq("event_id",board.id).single()).data!.id;
+    await api("/api/admin/fixtures/prepare-offline",{fixtureId:boardFixture,deviceId:randomUUID(),start:true},400);
+    const count=await event("Count challenge","generic",true,"results_only","count");
+    await api("/api/admin/results",{action:"setPointRules",eventId:count.id,rules});
+    await api("/api/admin/results",{action:"publish",eventId:count.id,positions:[{placing:1,applicationId:count.entrants[0].id,finalValue:"1.5"}]},400);
+    const families=[{eventId:count.id,title:"Publish final results"},{eventId:board.id,title:"Fixtures only"},{eventId:stage.id,title:"Information & gallery"}];
+    reports.push({check:"manual values without sessions, stale correction, stage result prohibition, chess pairings without scoring",ok:true});
+    let w:Awaited<ReturnType<typeof workspace>>;
+    const match=await event("atomic start","football",true,"live_matches");
     const fixture=await api("/api/admin/fixtures",{action:"create",eventId:match.id,stage:"QA atomic start",participantALabel:"QA A",participantBLabel:"QA B",venue:"QA ground",reportingAt:null,startsAt:new Date().toISOString()});
     const fixtureId=fixture.fixture?.id ?? fixture.fixtureId ?? fixture.id ?? (await admin.from("fixtures").select("id").eq("event_id",match.id).single()).data!.id;
     const device=randomUUID();
@@ -60,15 +58,24 @@ async function main() {
     assert.equal((await admin.from("score_snapshots").select("id").eq("fixture_id",fixtureId)).data!.length,snapshotsBefore,"Double Start created a second snapshot");
     await api("/api/admin/fixtures/prepare-offline",{fixtureId,deviceId:randomUUID(),start:true},409);
     reports.push({check:"explicit start, double start and lease conflict",ok:true});
-
-    const voting=await event("public voting");
-    await command(voting.id,"settings",{schedule_mode:"submission",result_mode:"public_vote",attempts:1,submission_closes_at:new Date(Date.now()-120_000).toISOString(),version:0});
-    const entries=[];
-    const publicImage=(await admin.from("events").select("poster_url").not("poster_url","is",null).limit(1).single()).data!.poster_url;
-    for (const [index,app] of voting.entrants.entries()) {
-      const assetId=randomUUID();failIfError((await admin.from("media_assets").insert({id:assetId,owner_id:owner,event_id:voting.id,purpose:"competition",provider:"supabase",object_key:`qa-mock/${voting.id}/${index}`,state:"public",input_mime:"image/webp",input_size:100,expires_at:new Date().toISOString(),public_url:publicImage})).error,"Create explicitly mocked media fixture");
-      const entry=await admin.from("competition_entries").insert({event_id:voting.id,application_id:app.id,title:`QA work ${index+1}`,media_id:assetId,public_media_url:publicImage,submitted_by:owner,state:"approved"}).select().single();failIfError(entry.error,"Create approved QA entry");entries.push(entry.data!);
+    const racketIds:Array<{id:string;games:boolean}>=[];
+    for(const [title,games] of [["Lawn tennis",true],["Table tennis",false]] as const){
+      const racket=await event(title,"set_based",true,"live_matches");
+      await api("/api/admin/fixtures",{action:"create",eventId:racket.id,stage:"QA racket",participantALabel:"QA Racket A",participantBLabel:"QA Racket B",venue:"QA court",reportingAt:null,startsAt:new Date().toISOString()});
+      const f=(await admin.from("fixtures").select("id").eq("event_id",racket.id).single()).data!;
+      racketIds.push({id:f.id,games});
     }
+
+    const voting=await event("written voting","generic",true,"voting",null,"text");
+    await command(voting.id,"settings",{schedule_mode:"submission",result_mode:"public_vote",attempts:1,submission_closes_at:new Date(Date.now()+120_000).toISOString(),version:1});
+    const entries:Array<{id:string;application_id:string}>=[];
+    for (const [index,app] of voting.entrants.entries()) {
+      await command(voting.id,"entry",{application_id:app.id,group_id:null,title:`QA work ${index+1}`,description:"First line\\nSecond line <script>literal text</script>",media_id:null,submit:true,version:0});
+      const entry=(await admin.from("competition_entries").select("id,version,application_id").eq("event_id",voting.id).eq("application_id",app.id).single()).data!;
+      await command(voting.id,"review_entry",{entry_id:entry.id,version:entry.version,state:"approved",reason:""});
+      entries.push(entry);
+    }
+    failIfError((await admin.from("competition_settings").update({submission_closes_at:new Date(Date.now()-120_000).toISOString()}).eq("event_id",voting.id)).error,"Close written submissions");
     const roundWindow=()=>({opens_at:new Date(Date.now()-60_000).toISOString(),closes_at:new Date(Date.now()+300_000).toISOString()});
     await api("/api/admin/results",{action:"setPointRules",eventId:voting.id,rules:[{placing:1,points:10},{placing:2,points:7},{placing:3,points:5}]});
     await command(voting.id,"voting_round",roundWindow());
@@ -103,13 +110,13 @@ async function main() {
     }
     assert.equal((await admin.from("poll_votes").select("id").eq("poll_id",round.id)).data!.length,expectedVotes);
     assert.equal((await admin.from("poll_options").select("vote_count").eq("poll_id",round.id)).data!.reduce((n,row)=>n+row.vote_count,0),expectedVotes);
-    failIfError((await admin.from("polls").update({closes_at:new Date(Date.now()-1_000).toISOString()}).eq("id",round.id)).error,"Close QA round");
+    failIfError((await admin.from("polls").update({closes_at:new Date(Date.now()-30_000).toISOString()}).eq("id",round.id)).error,"Close QA round");
     await command(voting.id,"verify_votes",{},400);
     await command(voting.id,"voting_round",{...roundWindow(),entry_ids:[entries[1].id]},400);
     await command(voting.id,"voting_round",{...roundWindow(),entry_ids:entries.slice(1).map(e=>e.id)});
     publicData=(await anon.rpc("public_competition",{p_event_id:voting.id})).data;round=publicData.rounds[1];
     const runoff=await api("/api/competition/voting",{pollId:round.id});failIfError((await anon.rpc("cast_competition_vote",{p_token:runoff.token,p_option_id:round.options[0].id})).error,"Cast runoff vote");
-    failIfError((await admin.from("polls").update({closes_at:new Date(Date.now()-1_000).toISOString()}).eq("id",round.id)).error,"Close runoff");
+    failIfError((await admin.from("polls").update({closes_at:new Date(Date.now()-30_000).toISOString()}).eq("id",round.id)).error,"Close runoff");
     await command(voting.id,"verify_votes",{});w=await workspace(voting.id);assert.equal(w.placements.length,3);
     await api("/api/admin/results",{action:"setPointRules",eventId:voting.id,rules:[{placing:1,points:10},{placing:2,points:7},{placing:3,points:5}]},409);
     await api("/api/admin/results",{action:"publish",eventId:voting.id,positions:w.placements.map((place:{placing:number;entry_id:string})=>({placing:place.placing,applicationId:entries.find(entry=>entry.id===place.entry_id)!.application_id})),reason:"QA verified voting integration"});
@@ -120,10 +127,10 @@ async function main() {
       for (const [stage,offset] of [["QA browser scoring",0],["QA future bookmark",86_400_000]] as const) await api("/api/admin/fixtures",{action:"create",eventId:match.id,stage,participantALabel:"QA Browser A",participantBLabel:"QA Browser B",venue:"QA ground",reportingAt:null,startsAt:new Date(Date.now()+offset).toISOString()});
       const future=(await admin.from("fixtures").select("id").eq("event_id",match.id).eq("stage","QA future bookmark").single()).data!.id;
       const {verifyCompetitionBrowser}=await import("./verify-competition-browser");
-      await verifyCompetitionBrowser({base,measurementId:measurement.id,matchId:match.id,votingId:voting.id,futureFixture:future,families});
+      await verifyCompetitionBrowser({base,measurementId:measurement.id,matchId:match.id,votingId:voting.id,futureFixture:future,families,boardFixture,countId:count.id,stageId:stage.id,racketIds});
       reports.push({check:"mobile competition, direct metadata, pre-start bookmark, one-action scorer and offline checkpoint",ok:true});
     }
-    console.log(JSON.stringify({project:"isolated QA",media:"mock registry; not R2 staging verification",reports},null,2));
+    console.log(JSON.stringify({project:"isolated QA",media:"real text-only submissions; image uploads await R2 staging",reports},null,2));
   } finally {
     // Only newly-created, explicitly tracked fictional QA event IDs are removed. No existing fixtures/media are touched.
     for (const id of ids) {

@@ -19,3 +19,24 @@ export function sortSchedule(a: ScheduleEntry, b: ScheduleEntry) {
   if (b.starts_at) return 1;
   return a.sort_order - b.sort_order;
 }
+
+export function defaultScheduleDay(entries: ScheduleEntry[], now: string) {
+  const today = scheduleDay(now);
+  if (festivalDays.includes(today)) return today;
+  const published = [...new Set(entries.map(e => e.day).filter(day => /^\d{4}-\d{2}-\d{2}$/.test(day)))].sort();
+  if (!published.length) return festivalDays[0];
+  return today < festivalDays[0] ? published[0] : published[published.length - 1];
+}
+
+export function scheduleStatus(state?: string) {
+  if (state === "cancelled") return "Cancelled";
+  if (["completed", "final"].includes(state ?? "")) return "Finished";
+  if (["ongoing", "live"].includes(state ?? "")) return "Live";
+  if (state === "paused") return "Paused";
+  return "Scheduled";
+}
+
+export const scheduleCategories: Record<string, string> = {
+  opening: "Ceremony", sport: "Sports", fixture: "Matches", cultural: "Arts & culture",
+  creative: "Creative", literary: "Literary", competition: "Competition", evening: "Evening", other: "Programme",
+};
