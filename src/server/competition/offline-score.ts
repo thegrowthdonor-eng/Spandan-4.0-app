@@ -5,6 +5,7 @@ export const deviceIdSchema = z.string().uuid();
 export const prepareOfflineSchema = z.object({
   fixtureId: z.string().uuid(),
   deviceId: deviceIdSchema,
+  start: z.boolean().optional(),
 }).strict();
 
 export const scoreStatusSchema = z.enum(["scheduled", "live", "paused", "final", "cancelled"]);

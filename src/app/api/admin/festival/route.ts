@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { festivalSetupSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
-import { createAdminClient } from "@/server/supabase/admin";
+import { archiveMedia } from "@/server/media/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -96,6 +96,7 @@ export async function POST(request: Request) {
   }
 
   if (result.error) {
+    if (data.action === "deleteEvent" && ["23503","55000"].includes(result.error.code)) return NextResponse.json({error:"This event has retained competition or media history. Cancel it instead; ballots, scores and original media must be preserved."},{status:409,headers});
     if (result.error.code === "42501") return denied;
     if (result.error.code === "22023" || result.error.code === "23505")
       return NextResponse.json({
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
 
   if (data.action === "deleteEvent") {
     const paths = Array.isArray(result.data) ? result.data.filter((path): path is string => typeof path === "string" && path.startsWith("gallery/")) : [];
-    const { error: cleanupError } = paths.length ? await createAdminClient().storage.from("fest-media").remove(paths) : { error: null };
+    const { error: cleanupError } = await archiveMedia(paths);
     return NextResponse.json({ ok: true, cleanupPending: Boolean(cleanupError) }, { headers });
   }
   return NextResponse.json({ ok: true, eventId: result.data?.id }, { headers });

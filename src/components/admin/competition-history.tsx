@@ -1,0 +1,18 @@
+"use client";
+import {useState} from "react";
+import {measurementLabel} from "@/lib/competition";
+import {toISTInput} from "@/lib/match-clock";
+import styles from "./competition-workspace.module.css";
+
+type Snapshot={title?:string;state?:string;media_id?:string|null;schedule_mode?:string;result_mode?:string;session?:{title:string;state:string;venue:string;starts_at:string};entrants?:Array<{label:string;position:number;status:string;attempts:Array<number|null>;placing:number|null}>};
+type History={id:string;action:string;reason:string|null;created_at:string;actor:string;detail?:boolean;change_summary:{before:Snapshot|null;after:Snapshot|null}};
+function Values({value,mode}:{value:Snapshot|null;mode:string}) {
+  if (!value) return null;
+  return <div>{value.session && <p>{value.session.title} · {value.session.state} · {value.session.venue} · {toISTInput(value.session.starts_at).replace("T"," ")} IST</p>}{value.title && <p>{value.title} · {value.state}</p>}{value.schedule_mode && <p>{value.schedule_mode} · {value.result_mode}</p>}{value.media_id && <a href={`/api/media/${value.media_id}`} target="_blank" rel="noopener noreferrer">Review this version&apos;s image ↗</a>}{value.entrants?.map((row,index)=><p key={index}>{row.position}. {row.label} · {row.status.toUpperCase()}{row.attempts.length ? ` · ${row.attempts.map(mark=>measurementLabel(mark,mode)).join(" / ")}` : ""}{row.placing ? ` · Place ${row.placing}` : ""}</p>)}</div>;
+}
+export function CompetitionHistory({eventId,mode}:{eventId:string;mode:string}) {
+  const [rows,setRows]=useState<History[]|null>(null);const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);
+  async function load(){setBusy(true);setMessage("");try{const response=await fetch(`/api/competition?event=${eventId}&type=history`,{cache:"no-store"});const body=await response.json();if(!response.ok)throw new Error(body.error);setRows(body.history);}catch(error){setMessage(error instanceof Error ? error.message : "History unavailable. Retry when connected.");}finally{setBusy(false);}}
+  async function detail(id:string){setBusy(true);setMessage("");try{const response=await fetch(`/api/competition?event=${eventId}&type=history&record=${id}`,{cache:"no-store"});const body=await response.json();if(!response.ok || !body.record)throw new Error(body.error ?? "Correction unavailable.");setRows(current=>current?.map(row=>row.id===id ? {...body.record,detail:true} : row) ?? null);}catch(error){setMessage(error instanceof Error ? error.message : "Correction unavailable.");}finally{setBusy(false);}}
+  return <details className={styles.card}><summary>Operation history & corrections</summary><p>Previous values and reasons are retained. Loading history does not change results.</p><button type="button" disabled={busy} onClick={()=>void load()}>{busy ? "Loading…" : rows ? "Refresh history" : "Load history"}</button>{message && <p role="alert">{message}</p>}{rows?.map(row=><article className={styles.card} key={row.id}><h4>{row.action.replace("competition.","").replaceAll("_"," ")}</h4><p>{row.actor} · {toISTInput(row.created_at).replace("T"," ")} IST</p>{row.reason && <p>{row.reason}</p>}{!row.detail && <button type="button" disabled={busy} onClick={()=>void detail(row.id)}>Load detailed changes</button>}{row.change_summary.before && <details><summary>Previous values</summary><Values value={row.change_summary.before} mode={mode} /></details>}{row.change_summary.after && <details><summary>Saved values</summary><Values value={row.change_summary.after} mode={mode} /></details>}</article>)}{rows?.length===0 && <p>No operation history yet.</p>}</details>;
+}

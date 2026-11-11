@@ -115,6 +115,7 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
       {!visible.length&&<p className="portal-message">No events match. Create an event or change your filters.</p>}
     </>:<>
       {current&&<p><span className="portal-badge">{current.state}</span> {dirty?"Unsaved changes":"Saved event"}</p>}
+      {current && !current.registration_enabled && <p><Link href={`/admin/fixtures?event=${current.event_id}`}>Manage programme sessions & live status →</Link></p>}
       <nav className="portal-steps" aria-label="Event setup steps">{steps.map((name,i)=><button type="button" key={name} aria-current={step===i?"step":undefined} onClick={()=>goStep(i)}>{i+1}. {name}</button>)}</nav>
       <form className="portal-form" onSubmit={e=>{e.preventDefault();if(step<3)goStep(step+1);else void save();}} noValidate>
         <fieldset disabled={pending}>

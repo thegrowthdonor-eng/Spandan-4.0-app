@@ -4,6 +4,8 @@ import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
 import { FixturesClient, FixtureItem } from "./fixtures-client";
 import { AdminEventPicker } from "@/components/admin/event-picker";
+import { CompetitionWorkspacePanel } from "@/components/admin/competition-workspace";
+import type { CompetitionWorkspace } from "@/lib/competition";
 import "./fixtures.css";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +35,7 @@ export default async function FixturesPage({
   const client = await createRequestClient();
   if (!(await client.auth.getUser()).data.user) redirect("/account");
 
-  const { data: eventData } = await client.rpc("list_managed_events");
+  const { data: eventData } = await client.rpc("list_competition_events");
   const events = (eventData ?? []) as ManagedEvent[];
 
   if (!events.length) {
@@ -86,6 +88,10 @@ export default async function FixturesPage({
   const groups = (groupsData ?? []) as Array<{ group_id: string; name: string; batch_id: string; state: string }>;
   const soloStudents = (soloData ?? []) as Array<{ application_id: string; student_id: string; full_name: string; batch_label: string; course_label?: string | null; roll_canonical: string }>;
   const defaultVenue = eventDetails?.venue ?? "";
+  const { data: workspace, error: workspaceError } = await client.rpc("competition_workspace", { p_event_id: selected.id });
+  // Request-time display snapshot; the database independently enforces the IST start boundary.
+  // eslint-disable-next-line react-hooks/purity
+  const serverNow=Date.now();
 
   return (
     <main className="fixtures-page">
@@ -102,15 +108,16 @@ export default async function FixturesPage({
 
       <section className="fixtures-intro">
         <p className="eyebrow">Competition operations</p>
-        <h1>Fixtures &amp; scores</h1>
-        <p>Schedule matches, manage live scoring, and tap any match for complete details and controls.</p>
+        <h1>Competition &amp; Schedule</h1>
+        <p>Matches, heats, running orders and submissions — the right workspace for each event.</p>
       </section>
 
       <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/fixtures" compact />
 
-      {error || startError ? (
-        <p className="fixture-empty">Fixtures are temporarily unavailable.</p>
-      ) : (
+      {workspaceError && <p role="alert">Competition settings unavailable. Existing match operations remain accessible.</p>}
+      {
+        <CompetitionWorkspacePanel key={selected.id} initial={(workspace ?? { event: { ...selected, registration_enabled:true },staff:true,settings:null,candidates:[],sessions:[],entries:[],rounds:[],placements:[] }) as CompetitionWorkspace} serverNow={serverNow} defaultVenue={defaultVenue} defaultStart={eventDetails?.starts_at ?? null} existingMatches={fixtures.length > 0}>
+        {error || startError ? <p role="alert">Match operations unavailable. Refresh to retry.</p> :
         <FixturesClient
           key={selected.id}
           event={{
@@ -125,8 +132,9 @@ export default async function FixturesPage({
           registeredGroups={groups}
           soloStudents={soloStudents}
           isMainAdmin={mainAdmin.data === true}
-        />
-      )}
+        />}
+        </CompetitionWorkspacePanel>
+      }
     </main>
   );
 }

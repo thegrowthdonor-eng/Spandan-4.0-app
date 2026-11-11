@@ -27,6 +27,7 @@ function LiveCard({ item, now }: { item: LiveGroundItem; now: number }) {
     <div className={styles.links}>
       {item.scoreProvider === "cricheroes" && item.externalScoreUrl && <a href={item.externalScoreUrl} target="_blank" rel="noopener noreferrer">Official CricHeroes score ↗</a>}
       {item.eventSlug && <Link href={`/events/${item.eventSlug}`}>Event details →</Link>}
+      {item.eventId && <Link href={`/competition/${item.eventId}`}>Session & results →</Link>}
     </div>
   </article>;
 }
@@ -41,16 +42,17 @@ export function LiveGroundClient() {
     setRefreshing(true);
     try {
       const requestedAt = Date.now();
-      const response = await fetch("/api/public/live");
+      const response = await fetch("/api/public/live",{credentials:"omit"});
       if (!response.ok) throw new Error();
       const next = await response.json() as LiveGroundPayload;
       setData(next);
       const servedAt = Date.parse(response.headers.get("Date") ?? "");
       if (Number.isFinite(servedAt)) setServerOffset(servedAt + Number(response.headers.get("Age") ?? 0) * 1000 - (requestedAt + Date.now()) / 2);
-      localStorage.setItem(CACHE_KEY, JSON.stringify(next));
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(next)); } catch { /* Keep the successful in-memory snapshot when storage is blocked. */ }
       setError("");
     } catch {
-      const cached = localStorage.getItem(CACHE_KEY);
+      let cached:string|null=null;
+      try { cached = localStorage.getItem(CACHE_KEY); } catch { /* Retain the existing in-memory snapshot. */ }
       if (cached) try {
         const saved = JSON.parse(cached) as LiveGroundPayload;
         setData(current => current ?? saved);

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { PortalDialog } from "@/components/admin/portal-dialog";
 import { canStartMatch, fromISTInput, toISTInput } from "@/lib/match-clock";
 import { formatLiveScore } from "@/lib/live-ground";
+import { MatchScoreAction } from "@/components/admin/match-score-action";
 
 export type FixtureItem = {
   fixture_id: string; stage: string; participant_a_label: string; participant_b_label: string;
@@ -40,7 +41,6 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
     : soloStudents.filter(s => (!s.review_state || s.review_state === "approved") && s.selection_state !== "not_selected").map(s => ({ id: s.student_id, label: `${s.full_name} (${s.batch_label}${s.roll_canonical ? `, #${s.roll_canonical}` : ""})`, detail: s.batch_label })), [grouped, registeredGroups, eligibleBatches, soloStudents]);
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [started, setStarted] = useState<Record<string, string>>({});
   const [operation, setOperation] = useState<Operation>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
@@ -64,7 +64,7 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
     return () => { clearTimeout(initial); clearInterval(timer); };
   }, []);
 
-  const matches = fixtures.map(f => started[f.fixture_id] && !f.actual_started_at ? { ...f, actual_started_at: started[f.fixture_id], state: "ongoing", score_status: "live" } : f);
+  const matches = fixtures;
   const current = matches.find(f => f.fixture_id === selectedId) ?? null;
   const rounds = Array.from(new Set(fixtures.map(f => f.stage)));
   const visible = matches.filter(f => (filter === "all" || (filter === "live" ? ["live", "paused"].includes(status(f)) : status(f) === filter)) && (!roundFilter || f.stage === roundFilter) && `${f.participant_a_label} ${f.participant_b_label} ${f.stage} ${f.venue ?? ""}`.toLowerCase().includes(query.toLowerCase().trim()));
@@ -99,9 +99,6 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
     if (!a || !b || a.id === b.id) { setNotice({ text: "Choose two different approved participants.", error: true }); return; }
     if (reporting && reporting > starts) { setNotice({ text: "Reporting time must be before match start.", error: true }); return; }
     if (await send({ action: "create", eventId: event.id, stage: round, participantALabel: a.label, participantBLabel: b.label, venue, startsAt: fromISTInput(starts), reportingAt: fromISTInput(reporting) }, "Match scheduled. Scoring opens after Start Match.")) { setCreating(false); setSideA(""); setSideB(""); }
-  }
-  async function start(f: FixtureItem) {
-    if (await send({ action: "start", fixtureId: f.fixture_id }, "Match started. Open the scorer to update the score.")) setStarted(old => ({ ...old, [f.fixture_id]: new Date().toISOString() }));
   }
   async function openOperation(next: Operation) {
     if (!current) return;
@@ -139,7 +136,7 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
 
   return <div className="fx-workspace">
     <section className="fx-command"><div><span className="fx-eyebrow">Match centre</span><h2>{event.title}</h2><p>{participants.length} approved {participantType}s <span>·</span> {fixtures.length} matches</p></div><div className="fx-actions"><Link href={participantHref}>{grouped ? "Manage teams & pairs" : "Player roster"} ↗</Link><button className="fx-primary" type="button" onClick={openCreate}>{creating ? "Close creator" : "+ Schedule match"}</button></div></section>
-    {!grouped && <p className="fx-guidance">Choose approved players for head-to-head matches. Heats, performances and events with several entrants use <Link href="/admin/live">Live Desk</Link> and <Link href={`/admin/results?event=${event.id}`}>Results</Link>.</p>}
+    {!grouped && <p className="fx-guidance">Choose approved players for head-to-head matches. For heats, performances or submissions, choose the appropriate operation settings above before creating records.</p>}
     {!current && message}
     {creating && <section className="fx-creator"><div className="fx-section-heading"><div><span className="fx-eyebrow">New fixture</span><h3>Build the next matchup.</h3></div><span className="fx-step">Roster → Match → Start → Score</span></div>
       {participants.length < 2 ? <div className="fx-empty"><h3>{grouped ? "Publish your rosters first" : "Approve at least two players"}</h3><p>{grouped ? "Captains choose their team name and squad. Approve and publish those teams before scheduling. Pairs must be confirmed and approved." : "Your approved participant roster will appear here automatically."}</p><Link className="fx-primary" href={participantHref}>{grouped ? "Open team workspace" : "Open player roster"} →</Link></div> : <form onSubmit={create}>
@@ -162,7 +159,7 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
       {operation === null && <>
         {current.actual_started_at && current.score_payload && <p className="fx-detail-score">{score(current)}</p>}
         <dl className="fx-details"><div><dt>Match starts · IST</dt><dd>{time(current.starts_at)}</dd></div><div><dt>Reporting time · IST</dt><dd>{time(current.reporting_at)}</dd></div><div><dt>Venue</dt><dd>{current.venue || "To be confirmed"}</dd></div></dl>
-        {status(current) === "scheduled" ? <section className="fx-start"><h3>{canStartMatch(current.starts_at, current.state, now) ? "Ready when the ground is." : "Match has not started"}</h3><p>{canStartMatch(current.starts_at, current.state, now) ? "Start this match when both sides are ready. This enables scoring." : current.starts_at ? "Start Match unlocks only on the scheduled match date (IST). Reschedule if the date has changed." : "Set a match date before starting."}</p><button className="fx-primary" type="button" disabled={busy || !canStartMatch(current.starts_at, current.state, now) || ["draft", "cancelled", "completed"].includes(event.state)} onClick={() => void start(current)}>{busy ? "Starting…" : "Start Match"}</button></section> : current.actual_started_at && status(current) !== "cancelled" ? <Link className="fx-primary fx-score-link" href={`/scorer?fixture=${current.fixture_id}`}>{status(current) === "final" ? "Review / correct score" : "Open match scorer"} →</Link> : null}
+        {status(current) === "scheduled" ? <section className="fx-start"><h3>{canStartMatch(current.starts_at, current.state, now) ? "Ready when the ground is." : "Match has not started"}</h3><p>Start & Score unlocks only on the scheduled IST day. Starting also prepares and claims this scoring device.</p><MatchScoreAction match={{id:current.fixture_id,event_id:event.id,event_title:event.title,event_state:event.state,stage:current.stage,participant_a_label:current.participant_a_label,participant_b_label:current.participant_b_label,venue:current.venue,starts_at:current.starts_at,state:current.state,actual_started_at:current.actual_started_at ?? null}} now={now} /></section> : current.actual_started_at && status(current) !== "cancelled" ? <Link className="fx-primary fx-score-link" href={`/scorer?fixture=${current.fixture_id}`}>{status(current) === "final" ? "Review / correct score" : "Open match scorer"} →</Link> : null}
         <div className="fx-detail-actions"><button type="button" onClick={() => void openOperation("reschedule")}>Reschedule</button><button type="button" onClick={() => void openOperation("reminders")}>Send reminder</button><button type="button" onClick={() => void openOperation("history")}>Schedule history</button></div>
         <details className="fx-advanced"><summary>More match controls</summary><p>Schedule v{current.schedule_version} · Score v{current.score_version}</p>{isMainAdmin && current.actual_started_at && <button type="button" disabled={busy} onClick={() => void releaseDevice()}>Release scoring device</button>}<button className="fx-danger" type="button" onClick={() => void openOperation("delete")}>Delete match</button></details>
       </>}

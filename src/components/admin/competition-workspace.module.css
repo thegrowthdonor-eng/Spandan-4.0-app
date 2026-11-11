@@ -1,0 +1,28 @@
+.workspace { display:grid; gap:1.2rem; color:var(--ink,#231e25); }
+.banner { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+.banner span { text-transform:uppercase; font-size:.72rem; letter-spacing:.12em; color:#606b61; }
+.banner h2,.banner h3 { margin:.4rem 0; text-transform:capitalize; }
+.banner p,.note,.card p { color:#68645e; font-size:.9rem; line-height:1.6; }
+.card { border:1px solid #deded3; border-radius:20px; padding:clamp(1rem,3vw,1.7rem); background:#fffef9; min-width:0; }
+.card summary { cursor:pointer; font-weight:650; padding:.3rem 0; }
+.card form { display:grid; gap:1rem; margin-top:1rem; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); gap:1rem; }
+.workspace label { display:grid; gap:.4rem; font-size:.83rem; font-weight:600; min-width:0; }
+.workspace input,.workspace select { border:1px solid #d0d5cb; border-radius:10px; padding:.8rem; background:white; color:#242923; width:100%; min-width:0; font:inherit; min-height:44px; }
+.workspace button { border:1px solid #c8d1c7; border-radius:10px; background:#f0f4ed; padding:.7rem 1rem; color:#183c2d; cursor:pointer; min-height:44px; font:inherit; }
+.workspace button:disabled { opacity:.45; cursor:not-allowed; }
+.workspace .check { display:flex; align-items:center; gap:.6rem; }
+.check input { width:20px; min-height:20px; }
+.fieldset { border:0; padding:0; margin:0; display:grid; gap:1.2rem; min-width:0; }
+.roster { display:grid; gap:.6rem; }
+.rosterRow { display:flex; gap:.4rem; align-items:center; }
+.rosterRow span { flex:1; overflow-wrap:anywhere; }
+.rosterRow select { width:auto; max-width:140px; }
+.actions { display:flex; flex-wrap:wrap; gap:.5rem; margin:.7rem 0; }
+.runningOrder { display:grid; gap:.6rem; padding-left:1.5rem; }
+.runningOrder li { padding:.6rem; }
+.runningOrder li[aria-current] { border-radius:10px; background:#e3efdc; font-weight:bold; }
+.runningOrder button { margin-left:1rem; }
+.resultRow { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr)); gap:.7rem; padding:1rem; border:1px solid #dfe3d8; border-radius:12px; }
+.resultRow strong { grid-column:1/-1; }
+.message { padding:1rem; background:#edf3e8; border-radius:12px; overflow-wrap:anywhere; }

@@ -75,6 +75,8 @@ export async function proxy(request: NextRequest) {
   }
 
   // 3. Normal session handling
+  // Shared public feeds must never refresh user cookies or turn CDN reads into private responses.
+  if (pathname.startsWith("/api/public/")) return NextResponse.next({ request });
   if (!hasPublicSupabaseConfiguration()) return NextResponse.next({ request });
 
   let response = NextResponse.next({ request });

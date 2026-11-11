@@ -5,6 +5,7 @@ import { createRequestClient } from "@/server/supabase/server";
 import { ResultsClient, PointRule, ResultPublication, ResultParticipant } from "./results-client";
 import { AdminEventPicker } from "@/components/admin/event-picker";
 import "./results.css";
+import type { CompetitionWorkspace } from "@/lib/competition";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,9 @@ export default async function AdminResultsPage({
   const pointRules = (ruleData ?? []) as PointRule[];
   const results = (resultData ?? []) as ResultPublication[];
   const participants = (participantData ?? []) as ResultParticipant[];
+  const {data:operations}=await client.rpc("competition_workspace",{p_event_id:selected.id});
+  const workspace=operations as CompetitionWorkspace|null;
+  const confirmedPositions=(workspace?.settings?.result_mode === "public_vote" && workspace.settings.verified ? workspace.placements.map(place=>{const entry=workspace.entries.find(entry=>entry.id === place.entry_id)!;return {placing:place.placing,targetKey:entry.application_id ? `application:${entry.application_id}` : `group:${entry.group_id}`,note:"Verified public voting"};}) : workspace?.sessions.filter(session=>session.is_final && session.state === "completed").flatMap(session=>session.entrants.filter(row=>row.placing!==null).map(row=>({placing:row.placing!,targetKey:row.application_id ? `application:${row.application_id}` : `group:${row.group_id}`,note:row.note}))) ?? []).sort((a,b)=>a.placing-b.placing);
 
   return (
     <main className="results-page">
@@ -103,11 +107,14 @@ export default async function AdminResultsPage({
       <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/results" />
 
       <ResultsClient
+        key={selected.id}
         event={selected}
         pointRules={pointRules}
         results={results}
         participants={participants}
         isMainAdmin={isAdmin === true}
+        confirmedPositions={confirmedPositions}
+        competitionPointsLocked={Boolean(workspace?.rounds.length)}
       />
     </main>
   );

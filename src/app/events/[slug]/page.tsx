@@ -555,6 +555,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         </section>
       )}
 
+      <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Event operations</p><h2>Schedule, entries & public voting</h2><p>Published sessions and approved work appear here when configured by the event coordinator.</p><Link href={`/competition/${event.id}`}>Open event competition →</Link></div></section>
       {event.registration_enabled&&event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
       {(event.registration_enabled&&["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Your squad</p><p>Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster.</p><Link href={`/my-fest/teams?event=${event.id}`}>My team / Leader workspace →</Link></div></section>}
       {event.registration_enabled&&<EventRegistrationDock

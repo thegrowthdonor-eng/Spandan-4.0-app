@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       },
     });
     try {
+      await client.rpc("revoke_competition_vote_grants");
       await client.auth.signOut();
     } catch {
       // Ignore if already signed out

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { createAdminClient } from "@/server/supabase/admin";
+import { archiveMedia,storePublicMedia } from "@/server/media/storage";
 import { hasSupabaseConfiguration } from "@/server/env";
 import { validPosterUpload } from "@/lib/poster-image";
 
@@ -110,27 +110,11 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(arrayBuffer);
     if (folder === "posters" && !validPosterUpload(buffer, file.type, file.size)) return NextResponse.json({ error:"Posters must be optimized WebP files under 500 KB. Choose the photo again to compress it." },{status:400,headers:noStoreHeaders});
 
-    const admin = createAdminClient();
-    const { error: uploadError } = await admin.storage
-      .from("fest-media")
-      .upload(storagePath, buffer, {
-        contentType: file.type,
-        cacheControl: "31536000", // 1 year immutable CDN cache — student devices never re-fetch
-        upsert: false,
-      });
-
-    if (uploadError) {
-      return NextResponse.json(
-        { error: `Storage upload failed: ${uploadError.message}` },
-        { status: 500, headers: noStoreHeaders }
-      );
-    }
-
-    const { data: urlData } = admin.storage.from("fest-media").getPublicUrl(storagePath);
+    const media = await storePublicMedia({bytes:buffer,mime:file.type,key:storagePath,ownerId:auth.user.id,eventId:typeof eventId === "string" && eventIdPattern.test(eventId) ? eventId : null,purpose:safeFolder});
     if (folder === "posters" && formData.get("attach") === "true") {
-      const attached = await authClient.rpc("attach_event_poster", { p_event_id:eventId, p_path:storagePath, p_url:urlData.publicUrl });
+      const attached = await authClient.rpc("attach_event_poster", { p_event_id:eventId, p_path:media.key, p_url:media.publicUrl });
       if (attached.error) {
-        const cleanup = await admin.storage.from("fest-media").remove([storagePath]);
+        const cleanup = await archiveMedia([media.key]);
         if (cleanup.error) console.error("Poster attachment cleanup failed",storagePath);
         return NextResponse.json({ error:"Poster could not be attached. Your previous poster is unchanged; retry the upload." },{status:503,headers:noStoreHeaders});
       }
@@ -138,8 +122,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      url: urlData.publicUrl,
-      path: storagePath,
+      url: media.publicUrl,
+      path: media.key,
+      provider: media.provider,
       size: file.size,
       mimeType: file.type,
     }, { headers: noStoreHeaders });

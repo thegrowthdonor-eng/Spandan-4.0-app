@@ -3,18 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  getOfflineFixture, scorerPayload, listOfflineFixtures, putOfflineFixture, removeOfflineFixture,
-  type OfflineFixtureRecord, type PreparedFixture, type ScoreStatus,
+  getOfflineFixture, listOfflineFixtures, putOfflineFixture, removeOfflineFixture,
+  savePreparedFixture, scorerDeviceId as deviceId, type OfflineFixtureRecord, type PreparedFixture, type ScoreStatus,
 } from "@/lib/offline-score-store";
 import styles from "./scorer.module.css";
 import { formatMatchClock, matchClockSeconds } from "@/lib/match-clock";
-
-function deviceId() {
-  const key = "spandan_scorer_device_id";
-  let value = localStorage.getItem(key);
-  if (!value) { value = crypto.randomUUID(); localStorage.setItem(key, value); }
-  return value;
-}
+import { MatchScoreAction } from "@/components/admin/match-score-action";
+import type { ScoringMatch } from "@/lib/match-scoring";
 
 function number(payload: Record<string, unknown>, key: string) {
   const value = Number(payload[key] ?? 0);
@@ -32,6 +27,9 @@ export function OfflineScorer() {
   const search = useSearchParams();
   const requestedFixture = search.get("fixture");
   const [record, setRecord] = useState<OfflineFixtureRecord | null>(null);
+  const [prestart, setPrestart] = useState<ScoringMatch | null>(null);
+  const [now,setNow]=useState(0);
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),15_000);return ()=>clearInterval(timer);},[]);
   const [prepared, setPrepared] = useState<OfflineFixtureRecord[]>([]);
   const [message, setMessage] = useState("Opening offline scorer…");
   const [online, setOnline] = useState(() => typeof navigator === "undefined" || navigator.onLine);
@@ -60,24 +58,15 @@ export function OfflineScorer() {
       if (!local) setMessage("This fixture was not prepared on this device. Connect once and open it from Fixtures.");
       return;
     }
+    const preview = await fetch(`/api/admin/fixtures/prepare-offline?fixture=${encodeURIComponent(fixtureId)}`, { cache: "no-store" });
+    const previewBody = await preview.json() as { match?: ScoringMatch; error?: string };
+    if (!preview.ok || !previewBody.match) { setMessage(previewBody.error ?? "Fixture unavailable."); return; }
+    if (!previewBody.match.actual_started_at) { setNow(Date.now());setPrestart(previewBody.match); setRecord(null); return; }
+    setPrestart(null);
     const response = await fetch("/api/admin/fixtures/prepare-offline", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fixtureId, deviceId: deviceId() }), cache: "no-store" });
     const body = await response.json() as { fixture?: PreparedFixture; error?: string };
     if (!response.ok || !body.fixture) { setMessage(body.error ?? "Unable to prepare this fixture."); return; }
-    const saved = await getOfflineFixture(fixtureId);
-    const current = saved?.fixture.userId === body.fixture.userId ? saved : null;
-    const next: OfflineFixtureRecord = current?.pending ? current : {
-      id: fixtureId,
-      fixture: body.fixture,
-      payload: scorerPayload(body.fixture.scoreTemplate, body.fixture.scorePayload),
-      status: body.fixture.status,
-      localRevision: current?.localRevision ?? 0,
-      history: current?.history ?? [],
-      pending: null,
-      lastSyncedAt: current?.lastSyncedAt ?? new Date().toISOString(),
-      syncError: null,
-    };
-    next.fixture = body.fixture;
-    await putOfflineFixture(next);
+    const next = await savePreparedFixture(body.fixture);
     setRecord(next);
     await refreshPrepared();
     setMessage("Prepared and saved on this device. Airplane-mode scoring is ready.");
@@ -207,6 +196,7 @@ export function OfflineScorer() {
     } catch { setMessage("Network unavailable. Reconciliation was not published."); }
   }
 
+  if (prestart) return <section className={styles.empty}><h1>{prestart.participant_a_label} vs {prestart.participant_b_label}</h1><p>This match has not started. Start requires connectivity and is available only on its scheduled IST day.</p><MatchScoreAction match={prestart} now={now} onStarted={() => prepare(prestart.id)} /></section>;
   if (!record) return <section className={styles.empty}><h1>Offline scorer</h1><p>{message}</p>{prepared.map(item => <button key={item.id} onClick={() => setRecord(item)}>{item.fixture.participantALabel} vs {item.fixture.participantBLabel}</button>)}<label className={styles.importButton}>Import authorised recovery<input type="file" accept="application/json,.json" onChange={event => { const file = event.target.files?.[0]; if (file) void importRecovery(file); }} /></label></section>;
   if (reconciliation) return <section className={styles.empty}><h1>Scorer transfer detected</h1><p>{reconciliation}</p><p>This device will not overwrite the replacement scorer. Download its recovery copy for an administrator to reconcile.</p><button type="button" onClick={exportRecovery}>Download recovery copy</button></section>;
 

@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     if (error) {
       if (error.code === "42501") return denied;
       if (error.code === "55000") {
-        return NextResponse.json({ error: "Point rules are locked after the first official result." }, { status: 409, headers });
+        return NextResponse.json({ error: error.message || "Point rules are locked after voting freezes or the first official result." }, { status: 409, headers });
       }
       if (error.code === "22023") {
         return NextResponse.json({ error: "Point rules must contain valid non-negative placings and points." }, { status: 400, headers });

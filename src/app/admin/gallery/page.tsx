@@ -4,6 +4,7 @@ import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
 import { GalleryManager } from "./gallery-manager";
 import styles from "./gallery-admin.module.css";
+import { mediaUrls } from "@/server/media/urls";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +22,10 @@ export default async function AdminGalleryPage() {
   ]);
   if (allowed !== true) return <main className={styles.page}><section className={styles.denied}><p className={styles.eyebrow}>Organiser workspace</p><h1>Gallery publishing is restricted.</h1><p>Only active 2023-batch Main Admins and Event Coordinators can publish festival moments.</p><Link href="/admin">Return to workspace →</Link></section></main>;
 
+  const imageUrl=await mediaUrls(((momentResult.data ?? []) as ManageableMoment[]).map(row=>row.storage_path));
   const moments = ((momentResult.data ?? []) as ManageableMoment[]).map((moment) => ({
     ...moment,
-    imageUrl: client.storage.from("fest-media").getPublicUrl(moment.storage_path).data.publicUrl,
+    imageUrl: imageUrl(moment.storage_path),
   }));
   return <main className={styles.page}>
     <section className={styles.hero}>

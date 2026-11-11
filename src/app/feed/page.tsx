@@ -6,6 +6,7 @@ import { getPublishedResults } from "@/lib/published-results";
 import type { Standing } from "@/lib/results";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createPublicClient } from "@/server/supabase/public";
+import { mediaUrls } from "@/server/media/urls";
 import "../public-info.css";
 
 export const dynamic = "force-dynamic";
@@ -24,9 +25,10 @@ export default async function FeedPage() {
         client.rpc("get_published_gallery_moments"),
         client.from("notices").select("id,title,body,urgency,publish_at,events(title)").order("publish_at", { ascending: false }),
       ]);
+      const imageUrl = await mediaUrls(((momentsResponse.data ?? []) as GalleryRow[]).map(row=>row.storage_path));
       const moments = ((momentsResponse.data ?? []) as GalleryRow[]).map((moment) => ({
         ...moment,
-        imageUrl: client.storage.from("fest-media").getPublicUrl(moment.storage_path).data.publicUrl,
+        imageUrl: imageUrl(moment.storage_path),
       }));
       const notices = ((noticesResponse.data ?? []) as NoticeRow[]).map(({ events, ...notice }) => ({ ...notice, event_title: events?.[0]?.title ?? null }));
       posts = buildFestivalFeed({ results, standings: (standingsResponse.data ?? []) as Standing[], moments, notices });

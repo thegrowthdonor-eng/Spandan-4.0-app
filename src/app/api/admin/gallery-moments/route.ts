@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { galleryMomentIdPattern, isWebpUpload, validateGalleryMomentDetails } from "@/lib/gallery";
 import { hasSupabaseConfiguration } from "@/server/env";
-import { createAdminClient } from "@/server/supabase/admin";
+import { archiveMedia,storePublicMedia } from "@/server/media/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,22 +49,18 @@ export async function POST(request: Request) {
   if (!isWebpUpload(bytes, file.type, file.size)) return NextResponse.json({ error: "Upload a valid compressed WebP image no larger than 600 KB." }, { status: 400, headers: noStore });
 
   const storagePath = `gallery/${auth.user.id}/${crypto.randomUUID()}.webp`;
-  const admin = createAdminClient();
-  const { error: uploadError } = await admin.storage.from("fest-media").upload(storagePath, bytes, {
-    contentType: "image/webp",
-    cacheControl: "31536000",
-    upsert: false,
-  });
-  if (uploadError) return NextResponse.json({ error: "Photo upload failed. Please try again." }, { status: 503, headers: noStore });
+  let media;
+  try { media=await storePublicMedia({bytes,mime:file.type,key:storagePath,ownerId:auth.user.id,eventId:details.eventId,purpose:"gallery"}); }
+  catch { return NextResponse.json({error:"Photo validation or storage failed. Please try again."},{status:503,headers:noStore}); }
 
   const { data: momentId, error: createError } = await client.rpc("create_gallery_moment", {
     p_event_id: details.eventId,
     p_caption: details.caption,
-    p_storage_path: storagePath,
+    p_storage_path: media.key,
     p_occurred_at: details.occurredAt,
   });
   if (createError) {
-    await admin.storage.from("fest-media").remove([storagePath]);
+    await archiveMedia([media.key]);
     const status = createError.code === "42501" ? 403 : createError.code === "22023" ? 400 : 503;
     return NextResponse.json({ error: status === 403 ? "You are not authorised to publish this moment." : "Unable to publish this moment." }, { status, headers: noStore });
   }
@@ -95,6 +91,6 @@ export async function DELETE(request: Request) {
   if (!galleryMomentIdPattern.test(momentId)) return NextResponse.json({ error: "Choose a valid moment." }, { status: 400, headers: noStore });
   const { data: storagePath, error } = await client.rpc("archive_gallery_moment", { p_moment_id: momentId });
   if (error || typeof storagePath !== "string") return NextResponse.json({ error: error?.code === "42501" ? "You cannot delete this moment." : "Unable to delete this moment." }, { status: error?.code === "42501" ? 403 : 400, headers: noStore });
-  const { error: removeError } = await createAdminClient().storage.from("fest-media").remove([storagePath]);
+  const { error: removeError } = await archiveMedia([storagePath]);
   return NextResponse.json({ ok: true, cleanupPending: Boolean(removeError) }, { headers: noStore });
 }

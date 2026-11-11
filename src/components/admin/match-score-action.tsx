@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { matchScoringAction, type ScoringMatch } from "@/lib/match-scoring";
+import { savePreparedFixture, scorerDeviceId, type PreparedFixture } from "@/lib/offline-score-store";
 
 export function MatchScoreAction({ match, now, onStarted }: { match: ScoringMatch; now: number; onStarted?: () => Promise<void> }) {
   const router = useRouter();
@@ -14,9 +15,10 @@ export function MatchScoreAction({ match, now, onStarted }: { match: ScoringMatc
     if (busy) return;
     setBusy(true); setError("");
     try {
-      const response = await fetch("/api/admin/fixtures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "start", fixtureId: match.id }) });
-      const body = await response.json() as { ok?: boolean; error?: string };
-      if (!response.ok || !body.ok) throw new Error(body.error ?? "Unable to start this match. Retry when connected.");
+      const response = await fetch("/api/admin/fixtures/prepare-offline", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fixtureId: match.id, deviceId: scorerDeviceId(), start: true }) });
+      const body = await response.json() as { fixture?: PreparedFixture; error?: string };
+      if (!response.ok || !body.fixture) throw new Error(body.error ?? "Unable to start this match. Retry when connected.");
+      await savePreparedFixture(body.fixture);
       if (onStarted) await onStarted();
       else router.push(`/scorer?fixture=${match.id}`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Connection unavailable. Retry when connected."); }

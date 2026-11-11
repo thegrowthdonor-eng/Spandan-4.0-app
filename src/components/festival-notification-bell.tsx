@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import styles from "./festival-notification-bell.module.css";
 import type { FestivalNotification } from "@/app/api/public/notifications/route";
+import { subscribeNotifications } from "@/lib/notification-feed";
 
 const STORAGE_KEY = "spandan_last_notification_check";
 
@@ -36,15 +37,8 @@ export function FestivalNotificationBell() {
 
   // Load notifications from API
   useEffect(() => {
-    let isMounted = true;
-
-    async function loadNotifications() {
+    return subscribeNotifications((items) => {
       try {
-        const res = await fetch("/api/public/notifications");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.ok && Array.isArray(data.items) && isMounted) {
-          const items: FestivalNotification[] = data.items;
           setNotifications(items);
 
           // Calculate unread
@@ -69,25 +63,15 @@ export function FestivalNotificationBell() {
             }).length;
             setUnreadCount(unread);
           }
-        }
       } catch {
         // Fallback silently if offline or network error
       }
-    }
-
-    loadNotifications();
-
-    // Poll every 45s for fresh notifications
-    const timer = setInterval(loadNotifications, 45_000);
-    return () => {
-      isMounted = false;
-      clearInterval(timer);
-    };
+    });
   }, []);
 
   function markAllRead(items: FestivalNotification[]) {
-    localStorage.setItem(STORAGE_KEY, Date.now().toString());
     try {
+      localStorage.setItem(STORAGE_KEY, Date.now().toString());
       const ids = items.map((i) => i.id);
       localStorage.setItem("spandan_read_notification_ids", JSON.stringify(ids));
     } catch {
@@ -235,7 +219,7 @@ export function FestivalNotificationBell() {
                   <div className={styles.emptyIcon}>✨</div>
                   <h4 className={styles.emptyTitle}>You&apos;re all caught up!</h4>
                   <p className={styles.emptySubtitle}>
-                    New event announcements, official circulars, and match results will appear here in real-time.
+                    Event announcements, official circulars, and results refresh while this page is visible.
                   </p>
                 </div>
               ) : (

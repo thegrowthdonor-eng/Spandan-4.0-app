@@ -99,12 +99,7 @@ export async function POST(request: Request) {
   if (!(await client.auth.getUser()).data.user) return denied;
 
   if (command.action === "start") {
-    const { data, error } = await client.rpc("start_fixture", { p_fixture_id: command.fixtureId });
-    if (error) {
-      if (["42501", "28000"].includes(error.code)) return denied;
-      return NextResponse.json({ error: error.code === "22023" ? error.message : "Unable to start this match. Refresh and try again." }, { status: error.code === "22023" ? 400 : 503, headers });
-    }
-    return NextResponse.json({ ok: true, data }, { headers });
+    return NextResponse.json({error:"Reload the app and use Start & Score. A scoring device must be prepared atomically with match start."},{status:400,headers});
   }
 
   if (command.action === "create") {

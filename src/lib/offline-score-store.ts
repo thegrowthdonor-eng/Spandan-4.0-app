@@ -46,6 +46,26 @@ export type OfflineFixtureRecord = {
 const DB_NAME = "spandan-offline-scorer";
 const STORE = "fixtures";
 
+export function scorerDeviceId() {
+  const key = "spandan_scorer_device_id";
+  let value = localStorage.getItem(key);
+  if (!value) { value = crypto.randomUUID(); localStorage.setItem(key, value); }
+  return value;
+}
+
+export async function savePreparedFixture(fixture: PreparedFixture) {
+  const saved = await getOfflineFixture(fixture.fixtureId);
+  const current = saved?.fixture.userId === fixture.userId ? saved : null;
+  const next: OfflineFixtureRecord = current?.pending ? current : {
+    id: fixture.fixtureId, fixture, payload: scorerPayload(fixture.scoreTemplate, fixture.scorePayload),
+    status: fixture.status, localRevision: current?.localRevision ?? 0, history: current?.history ?? [],
+    pending: null, lastSyncedAt: current?.lastSyncedAt ?? new Date().toISOString(), syncError: null,
+  };
+  next.fixture = fixture;
+  await putOfflineFixture(next);
+  return next;
+}
+
 function database() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);

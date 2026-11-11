@@ -2,7 +2,8 @@ export type LiveGroundStatus = "scheduled" | "live" | "paused" | "final" | "comp
 
 export type LiveGroundItem = {
   id: string;
-  kind: "fixture" | "programme";
+  kind: "fixture" | "programme" | "competition";
+  eventId?:string;
   title: string;
   subtitle: string | null;
   category: string;

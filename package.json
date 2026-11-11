@@ -14,15 +14,20 @@
     "qa:requests": "node --env-file=.env.qa.local --import tsx scripts/sync-qa-event-requests.ts",
     "qa:reset": "node --env-file=.env.qa.local --import tsx scripts/seed-qa.ts",
     "qa:verify": "node --env-file=.env.qa.local --import tsx scripts/verify-qa.ts",
+    "qa:competition": "node --env-file=.env.qa.local --import tsx scripts/verify-competition.ts",
+    "qa:competition:browser": "node --env-file=.env.qa.local --import tsx scripts/verify-competition.ts --browser",
     "dev:qa": "node scripts/run-qa-next.mjs dev",
     "build:qa": "node scripts/run-qa-next.mjs build"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1165.0",
+    "@aws-sdk/s3-request-presigner": "3.1165.0",
     "@supabase/ssr": "latest",
     "@supabase/supabase-js": "latest",
     "next": "16.4.5",
     "react": "latest",
     "react-dom": "latest",
+    "sharp": "0.35.5",
     "web-push": "3.6.7",
     "zod": "latest"
   },

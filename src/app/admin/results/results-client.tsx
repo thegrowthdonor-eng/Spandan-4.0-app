@@ -55,12 +55,16 @@ export function ResultsClient({
   results,
   participants = [],
   isMainAdmin,
+  confirmedPositions=[],
+  competitionPointsLocked=false,
 }: {
   event: EventMeta;
   pointRules: PointRule[];
   results: ResultPublication[];
   participants?: ResultParticipant[];
   isMainAdmin: boolean;
+  confirmedPositions?:Array<{placing:number;targetKey:string;note:string}>;
+  competitionPointsLocked?:boolean;
 }) {
   const router = useRouter();
 
@@ -79,7 +83,7 @@ export function ResultsClient({
   // Result publication form state
   const currentPublished = results.find((r) => r.state === "published");
   const isCorrection = Boolean(currentPublished);
-  const pointsLocked = results.length > 0;
+  const pointsLocked = results.length > 0 || competitionPointsLocked;
   const rosterHref = event.format === "solo" ? `/admin/selection?event=${event.id}` : `/admin/groups?event=${event.id}`;
   const winnerKind = event.format === "solo" ? "participant" : event.format === "pair" ? "pair" : event.format === "group" ? "group" : "team";
 
@@ -114,7 +118,7 @@ export function ResultsClient({
             : "",
           note: p.note ?? "",
         }))
-      : [
+      : confirmedPositions.length ? confirmedPositions : [
           { placing: 1, targetKey: defaultTarget(0), note: "" },
           { placing: 2, targetKey: defaultTarget(1), note: "" },
           { placing: 3, targetKey: defaultTarget(2), note: "" },

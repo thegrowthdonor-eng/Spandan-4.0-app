@@ -6,6 +6,7 @@ import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createPublicClient } from "@/server/supabase/public";
 import { createRequestClient } from "@/server/supabase/server";
 import styles from "./gallery.module.css";
+import { mediaUrls } from "@/server/media/urls";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,10 @@ export default async function GalleryPage() {
         publicClient.rpc("get_published_gallery_moments"),
         requestClient.rpc("can_manage_gallery_moments"),
       ]);
+      const imageUrl=await mediaUrls(((data ?? []) as GalleryMomentRow[]).map(row=>row.storage_path));
       moments = sortGalleryMoments((data ?? []) as GalleryMomentRow[]).map(moment => ({
         ...moment,
-        imageUrl: publicClient.storage.from("fest-media").getPublicUrl(moment.storage_path).data.publicUrl,
+        imageUrl: imageUrl(moment.storage_path),
       }));
       canUpload = allowed === true;
     } catch { /* Public empty state remains available during setup. */ }

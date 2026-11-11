@@ -4,6 +4,7 @@ import { getPublishedResults } from "@/lib/published-results";
 import type { Standing } from "@/lib/results";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createPublicClient } from "@/server/supabase/public";
+import { mediaUrls } from "@/server/media/urls";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
     const { data, error } = await client.rpc("get_published_gallery_moments");
     const moment = !error && Array.isArray(data) ? data.find((item) => (item as { id?: string }).id === id) as { storage_path: string } | undefined : undefined;
     if (!moment?.storage_path.startsWith("gallery/")) return new Response("Moment not found.", { status: 404 });
-    const source = client.storage.from("fest-media").getPublicUrl(moment.storage_path).data.publicUrl;
+    const source = (await mediaUrls([moment.storage_path]))(moment.storage_path);
     const file = await fetch(source);
     if (!file.ok || !file.body) return new Response("Photo unavailable.", { status: 404 });
     return new Response(file.body, { headers: attachment(feedDownloadFilename("moment", id), "image/webp") });
