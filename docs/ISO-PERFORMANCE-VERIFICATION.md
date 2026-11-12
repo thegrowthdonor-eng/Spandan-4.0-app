@@ -28,4 +28,6 @@ The user elected to perform visual/mobile checks themselves to reduce tool/token
 
 ## Rollback
 
+Performance release `f7ef8bf` reached READY as `dpl_Gik7DxQuARDdnc5UbzqmdeoxEsWX`; Vercel inspection confirms functions in `bom1`. App URL is unchanged. Post-deployment three-sample complete-response times: gateway 322/103/78 ms; events 580/207/705 ms; schedule 458/124/150 ms; volleyball detail 571/226/232 ms. The expected splash markup is absent, all pages returned 200, and anonymous mutation requests remained rejected (401). The user subsequently confirmed app opening is now very fast. These are bounded workstation observations and user confirmation, not a physical-device lab benchmark.
+
 Rollback the performance deployment to the independently verified ISO hotfix above; do not revert the working timestamp normalization or touch media/database records. Region rollback is `iad1` if necessary, but it reintroduces cross-region latency. Original R2/Supabase media and audit history remain intact.
