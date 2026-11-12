@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { AppSplash } from "@/components/app-splash";
+import { Suspense } from "react";
 import { InstalledAppNotificationPrompt } from "@/components/installed-app-notification-prompt";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PwaRegistration } from "@/components/pwa-registration";
@@ -47,20 +47,21 @@ async function hasAuthenticatedSession() {
   }
 }
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+async function SessionNavigation() {
   const isAuthenticated = await hasAuthenticatedSession();
   const canManage = isAuthenticated && await hasManagementAccess();
+  return <><InstalledAppNotificationPrompt isAuthenticated={isAuthenticated} /><BottomNav isAuthenticated={isAuthenticated} canManage={canManage} /></>;
+}
 
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en-IN">
       <body>
         <NavigationProgress />
-        <AppSplash />
         <PwaRegistration />
-        <InstalledAppNotificationPrompt isAuthenticated={isAuthenticated} />
         <PwaInstallPrompt />
         {children}
-        <BottomNav isAuthenticated={isAuthenticated} canManage={canManage} />
+        <Suspense fallback={null}><SessionNavigation /></Suspense>
       </body>
     </html>
   );

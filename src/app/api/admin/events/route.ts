@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { createRequestClient } from "@/server/supabase/server";
 import { createAdminClient } from "@/server/supabase/admin";
 import { managementEventSchema, publicationMissing } from "@/lib/event-setup";
@@ -32,5 +34,6 @@ export async function POST(request: Request) {
     }
   }
 
+  revalidateTag(programmeCacheTag, { expire: 0 });
   return NextResponse.json({ ok: true, eventId: data.id }, { headers });
 }

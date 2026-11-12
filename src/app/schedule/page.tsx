@@ -17,7 +17,7 @@ export default async function SchedulePage() {
   let partial = false;
   let official = false;
   if (!unavailable) {
-    const db = createPublicClient();
+    const db = createPublicClient({ cacheProgramme: true });
     const [programme, fixtures, events,sessions] = await Promise.all([
       db.from("schedule_entries").select("id,edition_id,day,title,category,venue,starts_at,ends_at,notes,sort_order,programme_live_states(status)").eq("published", true).gte("day", "2026-12-01").lte("day", "2026-12-08").order("sort_order"),
       db.from("fixtures").select("id,stage,participant_a_label,participant_b_label,venue,reporting_at,starts_at,state,events!inner(title,slug,edition_id,operating_method)").in("events.operating_method",["live_matches","fixtures_only"]).order("starts_at"),

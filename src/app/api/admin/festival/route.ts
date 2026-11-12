@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { festivalSetupSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { archiveMedia } from "@/server/media/storage";
@@ -101,6 +103,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to save festival setup right now." }, { status: 503, headers });
   }
 
+  revalidateTag(programmeCacheTag, { expire: 0 });
   if (data.action === "deleteEvent") {
     const paths = Array.isArray(result.data) ? result.data.filter((path): path is string => typeof path === "string" && path.startsWith("gallery/")) : [];
     const { error: cleanupError } = await archiveMedia(paths);

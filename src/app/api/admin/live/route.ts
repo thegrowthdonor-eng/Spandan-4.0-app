@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { z } from "zod";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
@@ -22,5 +24,6 @@ export async function POST(request:Request){
   const client=await createRequestClient();if(!(await client.auth.getUser()).data.user)return NextResponse.json({error:"Sign in again."},{status:401,headers:noStore});
   const data=parsed.data;const result=await client.rpc("manage_programme_live_entry",{p_schedule_entry_id:data.entryId,p_status:data.status,p_update_note:data.updateNote||null,p_starts_at:data.startsAt,p_ends_at:data.endsAt,p_venue:data.venue||null});
   if(result.error){if(result.error.code==="42501")return NextResponse.json({error:"Only the central live desk can update this programme."},{status:403,headers:noStore});return NextResponse.json({error:result.error.code==="22023"?result.error.message:"Unable to save the programme update."},{status:result.error.code==="22023"?400:503,headers:noStore})}
+  revalidateTag(programmeCacheTag, { expire: 0 });
   return NextResponse.json({ok:true,data:result.data},{headers:noStore});
 }

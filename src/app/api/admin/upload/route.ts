@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { archiveMedia,storePublicMedia } from "@/server/media/storage";
@@ -118,6 +120,7 @@ export async function POST(request: Request) {
         if (cleanup.error) console.error("Poster attachment cleanup failed",storagePath);
         return NextResponse.json({ error:"Poster could not be attached. Your previous poster is unchanged; retry the upload." },{status:503,headers:noStoreHeaders});
       }
+      revalidateTag(programmeCacheTag, { expire: 0 });
     }
 
     return NextResponse.json({

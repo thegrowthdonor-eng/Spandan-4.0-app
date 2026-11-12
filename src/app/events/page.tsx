@@ -22,7 +22,7 @@ export default async function EventsPage({
   let unavailable = !hasPublicSupabaseConfiguration();
 
   if (!unavailable) {
-    const client = createPublicClient();
+    const client = createPublicClient({ cacheProgramme: true });
     const { data, error } = await client
       .from("events")
       .select("id,title,slug,category,format,registration_enabled,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,poster_url,eligibility,group_min_size,group_max_size")

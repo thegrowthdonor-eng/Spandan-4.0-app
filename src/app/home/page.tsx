@@ -10,6 +10,8 @@ import { hasPublicSupabaseConfiguration, hasSupabaseConfiguration } from "@/serv
 import { createPublicClient } from "@/server/supabase/public";
 import { createAdminClient } from "@/server/supabase/admin";
 import { createRequestClient } from "@/server/supabase/server";
+import { getActiveSession } from "@/server/auth/access";
+import { hasManagementAccess } from "@/server/management";
 import styles from "../homepage.module.css";
 
 export const metadata = {
@@ -88,20 +90,14 @@ async function getAuthStatus() {
   if (!hasSupabaseConfiguration()) return { loggedIn: false, name: "", isOrganiser: false };
   try {
     const client = await createRequestClient();
-    const { data: auth } = await client.auth.getUser();
-    if (!auth.user) return { loggedIn: false, name: "", isOrganiser: false };
-    const [profileResult, accessResult, activationResult, noticeResult, eventsResult, adminResult] = await Promise.all([
-      client.from("profiles").select("full_name").eq("id", auth.user.id).maybeSingle(),
-      client.from("access_records").select("state").eq("profile_id", auth.user.id).eq("state", "active").limit(1).maybeSingle(),
-      client.rpc("can_manage_access"),
-      client.rpc("can_publish_notices"),
-      client.rpc("list_managed_events"),
-      client.rpc("is_main_admin"),
+    const session = await getActiveSession();
+    if (!session) return { loggedIn: false, name: "", isOrganiser: false };
+    const [profileResult, isOrganiser] = await Promise.all([
+      client.from("profiles").select("full_name").eq("id", session.user.id).maybeSingle(),
+      hasManagementAccess(),
     ]);
-    if (!accessResult.data) return { loggedIn: false, name: "", isOrganiser: false };
     const profile = profileResult.data;
     const firstName = profile?.full_name?.trim().split(/\s+/)[0] || "Student";
-    const isOrganiser = activationResult.data === true || noticeResult.data === true || adminResult.data === true || (eventsResult.data?.length ?? 0) > 0;
     return { loggedIn: true, name: firstName, isOrganiser };
   } catch {
     return { loggedIn: false, name: "", isOrganiser: false };
