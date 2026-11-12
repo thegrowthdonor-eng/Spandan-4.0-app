@@ -1,0 +1,11 @@
+.git/
+.vercel/
+.vscode/
+node_modules/
+.next/
+.next-qa/
+.env*
+scratch/
+audit-artifacts/
+*.log
+*.tsbuildinfo

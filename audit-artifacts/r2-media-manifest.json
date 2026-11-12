@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "projectUrl": "https://uytvtmkapusjjqhjyopd.supabase.co",
+  "targetBase": "https://media.auraserve.in",
+  "createdAt": "2026-11-12T10:40:43.044Z",
+  "items": [{
+    "id": "613c53d3-4ec8-468a-b90d-5b77b7904e87",
+    "sourceUrl": "https://uytvtmkapusjjqhjyopd.supabase.co/storage/v1/object/public/fest-media/posters/8b901f6a-fa5d-494a-ba2e-7479e6fd9874/72b56f53-8cc1-4659-8d0a-bb73fe07e7fc-14100.webp",
+    "key": "migration/613c53d3-4ec8-468a-b90d-5b77b7904e87.webp",
+    "references": [{"table":"events","id":"8b901f6a-fa5d-494a-ba2e-7479e6fd9874","column":"poster_url","original":"https://uytvtmkapusjjqhjyopd.supabase.co/storage/v1/object/public/fest-media/posters/8b901f6a-fa5d-494a-ba2e-7479e6fd9874/72b56f53-8cc1-4659-8d0a-bb73fe07e7fc-14100.webp"}],
+    "state": "switched",
+    "assetId": "90e7fae8-29d3-471a-a107-f32cf7fbe0da",
+    "targetUrl": "https://media.auraserve.in/migration/613c53d3-4ec8-468a-b90d-5b77b7904e87.webp/full.webp",
+    "sha256": "460dd1e200ae31b059d9815a2f6cd4f3b065904247c5bfe988a83e014e9dbb61",
+    "originalSha256": "57000358b90e78db26f089cf79c929e9f3808dfb2802062ee2320e9b35c15e05",
+    "width": 1491,"height":1055,"bytes":279628
+  }]
+}
