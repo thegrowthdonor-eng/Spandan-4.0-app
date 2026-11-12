@@ -21,6 +21,8 @@
 
 ## Rollback
 
+Production deployment `dpl_HspKHyAHjDrqZMqrbSH9tAoBonh3` reached READY and retained alias `https://spandan-4-app.vercel.app`. GitHub feature branch checkpoint: `39d6787`. Post-cutover events HTML references the direct R2 image, not Vercel image optimisation. Auraserve and Spandan returned HTTP 200 after delegation/cutover.
+
 1. Set Vercel Production `MEDIA_PROVIDER=supabase` and redeploy the previous tested application release. Retain R2 credentials and objects for investigation.
 2. Restore references using the saved manifest, existing `scripts/migrate-media.ts rollback`, both local environment files, and project-scoped `MEDIA_REFERENCE_APPROVAL=uytvtmkapusjjqhjyopd`. Review concurrent-edit failures; do not force overwrite.
 3. Original storage URLs and objects remain intact. Do not delete media, ballots, scores or audit records as part of rollback.
