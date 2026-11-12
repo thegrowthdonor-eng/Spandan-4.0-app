@@ -252,6 +252,7 @@ function dateLabel(value: string | null): string {
 
 // Single Event Card Component
 function EventCardItem({ event, now }: { event: EventCard; now: Date }) {
+  const [failedPosterUrl, setFailedPosterUrl] = useState<string | null>(null);
   const div = getDivision(event);
   const subLabel = subCategoryLabel(getSubCategory(event));
   const categoryName = categoryLabel(event.category);
@@ -262,11 +263,10 @@ function EventCardItem({ event, now }: { event: EventCard; now: Date }) {
   return (
     <Link className={`event-card ${stateCls}`} href={`/events/${event.slug}`}>
       <div className="event-card-content">
-        {event.poster_url ? (
+        {event.poster_url && failedPosterUrl !== event.poster_url ? (
           <div className="event-card-poster-thumb">
-            <span className="event-poster-fallback" aria-hidden="true"><EventGlyph name={visualKey} /><span>{subLabel ?? categoryName}</span></span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={event.poster_url} alt="" loading="lazy" decoding="async" onError={(error) => { error.currentTarget.style.display = "none"; }} />
+            <img src={event.poster_url} alt="" loading="lazy" decoding="async" onError={() => setFailedPosterUrl(event.poster_url ?? null)} />
           </div>
         ) : (
           <div className={`event-card-poster-thumb event-card-poster-placeholder discipline-${visualKey}`} aria-hidden="true">
@@ -297,6 +297,7 @@ function EventCardItem({ event, now }: { event: EventCard; now: Date }) {
           <span className="state-dot" /> {stateLabel(event.state, now, event)}
         </span>
         <span className="event-date">{dateLabel(event.starts_at)}</span>
+        <span className="event-card-action">View event <span aria-hidden="true">→</span></span>
       </div>
     </Link>
   );
