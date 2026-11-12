@@ -4,6 +4,7 @@ import test from "node:test";
 
 const css=readFileSync(new URL("../app/events/events.css",import.meta.url),"utf8");
 const card=readFileSync(new URL("../app/events/event-catalogue.tsx",import.meta.url),"utf8");
+const detail=readFileSync(new URL("../app/events/[slug]/page.tsx",import.meta.url),"utf8");
 const rule=(selector:string)=>{
   const start=css.indexOf(`${selector} {`);
   assert.ok(start>=0,`Missing ${selector}`);
@@ -26,4 +27,12 @@ test("mobile cards wrap safely and summaries are only two visible lines",()=>{
   assert.match(card,/View event/);
   assert.match(card,/loading="lazy" decoding="async"/);
   assert.match(card,/\(e.summary \|\| ""\).toLowerCase\(\).includes\(q\)/);
+});
+test("event detail keeps category heads separate from event coordinators",()=>{
+  assert.match(detail,/coordinators: managers\.filter/);
+  assert.match(detail,/heads: managers\.filter/);
+  assert.match(detail,/`\$\{eventCategoryLabel\(event\.category\)\} Head`/);
+  assert.match(detail,/title: "Event Coordinator"/);
+  assert.doesNotMatch(detail,/Your event coordinators/);
+  assert.match(css,/\.event-manager-groups/);
 });

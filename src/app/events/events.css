@@ -1152,6 +1152,8 @@ body:has(.event-participants-dialog[open]) .event-registration-dock { opacity: 0
   font: 600 clamp(22px, 3vw, 30px)/1.08 "Playfair Display", serif;
   letter-spacing: -.03em;
 }
+.event-manager-groups, .event-manager-group { display: grid; gap: 12px; min-width: 0; }
+.event-manager-group h3 { margin: 0; color: #80524d; font: 700 10px/1.2 "DM Sans", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
 .event-manager-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

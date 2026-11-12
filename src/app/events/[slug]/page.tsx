@@ -69,6 +69,11 @@ type EventManager = {
   batch_label: string | null;
 };
 
+type EventManagers = {
+  coordinators: EventManager[];
+  heads: EventManager[];
+};
+
 type PublicParticipant = {
   profile_id: string;
   full_name: string;
@@ -139,8 +144,8 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
   }
 }
 
-async function getEventManagers(eventId: string, category: string): Promise<EventManager[]> {
-  if (!hasSupabaseConfiguration()) return [];
+async function getEventManagers(eventId: string, category: string): Promise<EventManagers> {
+  if (!hasSupabaseConfiguration()) return { coordinators: [], heads: [] };
   try {
     const admin = createAdminClient();
     const [coordinatorResult, headResult] = await Promise.all([
@@ -150,7 +155,7 @@ async function getEventManagers(eventId: string, category: string): Promise<Even
     const assignments = [...(coordinatorResult.data ?? []), ...(headResult.data ?? [])];
     const assignmentError = coordinatorResult.error ?? headResult.error;
 
-    if (assignmentError || !assignments?.length) return [];
+    if (assignmentError || !assignments.length) return { coordinators: [], heads: [] };
     const profileIds = [...new Set(assignments.map((assignment) => assignment.profile_id))];
     const { data: profiles, error: profileError } = await admin
       .from("profiles")
@@ -158,8 +163,8 @@ async function getEventManagers(eventId: string, category: string): Promise<Even
       .in("id", profileIds)
       .order("full_name");
 
-    if (profileError || !profiles) return [];
-    return profiles.map((profile) => {
+    if (profileError || !profiles) return { coordinators: [], heads: [] };
+    const managers = profiles.map((profile) => {
       const batch = profile.batches as unknown as { label?: string | null } | null;
       return {
         profile_id: profile.id,
@@ -167,8 +172,14 @@ async function getEventManagers(eventId: string, category: string): Promise<Even
         batch_label: batch?.label ?? null,
       };
     });
+    const coordinatorIds = new Set((coordinatorResult.data ?? []).map((assignment) => assignment.profile_id));
+    const headIds = new Set((headResult.data ?? []).map((assignment) => assignment.profile_id));
+    return {
+      coordinators: managers.filter((manager) => coordinatorIds.has(manager.profile_id)),
+      heads: managers.filter((manager) => headIds.has(manager.profile_id)),
+    };
   } catch {
-    return [];
+    return { coordinators: [], heads: [] };
   }
 }
 
@@ -540,25 +551,35 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         </div>
       </section>}
 
-      {eventManagers.length > 0 && (
+      {(eventManagers.heads.length > 0 || eventManagers.coordinators.length > 0) && (
         <section className="event-managed-by" aria-labelledby="event-managed-by-title">
           <div className="event-managed-by-heading">
             <p className="eyebrow">Managed by</p>
-            <h2 id="event-managed-by-title">Your event coordinators.</h2>
+            <h2 id="event-managed-by-title">Event team.</h2>
           </div>
-          <ul className="event-manager-list">
-            {eventManagers.map((manager) => (
-              <li key={manager.profile_id}>
-                <span className="event-manager-monogram" aria-hidden="true">
-                  {manager.full_name.trim().charAt(0).toUpperCase()}
-                </span>
-                <span className="event-manager-copy">
-                  <strong>{manager.full_name}</strong>
-                  <small>Event Coordinator{manager.batch_label ? ` · Batch ${manager.batch_label}` : ""}</small>
-                </span>
-              </li>
+          <div className="event-manager-groups">
+            {[
+              { title: `${eventCategoryLabel(event.category)} Head`, managers: eventManagers.heads },
+              { title: "Event Coordinator", managers: eventManagers.coordinators },
+            ].filter((group) => group.managers.length > 0).map((group) => (
+              <div className="event-manager-group" key={group.title}>
+                <h3>{group.title}</h3>
+                <ul className="event-manager-list">
+                  {group.managers.map((manager) => (
+                    <li key={manager.profile_id}>
+                      <span className="event-manager-monogram" aria-hidden="true">
+                        {manager.full_name.trim().charAt(0).toUpperCase()}
+                      </span>
+                      <span className="event-manager-copy">
+                        <strong>{manager.full_name}</strong>
+                        <small>{group.title}{manager.batch_label ? ` · Batch ${manager.batch_label}` : ""}</small>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
