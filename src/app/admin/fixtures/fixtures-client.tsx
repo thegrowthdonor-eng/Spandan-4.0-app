@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { PortalDialog } from "@/components/admin/portal-dialog";
 import { canStartMatch, fromISTInput, toISTInput } from "@/lib/match-clock";
 import { formatLiveScore } from "@/lib/live-ground";
@@ -35,7 +34,6 @@ function fixtureStatus(f: FixtureItem, scoring: boolean) {
 export function FixturesClient({ event, fixtures, eligibleBatches = [], registeredGroups = [], soloStudents = [], isMainAdmin }: {
   event: EventMeta; fixtures: FixtureItem[]; eligibleBatches?: BatchItem[]; registeredGroups?: GroupItem[]; soloStudents?: SoloStudentItem[]; isMainAdmin: boolean;
 }) {
-  const router = useRouter();
   const scoring = eventMethod(event) === "live_matches";
   const status = (fixture: FixtureItem) => fixtureStatus(fixture, scoring);
   const grouped = ["pair", "group", "sport"].includes(event.format);
@@ -43,6 +41,12 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
   const participants = useMemo(() => grouped
     ? registeredGroups.filter(g => g.state === "published").map(g => ({ id: g.group_id, label: g.name, detail: eligibleBatches.find(b => b.batch_id === g.batch_id)?.label ?? "Approved roster" }))
     : soloStudents.filter(s => (!s.review_state || s.review_state === "approved") && s.selection_state !== "not_selected").map(s => ({ id: s.student_id, label: `${s.full_name} (${s.batch_label}${s.roll_canonical ? `, #${s.roll_canonical}` : ""})`, detail: s.batch_label })), [grouped, registeredGroups, eligibleBatches, soloStudents]);
+  const [prevFixtures, setPrevFixtures] = useState(fixtures);
+  const [matchList, setMatchList] = useState(fixtures);
+  if (fixtures !== prevFixtures) {
+    setPrevFixtures(fixtures);
+    setMatchList(fixtures);
+  }
   const [creating, setCreating] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [operation, setOperation] = useState<Operation>(null);
@@ -68,9 +72,9 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
     return () => { clearTimeout(initial); clearInterval(timer); };
   }, []);
 
-  const matches = fixtures;
+  const matches = matchList;
   const current = matches.find(f => f.fixture_id === selectedId) ?? null;
-  const rounds = Array.from(new Set(fixtures.map(f => f.stage)));
+  const rounds = Array.from(new Set(matchList.map(f => f.stage)));
   const visible = matches.filter(f => (filter === "all" || (filter === "live" ? ["live", "paused"].includes(status(f)) : status(f) === filter)) && (!roundFilter || f.stage === roundFilter) && `${f.participant_a_label} ${f.participant_b_label} ${f.stage} ${f.venue ?? ""}`.toLowerCase().includes(query.toLowerCase().trim()));
   const participantHref = `/admin/${grouped ? "groups" : "selection"}?event=${event.id}`;
   const score = (f: FixtureItem) => formatLiveScore({ scoreTemplate: event.score_template, scorePayload: f.score_payload } as Parameters<typeof formatLiveScore>[0]);
@@ -80,9 +84,10 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
     setBusy(true); setNotice(null);
     try {
       const response = await fetch("/api/admin/fixtures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      const result = await response.json() as { ok?: boolean; error?: string };
+      const result = await response.json() as { ok?: boolean; error?: string; fixtures?: FixtureItem[] };
       if (!response.ok || !result.ok) throw new Error(result.error ?? "Unable to save. Try again.");
-      setNotice({ text: success, error: false }); router.refresh(); return true;
+      if (Array.isArray(result.fixtures)) setMatchList(result.fixtures);
+      setNotice({ text: success, error: false }); return true;
     } catch (error) { setNotice({ text: error instanceof Error ? error.message : "Connection unavailable. Try again.", error: true }); return false; }
     finally { setBusy(false); }
   }
@@ -139,7 +144,7 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
   const message = notice && <p className={`fx-notice ${notice.error ? "fx-error" : ""}`} role="status">{notice.text}</p>;
 
   return <div className="fx-workspace">
-    <section className="fx-command"><div><span className="fx-eyebrow">Match centre</span><h2>{event.title}</h2><p>{participants.length} approved {participantType}s <span>·</span> {fixtures.length} matches</p></div><div className="fx-actions"><Link href={participantHref}>{grouped ? "Manage teams & pairs" : "Player roster"} ↗</Link><button className="fx-primary" type="button" onClick={openCreate}>{creating ? "Close creator" : "+ Schedule match"}</button></div></section>
+    <section className="fx-command"><div><span className="fx-eyebrow">Match centre</span><h2>{event.title}</h2><p>{participants.length} approved {participantType}s <span>·</span> {matchList.length} matches</p></div><div className="fx-actions"><Link href={participantHref}>{grouped ? "Manage teams & pairs" : "Player roster"} ↗</Link><button className="fx-primary" type="button" onClick={openCreate}>{creating ? "Close creator" : "+ Schedule match"}</button></div></section>
     {!grouped && <p className="fx-guidance">Choose two approved players and publish their pairing and match time.</p>}
     {!current && message}
     {creating && <section className="fx-creator"><div className="fx-section-heading"><div><span className="fx-eyebrow">New fixture</span><h3>Build the next matchup.</h3></div><span className="fx-step">{scoring ? "Roster → Match → Start → Score" : "Players → Pairing → Publish"}</span></div>
@@ -155,7 +160,7 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
         <div className="fx-match-top"><span>{f.stage}</span><span className="fx-state" data-state={status(f)}>{status(f) === "final" ? "Finished" : status(f)}</span></div><div className="fx-matchup"><strong>{formatTeamLabel(f.participant_a_label)}</strong><span>vs</span><strong>{formatTeamLabel(f.participant_b_label)}</strong></div>
         {scoring && f.actual_started_at && f.score_payload && <p className="fx-score">{score(f)}</p>}<div className="fx-match-meta"><span>{time(f.starts_at)}</span><span>{f.venue ?? "Venue to be confirmed"}</span></div><div className="fx-match-footer"><span>{!scoring ? "View pairing & match information" : status(f) === "scheduled" ? canStartMatch(f.starts_at, f.state, now) ? "Ready to start today" : "Scoring locked until match starts" : status(f) === "live" ? "Open scorer & match controls" : "View match details"}</span><span aria-hidden="true">↗</span></div>
       </button>)}</div>
-      {!visible.length && <div className="fx-empty"><h3>{fixtures.length ? "No matching fixtures" : "Your next match starts here"}</h3><p>{fixtures.length ? "Try another filter or search." : "Choose approved participants, add a round and set the match time."}</p>{!fixtures.length && <button className="fx-primary" type="button" onClick={() => { if (!creating) openCreate(); }}>Schedule first match</button>}</div>}
+      {!visible.length && <div className="fx-empty"><h3>{matchList.length ? "No matching fixtures" : "Your next match starts here"}</h3><p>{matchList.length ? "Try another filter or search." : "Choose approved participants, add a round and set the match time."}</p>{!matchList.length && <button className="fx-primary" type="button" onClick={() => { if (!creating) openCreate(); }}>Schedule first match</button>}</div>}
     </section>
     {current && <PortalDialog labelledBy="fixture-title" onClose={() => { setSelectedId(null); setOperation(null); }} busy={busy}><div className="fx-detail">
       <header><div><span className="fx-eyebrow">{current.stage}</span><h2 id="fixture-title">{operation === "reschedule" ? "Reschedule match" : operation === "history" ? "Schedule history" : operation === "delete" ? "Delete match?" : operation === "reminders" ? "Send reminder" : "Match details"}</h2></div><button type="button" className="fx-close" aria-label="Close match details" disabled={busy} onClick={() => { setSelectedId(null); setOperation(null); }}>×</button></header>

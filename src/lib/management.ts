@@ -1,10 +1,22 @@
 import { eventMethod, type OperatingMethod } from "./event-operations";
-export type WorkspaceEvent = { id: string; title: string; category: string; format: string; state: string; pending?: number; operating_method?: OperatingMethod };
+export type WorkspaceEvent = { id: string; title: string; category: string; format: string; state: string; pending?: number; operating_method?: OperatingMethod; registration_enabled?: boolean };
 export type ManagementSummary = {
   isAdmin: boolean; canVerify: boolean; canCreate: boolean; canNotice: boolean;
   canGallery: boolean; canLive: boolean; canHelp: boolean; roles: string[];
   events: WorkspaceEvent[]; editableEvents: WorkspaceEvent[]; pendingVerification: number | null;
 };
+function mergeUniqueEvents(primary: WorkspaceEvent[], extra: WorkspaceEvent[]) {
+  const byId = new Map<string, WorkspaceEvent>();
+  for (const event of primary) byId.set(event.id, event);
+  for (const event of extra) if (!byId.has(event.id)) byId.set(event.id, event);
+  return [...byId.values()].sort((a, b) => a.title.localeCompare(b.title));
+}
+export function competitionEventsFromSummary(s: ManagementSummary) {
+  return mergeUniqueEvents(s.events, s.editableEvents.filter(event => event.registration_enabled === false));
+}
+export function adminEventsFromSummary(s: ManagementSummary) {
+  return mergeUniqueEvents(s.editableEvents, s.events);
+}
 export function managementLinks(s: ManagementSummary) {
   return [
     { href: "/admin", label: "Overview", show: true },

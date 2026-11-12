@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CompetitionEntry, CompetitionWorkspace } from "@/lib/competition";
 import { eventMethod, operatingLabels } from "@/lib/event-operations";
@@ -12,7 +11,6 @@ import styles from "./competition-workspace.module.css";
 export type CompetitionCommand = (action: string, data: unknown) => Promise<boolean>;
 
 export function CompetitionWorkspacePanel({ initial, children }: { initial: CompetitionWorkspace; children?: React.ReactNode }) {
-  const router = useRouter();
   const [workspace, setWorkspace] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -28,7 +26,7 @@ export function CompetitionWorkspacePanel({ initial, children }: { initial: Comp
       const refreshed = await fetch(`/api/competition?event=${workspace.event.id}`, { cache: "no-store" });
       const fresh = await refreshed.json();
       if (!refreshed.ok || !fresh.workspace) throw new Error("Saved, but refresh failed. Reload before editing again.");
-      setWorkspace(fresh.workspace); setMessage("Saved."); router.refresh(); return true;
+      setWorkspace(fresh.workspace); setMessage("Saved."); return true;
     } catch (error) { setMessage(error instanceof Error ? error.message : "Connect to save this change. Your work has not been submitted."); return false; }
     finally { setBusy(false); }
   };

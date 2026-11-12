@@ -4,12 +4,23 @@ import { NextResponse } from "next/server";
 import { type ScoreTemplate, validateScore } from "@/server/competition/scores";
 import { parseFixturePayload } from "@/server/competition/fixture-request";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { loadEventFixtures } from "@/server/competition/fixtures";
 import { createAdminClient } from "@/server/supabase/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const headers = { "Cache-Control": "no-store" };
+
+async function withCanonicalFixtures(
+  client: Parameters<typeof loadEventFixtures>[0],
+  eventId: string | null | undefined,
+  payload: Record<string, unknown>
+) {
+  if (!eventId) return NextResponse.json(payload, { headers });
+  const loaded = await loadEventFixtures(client, eventId);
+  return NextResponse.json(loaded.error ? payload : { ...payload, fixtures: loaded.fixtures }, { headers });
+}
 
 export async function GET(request: Request) {
   if (!hasPublicSupabaseConfiguration()) {
@@ -121,7 +132,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unable to create fixture right now." }, { status: 503, headers });
     }
 
-    return NextResponse.json({ ok: true, data }, { headers });
+    return withCanonicalFixtures(client, command.eventId, { ok: true, data });
   }
 
   if (command.action === "reschedule") {
@@ -141,7 +152,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unable to reschedule fixture right now." }, { status: 503, headers });
     }
 
-    return NextResponse.json({ ok: true, data }, { headers });
+    const eventId = (data as { event_id?: string } | null)?.event_id
+      ?? ((await client.from("fixtures").select("event_id").eq("id", command.fixtureId).maybeSingle()).data?.event_id as string | undefined);
+    return withCanonicalFixtures(client, eventId, { ok: true, data });
   }
 
   if (command.action === "score") {
@@ -202,7 +215,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unable to generate fixture reminders right now." }, { status: 503, headers });
     }
 
-    return NextResponse.json({ ok: true, remindersGenerated: count }, { headers });
+    const eventId = (await client.from("fixtures").select("event_id").eq("id", command.fixtureId).maybeSingle()).data?.event_id as string | undefined;
+    return withCanonicalFixtures(client, eventId, { ok: true, remindersGenerated: count });
   }
 
   if (command.action === "delete") {
@@ -247,7 +261,7 @@ export async function POST(request: Request) {
       await admin.from("events").update({ state: ev.registration_enabled ? "open" : "published" }).eq("id", ev.id);
     }
 
-    return NextResponse.json({ ok: true, deleted: true }, { headers });
+    return withCanonicalFixtures(client, targetFixture.event_id as string, { ok: true, deleted: true });
   }
 
   if (command.action === "bulk_create") {
@@ -275,7 +289,7 @@ export async function POST(request: Request) {
       }
       if (data?.id) created.push(data.id);
     }
-    return NextResponse.json({ ok: true, createdCount: created.length }, { headers });
+    return withCanonicalFixtures(client, command.eventId, { ok: true, createdCount: created.length });
   }
 
   return NextResponse.json({ error: "Unknown action." }, { status: 400, headers });

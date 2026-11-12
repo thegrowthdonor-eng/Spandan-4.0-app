@@ -21,14 +21,19 @@ export async function POST(request: Request) {
     cookieOptions: { secure: process.env.NODE_ENV === "production", sameSite: "lax", httpOnly: true, path: "/" },
     cookies: { getAll: () => store.getAll(), setAll: (entries) => entries.forEach(({ name, value, options }) => denied.cookies.set(name, value, options)) },
   });
-  if (!(await client.auth.getUser()).data.user) return denied;
   const result = parsed.data.action === "assign"
     ? await client.rpc("assign_committee_role", { p_profile_id: parsed.data.profileId, p_role: parsed.data.role, p_event_id: parsed.data.eventId, p_event_category: parsed.data.eventCategory })
     : await client.rpc("revoke_committee_role", { p_assignment_id: parsed.data.assignmentId });
   if (result.error) {
-    if (result.error.code === "42501") return denied;
+    if (result.error.code === "42501" || result.error.code === "28000") return denied;
+    if (result.error.code === "P0002") return NextResponse.json({ error: "This committee assignment is no longer active." }, { status: 404, headers });
     if (result.error.code === "22023" || result.error.code === "23505") return NextResponse.json({ error: result.error.message }, { status: 400, headers });
     return NextResponse.json({ error: "Unable to change committee access right now." }, { status: 503, headers });
   }
-  return NextResponse.json({ ok: true }, { headers });
+  return NextResponse.json(
+    parsed.data.action === "assign"
+      ? { ok: true, assignment: result.data }
+      : { ok: true, revokedAssignmentId: parsed.data.assignmentId },
+    { headers }
+  );
 }

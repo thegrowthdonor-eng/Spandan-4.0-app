@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
+import { getManagementSummary } from "@/server/management";
+import { adminEventsFromSummary } from "@/lib/management";
 import { CommitteeControl } from "./committee-control";
 import { SeniorInvites } from "./senior-invites";
 import { FestivalSettings } from "./festival-settings";
@@ -17,17 +19,28 @@ type Edition = { edition_id: string; name: string; starts_on: string | null; end
 
 export default async function AdminControlPage() {
   if (!hasPublicSupabaseConfiguration()) return <main className="admin-empty"><p>Control centre is not connected.</p></main>;
+  const summary = await getManagementSummary();
+  if (!summary) {
+    const client = await createRequestClient();
+    if (!(await client.auth.getUser()).data.user) redirect("/account");
+    return <main className="admin-empty"><p>Control centre is temporarily unavailable.</p></main>;
+  }
+  if (!summary.isAdmin) redirect("/admin");
   const client = await createRequestClient();
-  if (!(await client.auth.getUser()).data.user) redirect("/account");
-  const [{ data: isAdmin }, candidatesResult, membersResult, eventsResult, editionsResult] = await Promise.all([
-    client.rpc("is_main_admin"), client.rpc("list_committee_candidates"), client.rpc("list_committee_members"), client.rpc("list_all_events_for_admin"), client.rpc("list_admin_editions"),
+  const [candidatesResult, membersResult, editionsResult] = await Promise.all([
+    client.rpc("list_committee_candidates"), client.rpc("list_committee_members"), client.rpc("list_admin_editions"),
   ]);
-  if (isAdmin !== true) redirect("/admin");
+  const events: EventRow[] = adminEventsFromSummary(summary).map((event) => ({
+    event_id: event.id,
+    title: event.title,
+    category: event.category,
+    state: event.state,
+  }));
   return <main className="admin-home control-page">
     <header className="admin-home-header"><Link className="wordmark" href="/">Spandan <span>4.0</span></Link><Link href="/admin">Organiser workspace</Link></header>
     <section className="control-hero"><p className="eyebrow">Main Admin · Control centre</p><h1>Administration</h1><p>Assign only the responsibility a committee member needs. There is no role selector on sign-in; access is decided here and enforced by the database.</p></section>
     <section className="control-content"><section className="portal-stats" aria-label="Committee role counts">{[["main_admin","Main Admins"],["treasurer","Treasurers"],["event_coordinator","Event Coordinators"]].map(([role,label])=><article className="portal-event" key={role}><strong>{countRolePeople(membersResult.data ?? [],role)}</strong><span>{label}</span></article>)}</section><nav className="portal-event-actions" aria-label="Administration sections"><a href="#roles">Roles & assignments</a><a href="#invitations">Invitations</a><a href="#settings">Festival settings</a><Link href="/admin/merchandise">Merchandise workspace ↗</Link><Link href="/admin/sponsors">Sponsors workspace ↗</Link></nav>
-      <section id="roles" className="portal-section"><h2>Roles & assignments</h2><CommitteeControl candidates={(candidatesResult.data ?? []) as Candidate[]} members={(membersResult.data ?? []) as CommitteeMember[]} events={(eventsResult.data ?? []) as EventRow[]} /></section>
+      <section id="roles" className="portal-section"><h2>Roles & assignments</h2><CommitteeControl candidates={(candidatesResult.data ?? []) as Candidate[]} members={(membersResult.data ?? []) as CommitteeMember[]} events={events} /></section>
       <details id="invitations" className="portal-section"><summary>Invitations</summary><SeniorInvites editions={(editionsResult.data ?? []) as Edition[]} /></details>
       <details id="settings" className="portal-section"><summary>Festival settings</summary><FestivalSettings editions={(editionsResult.data ?? []) as Edition[]} /></details>
     </section>
