@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { operationFields } from "./event-operations";
 
+const eventTime = (label: string) => z.string().datetime({ offset: true, message: `Enter a valid ${label} with a timezone.` }).transform(value => new Date(value).toISOString()).nullable();
+
 export const eventDetailsSchema = z.object({
   ...operationFields,
   title: z.string().trim().min(1, "Enter an event title.").max(160),
@@ -11,8 +13,8 @@ export const eventDetailsSchema = z.object({
   summary: z.string().trim().max(600), rules: z.string().trim().max(20000),
   venue: z.string().trim().max(160), capacity: z.number().int().positive().nullable(),
   waitlistEnabled: z.boolean(),
-  reportingAt: z.string().datetime().nullable(), startsAt: z.string().datetime().nullable(),
-  endsAt: z.string().datetime().nullable(), rosterLockAt: z.string().datetime().nullable(),
+  reportingAt: eventTime("reporting time"), startsAt: eventTime("start time"),
+  endsAt: eventTime("end time"), rosterLockAt: eventTime("roster lock time"),
   eligibility: z.record(z.string(), z.unknown()),
   applicationQuestions: z.array(z.object({
     key: z.string().min(1).max(80), label: z.string().trim().min(1).max(200),
@@ -68,7 +70,9 @@ export function eventStepError(v: EventDetails, step: number) {
   }
   if (step === 2) {
     if (!v.venue.trim() || !v.startsAt || !v.endsAt) return "Complete venue, start and end date/time.";
-    if (v.endsAt <= v.startsAt) return "End time must be after the start.";
+    const parsed = eventDetailsSchema.safeParse(v);
+    const issue = !parsed.success && parsed.error.issues.find(i => ["startsAt", "endsAt", "reportingAt", "rosterLockAt"].includes(String(i.path[0])));
+    if (issue) return issue.message;
   }
   return null;
 }
