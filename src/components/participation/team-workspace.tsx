@@ -6,6 +6,7 @@ import { useState } from "react";
 import { participationTools } from "@/lib/event-participation";
 import type { Squad, SquadMember, TeamCommand, TeamWorkspaceData } from "@/lib/team-contracts";
 import { themeRosterError } from "@/lib/theme-roster";
+import { applicationStatus } from "@/lib/registration-status";
 import "./team-workspace.css";
 
 type Command = (command: TeamCommand) => Promise<boolean>;
@@ -31,13 +32,15 @@ export function TeamWorkspace({ data, participantView = false }: { data: TeamWor
     finally { setPending(false); }
   };
   return <div className="team-workspace" aria-busy={pending}>
+    {participantView && <p className="team-status">{data.reviewState ? applicationStatus(data.reviewState, data.groups.some(g => g.state === "published" && g.members.some(m => m.studentId === data.userId)) ? "selected" : data.finalTeamPublished ? "not_selected" : "unselected", true, data.proposed) : "Register individually for this event before joining a team or pair."} <Link href="/events">Browse event registrations →</Link></p>}
+    {data.format === "sport" && <p className="team-status">Same batch only · One team per batch. Team size limits apply to the final roster; every eligible student can register individually.</p>}
     {data.locked && <p className="team-status">This roster is locked. You can view it, but no changes can be made.</p>}
     <p className="team-status" role="status" aria-live="polite">{message}</p>
     {data.staff && tools?.leader && !data.locked && <section className="team-panel">
       <p className="team-eyebrow">Start with a leader</p><h2>Appoint {tools.leader === "Captain" ? "a captain" : performance ? "a performance lead" : "a group leader"}</h2>
       <p>The appointed student chooses the name and initial members in My Fest. You review and edit their proposal afterwards.</p>
       <form onSubmit={e => { e.preventDefault(); void command({ action: "appoint", eventId: data.eventId, groupId: null, leaderApplicationId: leader, batchId:data.format==="sport"?batchId:null }); }}>
-        {data.format==="sport"&&<label>Team batch<select required value={batchId} onChange={e=>{setBatchId(e.target.value);setLeader("");}} disabled={pending}><option value="">Select batch first</option>{data.batches.map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>}
+        {data.format==="sport"&&<label>Team batch<select required value={batchId} onChange={e=>{setBatchId(e.target.value);setLeader("");}} disabled={pending}><option value="">Select batch first</option>{data.batches.filter(b=>!data.groups.some(g=>g.batchId===b.id)).map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>}
         <label>{tools.leader}<select required value={leader} onChange={e => setLeader(e.target.value)} disabled={pending||(data.format==="sport"&&!batchId)}><option value="">Choose an approved event participant</option>{data.candidates.filter(c => (data.format!=="sport"||c.batchId===batchId)&&!data.groups.some(g => g.captainId === c.studentId)).map(c => <option value={c.applicationId} key={c.applicationId}>{identity(c)}</option>)}</select></label>
         <button type="submit" disabled={pending || !leader}>Appoint {tools.leader}</button>
       </form>
@@ -123,7 +126,6 @@ function PairInvitations({ data, command, pending }: { data: TeamWorkspaceData; 
   const [partner, setPartner] = useState<{ id: string; fullName: string; roll: string; batchLabel: string } | null>(null);
   const [finding, setFinding] = useState(false);
   const [error, setError] = useState("");
-  const [answers, setAnswers] = useState<Record<string,string>>({});
   const accepted = data.invitations.some(i => i.state === "accepted");
   async function lookup() {
     if (finding) return;
@@ -132,24 +134,22 @@ function PairInvitations({ data, command, pending }: { data: TeamWorkspaceData; 
       const response = await fetch("/api/teams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "lookup", eventId: data.eventId, batchId, roll }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not find partner.");
-      if (!result.data) throw new Error("No eligible verified student found. Check exact roll and batch.");
+      if (!result.data) throw new Error("No registered participant found. Check the batch and roll, and ask your partner to register for this event first.");
       setPartner(result.data);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not find partner."); }
     finally { setFinding(false); }
   }
-  function questions(prefix: string) {
-    return !data.registered && data.questions.length > 0 ? <fieldset><legend>Complete your event registration</legend>{data.questions.map(q => <label key={q.key} htmlFor={`${prefix}-${q.key}`}>{q.label}{q.required ? " *" : ""}{q.type === "select" ? <select id={`${prefix}-${q.key}`} required={q.required} value={answers[q.key] ?? ""} onChange={e => setAnswers(a => ({ ...a,[q.key]:e.target.value }))} disabled={pending}><option value="">Choose an option</option>{q.options?.map(o => <option key={o}>{o}</option>)}</select> : <input id={`${prefix}-${q.key}`} required={q.required} maxLength={500} value={answers[q.key] ?? ""} onChange={e => setAnswers(a => ({ ...a,[q.key]:e.target.value }))} disabled={pending} />}</label>)}</fieldset> : null;
-  }
+  if (!data.registered) return <section className="team-panel"><h2>Register before pairing</h2><p>Both students must register individually for this event before sending or accepting invitations.</p></section>;
   return <section className="team-section"><h2>Partner invitations</h2>
     {!data.invitations.length && <p>No pending partner invitations.</p>}
     {data.invitations.map(i => <article className="team-panel" key={i.id}><span className="team-badge">{i.state === "accepted" ? "Both partners confirmed" : i.incoming ? "Invitation received" : "Waiting for partner"}</span><h3>{i.partnerName}</h3><p>{i.partnerRoll ? `Roll ${i.partnerRoll} · ` : ""}{i.partnerBatch ?? "Participant"}</p>
-      {!data.locked && i.state === "pending" && (i.incoming ? <><form onSubmit={e => { e.preventDefault(); void command({ action: "accept", eventId: data.eventId, invitationId: i.id, answers }); }}>{questions(i.id)}<p>Accepting confirms your partner choice and event rules. Your registration is created here if needed; organiser approval is still required.</p><button type="submit" disabled={pending}>Accept & confirm pair</button></form><button type="button" className="team-secondary" disabled={pending} onClick={() => void command({ action: "decline", eventId: data.eventId, invitationId: i.id })}>Decline invitation</button></> : <button type="button" className="team-secondary" disabled={pending} onClick={() => void command({ action: "cancel", eventId: data.eventId, invitationId: i.id })}>Cancel invitation</button>)}
+      {!data.locked && i.state === "pending" && (i.incoming ? <><form onSubmit={e => { e.preventDefault(); void command({ action: "accept", eventId: data.eventId, invitationId: i.id, answers: {} }); }}><p>Accepting confirms your partner choice and event rules. Both individual registrations and the final pair require coordinator approval.</p><button type="submit" disabled={pending}>Accept & confirm pair</button></form><button type="button" className="team-secondary" disabled={pending} onClick={() => void command({ action: "decline", eventId: data.eventId, invitationId: i.id })}>Decline invitation</button></> : <button type="button" className="team-secondary" disabled={pending} onClick={() => void command({ action: "cancel", eventId: data.eventId, invitationId: i.id })}>Cancel invitation</button>)}
       {!data.locked && i.state === "accepted" && data.groups.find(g => g.id === i.groupId)?.state === "draft" && <button type="button" className="team-danger" disabled={pending} onClick={() => { if (confirm("Leave this pair? Both students can then choose a new partner through a fresh invitation.")) void command({ action: "leave", eventId: data.eventId, invitationId: i.id }); }}>Leave pair</button>}
     </article>)}
-    {!accepted && !data.locked && <div className="team-panel"><h3>Invite your partner</h3><p>Find your partner using their exact batch and college roll. An invitation does not reserve them.</p>
+    {!accepted && !data.locked && <div className="team-panel"><h3>Invite your partner</h3><p>Both students register individually first. Find your registered partner using their exact batch and college roll. An invitation does not reserve them.</p>
       <form onSubmit={e => { e.preventDefault(); void lookup(); }}><label>Partner batch<select required value={batchId} onChange={e => { setBatchId(e.target.value); setPartner(null); }} disabled={finding}><option value="">Choose batch</option>{data.batches.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}</select></label><label>Partner roll number<input required maxLength={30} value={roll} onChange={e => { setRoll(e.target.value); setPartner(null); }} disabled={finding} /></label><button type="submit" className="team-secondary" disabled={finding || pending}>{finding ? "Finding…" : "Find partner"}</button></form>
       {error && <p role="status">{error}</p>}
-      {partner && <form onSubmit={e => { e.preventDefault(); void command({ action: "invite", eventId: data.eventId, partnerId: partner.id, answers }); }}><p><strong>{partner.fullName}</strong> · Roll {partner.roll} · {partner.batchLabel}</p>{questions("invite")}<p>Sending confirms that you want to pair with this student and agree to the event rules. They must accept before a pair is formed.</p><button type="submit" disabled={pending}>Confirm & send invitation</button></form>}
+      {partner && <form onSubmit={e => { e.preventDefault(); void command({ action: "invite", eventId: data.eventId, partnerId: partner.id, answers: {} }); }}><p><strong>{partner.fullName}</strong> · Roll {partner.roll} · {partner.batchLabel}</p><p>Sending confirms that you want to pair with this student and agree to the event rules. They must accept before a pair is formed.</p><button type="submit" disabled={pending}>Confirm & send invitation</button></form>}
     </div>}
   </section>;
 }

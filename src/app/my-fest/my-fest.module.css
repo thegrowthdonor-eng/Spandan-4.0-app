@@ -548,9 +548,9 @@
 .statusChip {
   padding: 6px 12px;
   border-radius: 8px;
-  font: 600 12px/1 "DM Sans", sans-serif;
+  font: 600 12px/1.4 "DM Sans", sans-serif;
   text-transform: capitalize;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .statusApproved {

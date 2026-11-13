@@ -16,12 +16,14 @@ import { FestTopNav } from "@/components/spandan-branding";
 import "../events.css";
 import { finalValueLabel, type OperatingMethod } from "@/lib/event-operations";
 import { themeRosterPolicy } from "@/lib/theme-roster";
+import { registrationStatus, registrationTime } from "@/lib/registration-status";
 
 export const dynamic = "force-dynamic";
 
 type Question = { key: string; label: string; type: "text" | "select"; required: boolean; options?: string[] };
 type EventDetail = {
   id: string;
+  edition_id: string;
   slug: string;
   title: string;
   category: string;
@@ -144,7 +146,7 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
       async () => {
         const { data, error } = await createPublicClient()
           .from("events")
-          .select("id,slug,title,category,format,registration_enabled,operating_method,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,poster_url,eligibility,group_min_size,group_max_size")
+          .select("id,edition_id,slug,title,category,format,registration_enabled,operating_method,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,poster_url,eligibility,group_min_size,group_max_size")
           .eq("slug", slug)
           .maybeSingle();
 
@@ -153,7 +155,7 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
         // Resilient fallback if poster_url migration is not yet applied
         const fallback = await createPublicClient()
           .from("events")
-          .select("id,slug,title,category,format,registration_enabled,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,eligibility,group_min_size,group_max_size")
+          .select("id,edition_id,slug,title,category,format,registration_enabled,operating_method,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,eligibility,group_min_size,group_max_size")
           .eq("slug", slug)
           .maybeSingle();
         if (fallback.error) throw new Error(fallback.error.message);
@@ -344,15 +346,9 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   ]);
 
   const now = new Date();
-  const isFuture = event.starts_at ? now < new Date(event.starts_at) : false;
-  const effectiveState = (event.state === "ongoing" && isFuture)
-    ? (event.registration_enabled ? "open" : "published")
-    : event.state;
-  const appOpen = effectiveState === "open"
-    && event.application_opens_at != null
-    && now >= new Date(event.application_opens_at)
-    && event.application_closes_at != null
-    && now < new Date(event.application_closes_at);
+  const effectiveState = event.state;
+  const registration = registrationStatus(event, now);
+  const appOpen = registration === "open";
 
   // Check if the current user has already applied & detect schedule clashes (Doc 03)
   let existingApplication: { id: string; review_state: string; selection_state: string } | null = null;
@@ -361,25 +357,29 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   let userAccessState: string | null = null;
   let userGender: string | null = null;
   let isAuthenticated = false;
+  let accessLoadFailed = false;
   let clashWarning: string | null = null;
   try {
     const cookieStore = await cookies();
     if (cookieStore.getAll().some((c) => c.name.startsWith("sb-"))) {
       const client = await createRequestClient();
-      const { data: { user } } = await client.auth.getUser();
+      const { data: { user }, error: authError } = await client.auth.getUser();
+      if (authError) accessLoadFailed = true;
       if (user) {
       isAuthenticated = true;
       const [appResult, accessResult, profileResult, otherAppsResult, seniorResult] = await Promise.all([
         client.from("applications").select("id,review_state,selection_state").eq("event_id", event.id).eq("student_id", user.id).maybeSingle(),
-        client.from("access_records").select("state").eq("profile_id", user.id).maybeSingle(),
+        client.from("access_records").select("state,verified_at").eq("profile_id", user.id).eq("edition_id", event.edition_id).maybeSingle(),
         client.from("profiles").select("gender,participant_category").eq("id", user.id).maybeSingle(),
         client.from("applications").select("id,events(id,title,starts_at)").eq("student_id", user.id).neq("review_state", "rejected").neq("review_state", "withdrawn"),
         client.from("senior_event_registrations").select("id").eq("event_id", event.id).eq("profile_id", user.id).maybeSingle(),
       ]);
       existingApplication = appResult.data;
+      accessLoadFailed = !!(appResult.error || accessResult.error || profileResult.error || seniorResult.error || !profileResult.data);
       userAccessState = accessResult.data?.state ?? null;
       userGender = profileResult.data?.gender ?? null;
       senior = !!profileResult.data && profileResult.data.participant_category !== "ug";
+      if (!senior && userAccessState === "active" && !accessResult.data?.verified_at) userAccessState = "pending";
       seniorConfirmed = !!seniorResult.data;
 
       if (!existingApplication && event.starts_at && otherAppsResult.data) {
@@ -399,7 +399,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     }
     }
   } catch {
-    // Public visitor — ignore
+    accessLoadFailed = true;
   }
 
   const questions: Question[] = Array.isArray(event.application_questions) ? event.application_questions : [];
@@ -409,7 +409,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   const performance = event.format === "group" && event.operating_method === "programme";
   const showFormatBadge = event.format.trim().toLowerCase() !== event.category.trim().toLowerCase();
 
-  let dockStatus = "Applications open";
+  let dockStatus = "Registrations open";
   let dockLabel = "Register now";
   let dockHref: string | null = "#event-registration";
   let dockTone = "open";
@@ -428,18 +428,23 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     dockStatus = "Information only"; dockLabel = "No registration required"; dockHref = null; dockTone = "status";
   } else if (seniorConfirmed) {
     dockStatus = "Confirmed"; dockLabel = "View in My Fest"; dockHref = "/my-fest"; dockTone = "status";
-  } else if (existingApplication && existingApplication.review_state !== "withdrawn") {
+  } else if (existingApplication) {
     dockStatus = `Application ${existingApplication.review_state.replaceAll("_", " ")}`;
     dockLabel = "View application";
     dockHref = "/my-fest";
     dockTone = "status";
   } else if (!appOpen) {
-    dockStatus = effectiveState === "closed" ? "Registration closed" : "Registration unavailable";
-    dockLabel = effectiveState === "closed" ? "Registration closed" : "Not open yet";
+    dockStatus = registration === "scheduled" ? "Scheduled" : registration === "closed" ? "Closed" : "Registration unavailable";
+    dockLabel = registration === "scheduled" ? `Opens ${registrationTime(event.application_opens_at)}` : "Registration unavailable";
     dockHref = null;
     dockTone = "inactive";
+  } else if (accessLoadFailed) {
+    dockStatus = "Unable to load registration access";
+    dockLabel = "Refresh to retry";
+    dockHref = `/events/${event.slug}`;
+    dockTone = "status";
   } else if (!isAuthenticated) {
-    dockStatus = "Applications open";
+    dockStatus = "Registrations open";
     dockLabel = "Sign in to register";
     dockHref = `/account?next=/events/${event.slug}`;
   } else if (userAccessState === "pending" || userAccessState == null) {
@@ -467,7 +472,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       {effectiveState === "cancelled" && <div className="event-state-banner banner-cancelled">This event has been cancelled.</div>}
       {effectiveState === "completed" && <div className="event-state-banner banner-completed">This event is complete. Published results appear below when available.</div>}
       {effectiveState === "closed" && <div className="event-state-banner banner-closed">Registration is closed. Check My Fest for your application status.</div>}
-      {effectiveState === "open" && appOpen && <div className="event-state-banner banner-open">Applications are open. Apply below before {datetime(event.application_closes_at)}.</div>}
+      {effectiveState === "open" && appOpen && <div className="event-state-banner banner-open">Registrations open. Apply individually before {registrationTime(event.application_closes_at)}.</div>}
+      {registration === "scheduled" && <div className="event-state-banner">Registration opens {registrationTime(event.application_opens_at)} and closes {registrationTime(event.application_closes_at)}.</div>}
 
       {/* Official Event Poster Banner */}
       {event.poster_url && (
@@ -634,7 +640,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       )}
 
       <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Event updates</p><h2>{event.operating_method==="voting"?"Entries & public voting":"Schedule & official updates"}</h2><p>{event.operating_method==="voting"?"View approved work, submit your entry and vote during the announced window.":event.operating_method==="programme"?"Find the programme details and follow festival gallery updates.":"Check your event timings and published award positions."}</p><Link href={event.operating_method==="voting"?`/competition/${event.id}`:"/schedule"}>{event.operating_method==="voting"?"Open entries & voting →":"View schedule →"}</Link>{event.operating_method==="programme"&&<Link href="/gallery">Open gallery →</Link>}</div></section>
-      {!senior&&event.registration_enabled&&event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
+      {!senior&&event.registration_enabled&&event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Register first, then pair up.</h2><p>Both students register individually, then choose each other through an invitation. Both registrations and the final pair need coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
       {(!senior&&event.registration_enabled&&["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">{performance ? "Your performance" : "Your squad"}</p><p>{performance ? "Every performer registers individually. After approval, the coordinator appoints a performance lead, who proposes the performance name and members for final roster approval. Solo performers select only themselves. Each student can join one final performance per event. Stage results are not published in the app." : "Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster."}</p><Link href={`/my-fest/teams?event=${event.id}`}>{performance ? "My performance / Lead workspace \u2192" : "My team / Leader workspace \u2192"}</Link></div></section>}
       {event.registration_enabled&&<EventRegistrationDock
         eventTitle={event.title}

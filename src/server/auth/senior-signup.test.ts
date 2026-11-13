@@ -8,6 +8,7 @@ import { seniorSignupSchema, seniorLinkCommandSchema } from "./senior-contracts"
 import * as browserTools from "./signup-browser";
 import * as identity from "./identity";
 import * as rateLimits from "./rate-limit";
+import * as registrationStatus from "../../lib/registration-status";
 
 const pepper = "isolated-senior-test-pepper-at-least-32-characters";
 const payload = { token: "x".repeat(43), fullName: "Test Senior", phone: "9811111111", category: "pg", department: "Medicine", gender: "male", password: "TestPassword!123" };
@@ -153,6 +154,7 @@ test("application API routes seniors separately and preserves the UG RPC respons
   for (const category of ["ug", "pg", "jr", "fmg", "faculty"]) {
     const calls: string[] = [];
     const route = loadRoute("../../app/api/applications/route.ts", {
+      "@/lib/registration-status": registrationStatus,
       "@supabase/ssr": { createServerClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: "participant" } } }) }, from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { participant_category: category } }) }) }) }), rpc: async (name: string) => { calls.push(name); return { data: { review_state: "submitted" } }; } }) },
       "next/headers": { cookies: async () => ({ getAll: () => [] }) }, "next/server": { NextResponse },
       "@/server/auth/contracts": await import("./contracts"), "@/server/env": { hasPublicSupabaseConfiguration: () => true },
@@ -161,6 +163,22 @@ test("application API routes seniors separately and preserves the UG RPC respons
     assert.equal(response.status, 200);
     assert.deepEqual(calls, [category === "ug" ? "apply_to_event" : "register_senior_event"]);
     assert.deepEqual(await response.json(), category === "ug" ? { ok: true, reviewState: "submitted" } : { ok: true, kind: "senior", status: "confirmed" });
+  }
+});
+
+test("UG registration API reports stable reasons without leaking unknown database errors", async () => {
+  for (const [details, code, status] of [["scheduled","22023",409],["gender_mismatch","42501",403],["invalid_answers","22023",400],["private details","XX000",503]] as const) {
+    const route = loadRoute("../../app/api/applications/route.ts", {
+      "@/lib/registration-status": registrationStatus,
+      "@supabase/ssr": { createServerClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: "participant" } } }) }, from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { participant_category: "ug" } }) }) }) }), rpc: async () => ({ error: { code, details, message: "private details" } }) }) },
+      "next/headers": { cookies: async () => ({ getAll: () => [] }) }, "next/server": { NextResponse },
+      "@/server/auth/contracts": await import("./contracts"), "@/server/env": { hasPublicSupabaseConfiguration: () => true },
+    });
+    const response = await (route.POST as (req: Request) => Promise<NextResponse>)(request({ eventId: "00000000-0000-4000-8000-000000000001", idempotencyKey: "00000000-0000-4000-8000-000000000002", answers: {} }));
+    assert.equal(response.status, status);
+    const result = await response.json();
+    assert.equal(result.reason, details === "private details" ? undefined : details);
+    assert.equal(result.error.includes("private details"), false);
   }
 });
 

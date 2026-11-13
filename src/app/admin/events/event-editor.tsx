@@ -7,11 +7,13 @@ import { useEffect, useRef, useState } from "react";
 import { PosterPicker } from "@/components/admin/poster-picker";
 import { eventDetailsSchema, publicationMissing, eventStepError, toIstInput, fromIstInput, type EventDetails } from "@/lib/event-setup";
 import { operatingLabels, operatingMethods, suggestedOperations, suggestedScoreTemplate, suggestedUnit, valueUnits, type OperatingMethod, type ValueUnit } from "@/lib/event-operations";
+import { registrationStatus, registrationTime } from "@/lib/registration-status";
 
 export type EventData = {
   operating_method?: OperatingMethod; entry_format?: "image" | "text"; result_unit?: ValueUnit | null; operations_locked?: boolean;
   structure_locked: boolean;
   registration_enabled: boolean;
+  application_opens_at: string | null; application_closes_at: string | null;
   event_id: string; title: string; category: EventDetails["category"]; format: EventDetails["format"];
   score_template: EventDetails["scoreTemplate"]; state: string; summary: string; rules_markdown: string;
   venue: string | null; application_capacity: number | null; waitlist_enabled: boolean;
@@ -116,7 +118,7 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
     {message&&<p ref={errorBox} tabIndex={-1} className={"portal-message"+(message.error?" portal-error":"")} role={message.error?"alert":"status"}>{message.text}</p>}
     {!showForm?<>
       <div className="portal-list-controls"><input type="search" aria-label="Search editable events" placeholder="Search events" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Event status" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All statuses</option>{["draft","published","open","closed","ongoing","completed","cancelled"].map(s=><option key={s}>{s}</option>)}</select></div>
-      <div className="portal-event-grid">{visible.map(e=><Link key={e.event_id} href={"/admin/events?event="+e.event_id} className="portal-event"><span className="portal-badge">{e.state}</span><h3>{e.title}</h3><p>{eventCategoryLabel(e.category)} · {e.registration_enabled?e.format:"Information only"}</p><span>Edit event →</span></Link>)}</div>
+      <div className="portal-event-grid">{visible.map(e=><Link key={e.event_id} href={"/admin/events?event="+e.event_id} className="portal-event"><span className="portal-badge">{e.state}</span><h3>{e.title}</h3><p>{eventCategoryLabel(e.category)} · {e.registration_enabled?e.format:"Information only"}</p>{e.registration_enabled&&<p>{({open:"Registrations open",scheduled:"Scheduled",closed:"Closed"} as Record<string,string>)[registrationStatus(e)]??"Registration unavailable"}<br/>Opens {registrationTime(e.application_opens_at)} · Closes {registrationTime(e.application_closes_at)}</p>}<span>Edit event →</span></Link>)}</div>
       {!visible.length&&<p className="portal-message">No events match. Create an event or change your filters.</p>}
     </>:<>
       {current&&<p><span className="portal-badge">{current.state}</span> {dirty?"Unsaved changes":"Saved event"}</p>}
@@ -148,6 +150,7 @@ export function EventEditor({events,editions,isAdmin,selectedId,creating,initial
 
 
           {details.format==="pair"&&<p className="portal-message">Exactly two partners. Pairing requires an invitation and the other student&apos;s acceptance; no captain is appointed.</p>}
+          {details.format==="sport"&&<p className="portal-message"><strong>Same batch only · One team per batch.</strong> Everyone registers individually. After registration review, the coordinator appoints a captain from that batch; the captain proposes the team name and members for final approval. Team size limits apply to the final roster, not to the participant pool.</p>}
           {details.format==="group"&&details.operatingMethod==="programme"&&<p className="portal-message">Set minimum 1 and maximum 8 to allow solo, duo and group performances together. Every performer registers individually. The coordinator appoints a performance lead, who proposes the name and members for approval; solo performers select only themselves. Each student can join one final performance per event. Use Information &amp; gallery to keep official results off the app.</p>}
           {(["group","sport"].includes(details.format))&&<div className="field-pair"><label>Minimum {details.format==="group"?"group":"team"} size<input type="number" min={1} value={details.groupMinSize??""} onChange={e=>change("groupMinSize",numeric(e.target.value))}/></label><label>Maximum {details.format==="group"?"group":"team"} size<input type="number" min={1} value={details.groupMaxSize??""} onChange={e=>change("groupMaxSize",numeric(e.target.value))}/></label></div>}
           {details.format!=="solo"&&details.format!=="sport"&&<label className="portal-check"><input type="checkbox" checked={details.batchRestricted} onChange={e=>change("batchRestricted",e.target.checked)}/>Members must be from the same batch</label>}

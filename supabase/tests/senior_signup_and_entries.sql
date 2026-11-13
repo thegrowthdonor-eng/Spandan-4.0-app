@@ -26,10 +26,10 @@ from senior_test_ids where name in ('admin','coordinator','stranger','ug');
 insert into public.access_records(edition_id,profile_id,state,verified_at)
 select pg_temp.sid('edition'),id,'active',now() from senior_test_ids where name in ('admin','coordinator','stranger','ug');
 insert into public.staff_assignments(profile_id,role) values(pg_temp.sid('admin'),'main_admin');
-insert into public.events(id,edition_id,title,slug,category,format,state,registration_enabled,application_opens_at,application_closes_at,application_questions,eligibility,application_capacity,entry_format)
+insert into public.events(id,edition_id,title,slug,category,format,state,registration_enabled,application_opens_at,application_closes_at,application_questions,eligibility,application_capacity,entry_format,batch_restricted)
 select id,pg_temp.sid('edition'),'Isolated '||name,'isolated-'||name,'sport',case when name in ('closed','girls') then 'solo'::public.event_format else name::public.event_format end,
   'open',true,now()-interval '1 day',case when name='closed' then now()-interval '1 hour' else now()+interval '1 day' end,
-  '[{"key":"slot","label":"Preferred slot","type":"select","required":true,"options":["A","B"]}]',case when name='girls' then '{"division":"girls"}'::jsonb else '{}'::jsonb end,1,'text'
+  '[{"key":"slot","label":"Preferred slot","type":"select","required":true,"options":["A","B"]}]',case when name='girls' then '{"division":"girls"}'::jsonb else '{}'::jsonb end,1,'text',name='sport'
 from senior_test_ids where name in ('solo','pair','group','sport','closed','girls');
 insert into public.staff_assignments(profile_id,role,event_id) values(pg_temp.sid('coordinator'),'event_coordinator',pg_temp.sid('solo'));
 

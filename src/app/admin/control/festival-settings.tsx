@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toIstInput, fromIstInput } from "@/lib/event-setup";
+import { registrationStatus, registrationTime } from "@/lib/registration-status";
 type Edition = { edition_id:string; name:string; registration_opens_at?:string|null; registration_closes_at?:string|null };
 export function FestivalSettings({editions}:{editions:Edition[]}) {
   const router=useRouter();
@@ -11,6 +12,8 @@ export function FestivalSettings({editions}:{editions:Edition[]}) {
   const [closes,setCloses]=useState(toIstInput(editions[0]?.registration_closes_at??null));
   const [pending,setPending]=useState(false);
   const [message,setMessage]=useState("");
+  const saved = editions.find(e=>e.edition_id===editionId);
+  const savedStatus = registrationStatus({state:"open",registration_enabled:true,application_opens_at:saved?.registration_opens_at??null,application_closes_at:saved?.registration_closes_at??null});
   async function save(event:React.FormEvent){
     event.preventDefault();if(pending)return;
     if(!opens||!closes||closes<=opens){setMessage("Closing time must be after opening time.");return;}
@@ -21,6 +24,7 @@ export function FestivalSettings({editions}:{editions:Edition[]}) {
     }catch{setMessage("Connection failed. Your dates are preserved; try again.");}finally{setPending(false);}
   }
   return <form className="portal-form" onSubmit={save}><h2>Festival registration window</h2><p>These dates apply to every event. Event publishing and registration dates are separate controls.</p>
+    <p role="status">Saved window: {savedStatus==="open"?"Registrations open":savedStatus==="scheduled"?"Scheduled":savedStatus==="closed"?"Closed":"Not scheduled"}. Opens {registrationTime(saved?.registration_opens_at??null)} · Closes {registrationTime(saved?.registration_closes_at??null)}. Setting an event to open does not override these dates.</p>
     <label>Festival edition<select value={editionId} onChange={e=>{const edition=editions.find(v=>v.edition_id===e.target.value);setEditionId(e.target.value);setOpens(toIstInput(edition?.registration_opens_at??null));setCloses(toIstInput(edition?.registration_closes_at??null));}}>{editions.map(e=><option key={e.edition_id} value={e.edition_id}>{e.name}</option>)}</select></label>
     <label>Registration opens (IST)<input type="datetime-local" value={opens} onChange={e=>setOpens(e.target.value)} required/></label>
     <label>Registration closes (IST)<input type="datetime-local" value={closes} onChange={e=>setCloses(e.target.value)} required/></label>

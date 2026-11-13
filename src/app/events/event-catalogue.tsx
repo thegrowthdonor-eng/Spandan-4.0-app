@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { registrationStatus, registrationTime } from "@/lib/registration-status";
 
 export type EventEligibility = {
   division?: "boys" | "girls" | "open" | string;
@@ -196,52 +197,23 @@ function eventVisualIcon(event: EventCard): EventIconName {
 }
 
 function stateLabel(state: string, now: Date, event: EventCard): string {
-  if (!event.registration_enabled && !["cancelled","completed","ongoing"].includes(state)) return "No registration required";
-  if (state === "open") {
-    if (event.application_closes_at && now >= new Date(event.application_closes_at)) return "Registration closed";
-    if (event.application_opens_at && now < new Date(event.application_opens_at)) return "Opening soon";
-    return "Applications open";
-  }
-  if (state === "published") {
-    if (event.application_opens_at && now < new Date(event.application_opens_at)) return "Opening soon";
-    return "Programme confirmed";
-  }
-  if (state === "closed") return "Registration closed";
-  if (state === "ongoing") {
-    if (event.starts_at && now < new Date(event.starts_at)) {
-      if (event.registration_enabled) {
-        if (event.application_closes_at && now >= new Date(event.application_closes_at)) return "Registration closed";
-        if (event.application_opens_at && now < new Date(event.application_opens_at)) return "Opening soon";
-        return "Applications open";
-      }
-      return "Programme confirmed";
-    }
-    return "In progress";
-  }
+  const status = registrationStatus(event, now);
+  if (status === "scheduled") return "Scheduled";
+  if (status === "open") return "Registrations open";
+  if (status === "closed") return "Closed";
+  if (status === "information") return "No registration required";
+  if (state === "ongoing") return "In progress";
   if (state === "completed") return "Completed";
   if (state === "cancelled") return "Cancelled";
-  return "Programme";
+  return "Registration unavailable";
 }
 
-function stateClass(state: string, now?: Date, event?: EventCard): string {
-  if (state === "ongoing" && event?.starts_at && now && now < new Date(event.starts_at)) {
-    if (event.registration_enabled) {
-      if (event.application_closes_at && now >= new Date(event.application_closes_at)) return "state-closed";
-      if (event.application_opens_at && now < new Date(event.application_opens_at)) return "state-published";
-      return "state-open";
-    }
-    return "state-published";
-  }
-  if (state === "open" && event?.application_closes_at && now && now >= new Date(event.application_closes_at)) return "state-closed";
-  switch (state) {
-    case "open": return "state-open";
-    case "published": return "state-published";
-    case "closed": return "state-closed";
-    case "ongoing": return "state-ongoing";
-    case "completed": return "state-completed";
-    case "cancelled": return "state-cancelled";
-    default: return "";
-  }
+function stateClass(state: string, now: Date, event: EventCard): string {
+  const status = registrationStatus(event, now);
+  if (status === "scheduled") return "state-published";
+  if (status === "closed") return "state-closed";
+  if (status === "open") return "state-open";
+  return ["ongoing", "completed", "cancelled"].includes(state) ? `state-${state}` : "state-published";
 }
 
 function dateLabel(value: string | null): string {
@@ -297,6 +269,7 @@ function EventCardItem({ event, now }: { event: EventCard; now: Date }) {
           <span className="state-dot" /> {stateLabel(event.state, now, event)}
         </span>
         <span className="event-date">{dateLabel(event.starts_at)}</span>
+        {event.registration_enabled && <span className="event-date">{registrationStatus(event, now) === "scheduled" ? `Registration opens ${registrationTime(event.application_opens_at)}` : `Registration closes ${registrationTime(event.application_closes_at)}`}</span>}
         <span className="event-card-action">View event <span aria-hidden="true">→</span></span>
       </div>
     </Link>
@@ -309,7 +282,7 @@ export function EventsLandingHero({ eventCount }: { eventCount: number }) {
       <div className="events-hero-content">
         <div className="hero-eyebrow-row">
           <span className="college-affil-pill">&#127963;&#65039; SPANDAN 4.0 &middot; ASMC FIROZABAD</span>
-          <span className="hero-status-pill">&#9679; REGISTRATIONS LIVE</span>
+          <span className="hero-status-pill">&#9679; OFFICIAL EVENT CATALOGUE</span>
         </div>
         <h1>
           Find your <span className="gold-accent">festival arena</span>

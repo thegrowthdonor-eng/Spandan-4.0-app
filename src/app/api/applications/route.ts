@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { eventApplicationSchema, applicationWithdrawSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { registrationError } from "@/lib/registration-status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,13 +36,14 @@ export async function POST(request: Request) {
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Check your application and try again." }, { status: 400, headers }); }
   const parsed = eventApplicationSchema.safeParse(body);
-  if (!parsed.success || !hasPublicSupabaseConfiguration()) return NextResponse.json({ error: "Applications are currently unavailable." }, { status: 503, headers });
+  if (!parsed.success) return NextResponse.json({ error: "Check your application answers and try again.", reason: "invalid_answers" }, { status: 400, headers });
+  if (!hasPublicSupabaseConfiguration()) return NextResponse.json({ error: "Applications are currently unavailable." }, { status: 503, headers });
   const response = NextResponse.json({ error: "Please sign in to apply." }, { status: 401, headers });
   const client = await makeClient(response)();
   const { data: userData } = await client.auth.getUser();
   if (!userData.user) return response;
   const profile = await client.from("profiles").select("participant_category").eq("id", userData.user.id).single();
-  if (profile.error || !profile.data) return NextResponse.json({ error: "Unable to load registration access." }, { status: 503, headers });
+  if (profile.error || !profile.data) return NextResponse.json({ error: "Unable to load your registration profile. Refresh and try again.", reason: "profile_unavailable" }, { status: 503, headers });
   if (profile.data.participant_category !== "ug") {
     const registration = await client.rpc("register_senior_event", { p_event_id: parsed.data.eventId, p_answers: parsed.data.answers, p_details: parsed.data.additionalDetails ?? "" });
     if (registration.error) return NextResponse.json({ error: ["22023", "42501"].includes(registration.error.code) ? registration.error.message : "Unable to save your entry. Retry safely." }, { status: registration.error.code === "42501" ? 403 : registration.error.code === "22023" ? 409 : 503, headers });
@@ -53,6 +55,8 @@ export async function POST(request: Request) {
     p_answers: parsed.data.answers,
   });
   if (error) {
+    const known = registrationError(error.details);
+    if (known) return NextResponse.json({ error: known.error, reason: known.reason }, { status: known.status, headers });
     if (error.code === "42501") return NextResponse.json({ error: "Your registration access is not active for this application." }, { status: 403, headers });
     if (error.code === "22023" || error.code === "23505") return NextResponse.json({ error: "This event is not accepting another application right now." }, { status: 409, headers });
     return NextResponse.json({ error: "Unable to submit this application. Please try again." }, { status: 503, headers });

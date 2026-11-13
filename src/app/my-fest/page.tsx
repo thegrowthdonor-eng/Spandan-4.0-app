@@ -54,7 +54,7 @@ export default async function MyFestPage() {
       .maybeSingle(),
     client
       .from("applications")
-      .select("id,review_state,selection_state,created_at,events(id,slug,title,category,starts_at,venue)")
+      .select("id,review_state,selection_state,created_at,events(id,slug,title,category,format,starts_at,venue)")
       .eq("student_id", auth.user.id)
       .order("created_at", { ascending: false }),
     client.rpc("can_manage_access"),
@@ -113,6 +113,12 @@ export default async function MyFestPage() {
 
   const access = accessResult.data;
   const applications = (senior ? (seniorEntriesResult.data ?? []).map(entry => ({ ...entry, review_state: "approved", selection_state: "unselected" })) : applicationResult.data ?? []) as unknown as ApplicationItem[];
+  const rosters = !senior && applications.length ? await admin.from("participant_groups")
+    .select("event_id,state,batch_id,proposed_application_ids").in("event_id", applications.flatMap(a => a.events ? [a.events.id] : [])).neq("state", "disbanded") : null;
+  for (const application of applications) {
+    application.proposed = rosters?.data?.some(g => g.state === "draft" && g.proposed_application_ids.includes(application.id));
+    application.finalTeamPublished = application.events?.format === "sport" && rosters?.data?.some(g => g.event_id === application.events?.id && g.state === "published" && g.batch_id === profile.batch_id);
+  }
   const helpThreads = (helpThreadsResult.data ?? []) as unknown as HelpThread[];
   const status = access?.state ?? "pending";
 
@@ -174,7 +180,7 @@ export default async function MyFestPage() {
           editionId={access?.edition_id}
           isActive={status === "active"}
           senior={senior}
-          registrationsError={senior && !!seniorEntriesResult.error}
+          registrationsError={senior ? !!seniorEntriesResult.error : !!(applicationResult.error || rosters?.error)}
         />
 
         {/* Quick Festival Action Links */}

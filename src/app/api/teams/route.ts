@@ -37,6 +37,7 @@ export async function POST(request: Request) {
   else result = await client.rpc("manage_team_proposal", { p_event_id: cmd.eventId, p_group_id: "groupId" in cmd ? cmd.groupId : null, p_action: cmd.action, p_details: cmd });
   let output: NextResponse;
   if (result.error) {
+    if (result.error.details === "batch_team_exists") return NextResponse.json({ error: "This batch already has a team for this event. Change its existing captain or roster." }, { status: 409, headers });
     const code = result.error.code;
     const status = code === "42501" || code === "P0002" ? 403 : ["22023", "23505", "55000"].includes(code) ? 409 : 503;
     output = NextResponse.json({ error: status === 403 ? "You do not have access to this team or invitation." : status === 409 ? (code === "23505" ? "This student or invitation is already assigned. Refresh and try again." : result.error.message) : "Could not update right now. Your saved proposal is preserved." }, { status, headers });

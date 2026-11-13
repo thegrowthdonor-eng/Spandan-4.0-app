@@ -5,6 +5,12 @@ import { managementLinks, canEnterManagement, type ManagementSummary } from "./m
 
 const draft:EventDetails={registrationEnabled:true,title:"Chess",category:"sport",format:"solo",scoreTemplate:"generic",summary:"",rules:"",venue:"",capacity:null,waitlistEnabled:false,reportingAt:null,startsAt:null,endsAt:null,rosterLockAt:null,eligibility:{division:"open"},applicationQuestions:[],groupMinSize:null,groupMaxSize:null,batchRestricted:false,posterUrl:null};
 
+test("sports squads require same-batch rosters while groups may mix batches", () => {
+  assert.equal(eventDetailsSchema.safeParse({...draft, format:"sport"}).success, false);
+  assert.equal(eventDetailsSchema.safeParse({...draft, format:"sport", batchRestricted:true}).success, true);
+  assert.equal(eventDetailsSchema.safeParse({...draft, format:"group"}).success, true);
+});
+
 test("one programme event supports solo, duo and groups through the existing size range", () => {
   const details: EventDetails = {...draft, title:"Singing", category:"cultural", format:"group", operatingMethod:"programme", groupMinSize:1, groupMaxSize:8, summary:"Stage performances", rules:"One performance per student", venue:"Stage", startsAt:"2026-12-01T04:00:00Z", endsAt:"2026-12-01T06:00:00Z"};
   assert.equal(eventDetailsSchema.safeParse(details).success, true);

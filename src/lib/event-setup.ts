@@ -26,6 +26,7 @@ export const eventDetailsSchema = z.object({
 }).superRefine((v,c) => {
   const issue = (path: string, message: string) => c.addIssue({ code: "custom", path: [path], message });
   if (!["boys","girls","open"].includes(String(v.eligibility.division))) issue("eligibility","Choose a valid division.");
+  if (v.format === "sport" && !v.batchRestricted) issue("batchRestricted", "Sports squads require members from the same batch.");
   if (v.reportingAt && v.startsAt && v.reportingAt > v.startsAt) issue("reportingAt","Reporting must be before the start.");
   if (v.endsAt && v.startsAt && v.endsAt <= v.startsAt) issue("endsAt","End time must be after the start.");
   if (v.groupMinSize && v.groupMaxSize && v.groupMaxSize < v.groupMinSize) issue("groupMaxSize","Maximum size must be at least minimum size.");

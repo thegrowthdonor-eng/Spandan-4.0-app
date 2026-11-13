@@ -29,5 +29,5 @@ export type TeamWorkspaceData = {
   groups: Squad[]; candidates: SquadMember[];
   invitations: { id: string; state: string; incoming: boolean; partnerName: string; partnerBatch: string | null; partnerRoll: string | null; groupId: string | null; createdAt: string }[];
   questions: { key: string; label: string; type: string; required: boolean; options?: string[] }[];
-  registered: boolean; batches: { id: string; label: string }[];
+  registered: boolean; reviewState?: string | null; proposed?: boolean; finalTeamPublished?: boolean; batches: { id: string; label: string }[];
 };

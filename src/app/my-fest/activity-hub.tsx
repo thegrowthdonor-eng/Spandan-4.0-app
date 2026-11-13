@@ -5,17 +5,21 @@ import Link from "next/link";
 import { PollWidget } from "./poll-widget";
 import { HelpDesk, type HelpThread } from "./support-tools";
 import styles from "./my-fest.module.css";
+import { applicationStatus } from "@/lib/registration-status";
 
 export type ApplicationItem = {
   id: string;
   review_state: string;
   selection_state: string;
   created_at: string;
+  proposed?: boolean;
+  finalTeamPublished?: boolean;
   events: {
     id: string;
     slug: string;
     title: string;
     category: string;
+    format?: string;
     starts_at: string | null;
     venue: string | null;
   } | null;
@@ -130,11 +134,7 @@ export function ActivityHub({
                         : styles.statusPending
                     }`}
                   >
-                    {app.review_state === "approved"
-                      ? "Confirmed"
-                      : app.review_state === "rejected"
-                      ? "Declined"
-                      : "Under Review"}
+                    {senior ? "Confirmed" : applicationStatus(app.review_state, app.finalTeamPublished && app.selection_state === "unselected" ? "not_selected" : app.selection_state, !!app.events?.format && app.events.format !== "solo", app.proposed)}
                   </span>
                 </div>
               </Link>
@@ -143,7 +143,7 @@ export function ActivityHub({
             <div className={styles.emptyCard}>
               <h3 className={styles.emptyTitle}>No Event Registrations Yet</h3>
               <p className={styles.emptyDesc}>
-                {senior ? "Explore festival events and register to participate." : "Explore official sports, cultural, and literary competitions. Apply individually or with your batch team to earn points."}
+                {senior ? "Explore festival events and register to participate." : "Register individually for any eligible event. After registration review, your coordinator and appointed leader manage final team selection."}
               </p>
               <Link href="/events" className={styles.browseBtn}>
                 Browse Competitions →

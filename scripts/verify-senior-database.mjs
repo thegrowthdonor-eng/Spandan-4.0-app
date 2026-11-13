@@ -33,7 +33,8 @@ let database;
   }
   await db.exec("set spandan.isolated_tests='on'");
   await db.exec(fs.readFileSync('supabase/tests/senior_signup_and_entries.sql', 'utf8'));
+  await db.exec(fs.readFileSync('supabase/tests/individual_registration_and_batch_teams.sql', 'utf8'));
   assert.equal((await db.query('select count(*)::int as n from public.senior_event_registrations')).rows[0].n, 0);
-  console.log('Local migrations, senior isolation, privacy, signup and voting checks passed; fixtures rolled back.');
+  console.log('Local migrations, senior isolation, registration pools, batch teams, pair consent and privacy checks passed; fixtures rolled back.');
   await db.close();
 })().catch(async error => { console.error(error.message); await database?.close(); process.exitCode = 1; });
