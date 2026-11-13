@@ -17,10 +17,12 @@ export function ApplyButton({
   eventId,
   questions = [],
   themePolicy,
+  senior = false,
 }: {
   eventId: string;
   questions?: Question[];
   themePolicy?: ThemeRosterPolicy;
+  senior?: boolean;
 }) {
   const router = useRouter();
   const idempotencyKey = useRef(crypto.randomUUID());
@@ -28,6 +30,7 @@ export function ApplyButton({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [additionalDetails, setAdditionalDetails] = useState("");
 
   async function apply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -47,17 +50,17 @@ export function ApplyButton({
       const response = await fetch("/api/applications", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, idempotencyKey: idempotencyKey.current, answers }),
+        body: JSON.stringify({ eventId, idempotencyKey: idempotencyKey.current, answers, ...(senior ? { additionalDetails } : {}) }),
         cache: "no-store",
       });
-      const result = await response.json() as { ok?: boolean; reviewState?: string; error?: string };
+      const result = await response.json() as { ok?: boolean; kind?: string; reviewState?: string; error?: string };
       if (!response.ok) {
         setMessage(result.error ?? "Unable to submit this application.");
         return;
       }
       setApplied(true);
       setMessage(
-        result.reviewState === "waitlisted"
+        result.kind === "senior" ? "Applied successfully" : result.reviewState === "waitlisted"
           ? "Your application was added to the waitlist. Check My Fest for updates."
           : "Application submitted. Check My Fest for review updates."
       );
@@ -80,6 +83,7 @@ export function ApplyButton({
 
   return (
     <form className="event-application" onSubmit={apply}>
+      {senior && <label>Additional details (optional)<textarea value={additionalDetails} maxLength={2000} onChange={event => setAdditionalDetails(event.target.value)} /></label>}
       {questions.length > 0 && (
         <fieldset className="event-questions">
           <legend>Registration questions</legend>

@@ -12,7 +12,10 @@ export const metadata: Metadata = { title: "My Teams & Invitations | Spandan 4.0
 export default async function MyTeamsPage({ searchParams }: { searchParams: Promise<{ event?: string }> }) {
   if (!hasPublicSupabaseConfiguration()) redirect("/account");
   const client = await createRequestClient();
-  if (!(await client.auth.getUser()).data.user) redirect("/account?next=/my-fest/teams");
+  const { data: auth } = await client.auth.getUser();
+  if (!auth.user) redirect("/account?next=/my-fest/teams");
+  const profile = await client.from("profiles").select("participant_category").eq("id", auth.user.id).single();
+  if (profile.data?.participant_category !== "ug") redirect("/my-fest");
   const { data: eventData, error: eventError } = await client.rpc("get_my_team_events");
   const events = (eventData ?? []) as { id: string; title: string }[];
   const wanted = (await searchParams).event;

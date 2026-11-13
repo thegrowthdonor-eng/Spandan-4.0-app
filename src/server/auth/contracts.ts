@@ -50,6 +50,7 @@ export const eventApplicationSchema = z.object({
   eventId: z.string().uuid(),
   idempotencyKey: z.string().uuid(),
   answers: z.record(z.string(), z.string().trim().max(500)).default({}),
+  additionalDetails: z.string().trim().max(2000).optional(),
 });
 
 export const applicationWithdrawSchema = z.object({

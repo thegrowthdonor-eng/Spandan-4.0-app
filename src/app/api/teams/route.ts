@@ -21,7 +21,11 @@ export async function POST(request: Request) {
     cookieOptions: { secure: process.env.NODE_ENV === "production", sameSite: "lax", httpOnly: true, path: "/" },
     cookies: { getAll: () => store.getAll(), setAll: entries => entries.forEach(({ name, value, options }) => response.cookies.set(name, value, options)) },
   });
-  if (!(await client.auth.getUser()).data.user) return response;
+  const { data: auth } = await client.auth.getUser();
+  if (!auth.user) return response;
+  const profile = await client.from("profiles").select("participant_category").eq("id", auth.user.id).single();
+  if (profile.error || !profile.data) return NextResponse.json({ error: "Team access unavailable." }, { status: 503, headers });
+  if (profile.data.participant_category !== "ug") return NextResponse.json({ error: "Your event registrations are available in My Fest." }, { status: 403, headers });
   const cmd = parsed.data;
   let result;
   if (cmd.action === "lookup") result = await client.rpc("find_pair_partner", { p_event_id: cmd.eventId, p_batch_id: cmd.batchId, p_roll: cmd.roll });

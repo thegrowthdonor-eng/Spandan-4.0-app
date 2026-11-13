@@ -26,6 +26,8 @@ export type ActivityHubProps = {
   helpThreads: HelpThread[];
   editionId?: string;
   isActive: boolean;
+  senior?: boolean;
+  registrationsError?: boolean;
 };
 
 function formatEventTime(value: string | null) {
@@ -46,6 +48,8 @@ export function ActivityHub({
   helpThreads,
   editionId,
   isActive,
+  senior = false,
+  registrationsError = false,
 }: ActivityHubProps) {
   const [activeTab, setActiveTab] = useState<"registrations" | "teams" | "support">("registrations");
 
@@ -62,13 +66,13 @@ export function ActivityHub({
           <span className={styles.tabBadge}>{applications.length}</span>
         </button>
 
-        <button
+        {!senior && <button
           type="button"
           className={`${styles.tabBtn} ${activeTab === "teams" ? styles.tabBtnActive : ""}`}
           onClick={() => setActiveTab("teams")}
         >
           <span>Teams &amp; Squad</span>
-        </button>
+        </button>}
 
         <button
           type="button"
@@ -82,7 +86,7 @@ export function ActivityHub({
       {/* Tab 1: Registrations */}
       {activeTab === "registrations" && (
         <div className={styles.registrationsList}>
-          {applications.length > 0 ? (
+          {registrationsError ? <p role="alert">Unable to load registrations. Refresh to retry.</p> : applications.length > 0 ? (
             applications.map((app) => (
               <Link
                 key={app.id}
@@ -139,8 +143,7 @@ export function ActivityHub({
             <div className={styles.emptyCard}>
               <h3 className={styles.emptyTitle}>No Event Registrations Yet</h3>
               <p className={styles.emptyDesc}>
-                Explore official sports, cultural, and literary competitions. Apply individually or
-                with your batch team to earn points.
+                {senior ? "Explore festival events and register to participate." : "Explore official sports, cultural, and literary competitions. Apply individually or with your batch team to earn points."}
               </p>
               <Link href="/events" className={styles.browseBtn}>
                 Browse Competitions →
@@ -151,7 +154,7 @@ export function ActivityHub({
       )}
 
       {/* Tab 2: Teams & Invitations */}
-      {activeTab === "teams" && (
+      {!senior && activeTab === "teams" && (
         <div className={styles.teamOverviewCard}>
           <div className={styles.teamOverviewInfo}>
             <h3>My Teams &amp; Invitations</h3>

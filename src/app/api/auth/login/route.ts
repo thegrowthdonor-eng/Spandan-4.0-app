@@ -7,6 +7,8 @@ import { accessDeniedMessage } from "@/server/auth/access-status";
 import { authRateLimits, AUTH_RATE_LIMIT_WINDOW_SECONDS, getRequestNetworkKey, rateLimitHeaders } from "@/server/auth/rate-limit";
 import { hasSupabaseConfiguration, requiredServerEnv } from "@/server/env";
 import { createAdminClient } from "@/server/supabase/admin";
+import { rememberSignupBrowser } from "@/server/auth/remember-signup-browser";
+import { setSignupBrowser } from "@/server/auth/signup-browser";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +61,14 @@ export async function POST(request: Request) {
   });
   if (error) return NextResponse.json(genericFailure, { status: 401, headers: { "Cache-Control": "no-store" } });
 
+  try { setSignupBrowser(response, await rememberSignupBrowser(signInData.user.id)); }
+  catch {
+    await client.auth.signOut({ scope: "local" });
+    const failed = NextResponse.json({ error: "Sign-in is temporarily unavailable. Please retry." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    for (const cookie of response.cookies.getAll()) failed.cookies.set(cookie);
+    return failed;
+  }
+
   const { data: access, error: accessError } = await client
     .from("access_records")
     .select("state")
@@ -68,10 +78,12 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (accessError || access?.state !== "active") {
+    const browserCookies = response.cookies.getAll();
     response = NextResponse.json(
       { error: accessError ? "Sign-in is temporarily unavailable." : accessDeniedMessage(access?.state) },
       { status: accessError ? 503 : 403, headers: { "Cache-Control": "no-store" } },
     );
+    for (const cookie of browserCookies) response.cookies.set(cookie);
     response.cookies.delete("spandan_ui_nav");
     await client.auth.signOut({ scope: "local" });
     return response;

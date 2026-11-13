@@ -5,12 +5,15 @@ import { hashRateLimitKey, toPrivateAuthEmail } from "@/server/auth/identity";
 import { authRateLimits, AUTH_RATE_LIMIT_WINDOW_SECONDS, getRequestNetworkKey, rateLimitHeaders } from "@/server/auth/rate-limit";
 import { hasSupabaseConfiguration, requiredServerEnv } from "@/server/env";
 import { createAdminClient } from "@/server/supabase/admin";
+import { SIGNUP_BROWSER_COOKIE, signupBrowser, signupBrowserHash, setSignupBrowser } from "@/server/auth/signup-browser";
+import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const noStore = { "Cache-Control": "no-store" };
 
 export async function POST(request: Request) {
+  if (request.headers.get("origin") && request.headers.get("origin") !== new URL(request.url).origin) return NextResponse.json({ error: "Invalid request." }, { status: 403, headers: noStore });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Unable to create an account." }, { status: 400, headers: noStore }); }
   const parsed = signUpSchema.safeParse(body);
@@ -19,6 +22,7 @@ export async function POST(request: Request) {
   try { phone = normaliseIndianPhone(parsed.data.phone); } catch { return NextResponse.json({ error: "Check your profile details and try again." }, { status: 400, headers: noStore }); }
   const admin = createAdminClient();
   const pepper = requiredServerEnv("AUTH_IDENTITY_PEPPER");
+  const browser = signupBrowser((await cookies()).get(SIGNUP_BROWSER_COOKIE)?.value, pepper);
   const networkKey = getRequestNetworkKey(request);
   const rateKeys = [
     { key: `signup-phone:${phone}`, maxAttempts: authRateLimits.signup.subjectAttempts },
@@ -83,7 +87,7 @@ export async function POST(request: Request) {
   }
 
   const festId = `SPD-${randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase()}`;
-  const { error: profileError } = await admin.rpc("provision_student_profile", {
+  const { error: profileError } = await admin.rpc("provision_ug_signup", {
     p_auth_user_id: authUser.id,
     p_edition_id: batch.edition_id,
     p_batch_id: batch.id,
@@ -93,11 +97,14 @@ export async function POST(request: Request) {
     p_fest_id: festId,
     p_auth_email: authEmail,
     p_gender: parsed.data.gender,
+    p_device: signupBrowserHash(browser, pepper),
   });
   if (profileError) {
     await admin.rpc("delete_student_profile", { p_profile_id: authUser.id });
     await admin.auth.admin.deleteUser(authUser.id);
     return NextResponse.json({ error: "Unable to create this account. If you already registered, use account help." }, { status: 409, headers: noStore });
   }
-  return NextResponse.json({ ok: true, message: "Profile created. Your account will remain pending until contribution verification is completed." }, { status: 201, headers: noStore });
+  const response = NextResponse.json({ ok: true, message: "Profile created. Your account will remain pending until contribution verification is completed." }, { status: 201, headers: noStore });
+  setSignupBrowser(response, browser);
+  return response;
 }

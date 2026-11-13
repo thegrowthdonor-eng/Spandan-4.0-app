@@ -20,6 +20,10 @@ export function SignInForm({
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("mode") === "senior") {
+      const timer = window.setTimeout(() => setMode("senior"), 0);
+      return () => window.clearTimeout(timer);
+    }
     if (typeof window !== "undefined" && window.location.hash === "#recovery") {
       // Defer until after hydration so the URL-driven dialog does not create
       // an extra synchronous render during mount.
@@ -64,7 +68,7 @@ export function SignInForm({
       <form className="account-form-inner" onSubmit={submit}>
         <div className="login-mode" role="group" aria-label="Account type">
           <button type="button" aria-pressed={mode === "ug"} disabled={pending} onClick={() => { setMode("ug"); setError(null); }}>UG / Interns</button>
-          <button type="button" aria-pressed={mode === "senior"} disabled={pending} onClick={() => { setMode("senior"); setError(null); }}>PG / JR / Faculty</button>
+          <button type="button" aria-pressed={mode === "senior"} disabled={pending} onClick={() => { setMode("senior"); setError(null); }}>PG / JR / FMG / Faculty</button>
         </div>
         {mode === "ug" ? <>
         <div className="field-group">

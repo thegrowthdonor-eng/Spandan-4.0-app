@@ -141,7 +141,7 @@ export function StudentPass({
         <div className={styles.passBody}>
           <div className={styles.monogramAvatar} aria-hidden="true">
             <span className={styles.monogramInitials}>{initials}</span>
-            <span className={styles.verifiedBadge} title="Verified Festival Student">
+            <span className={styles.verifiedBadge} title={isSenior ? "Festival account" : "Verified Festival Student"}>
               <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.2 5.6l-4 4.5a.75.75 0 01-1.1 0l-2-2.2a.75.75 0 011.1-1l1.45 1.6 3.45-3.9a.75.75 0 111.1 1z" />
               </svg>
@@ -219,7 +219,7 @@ export function StudentPass({
         >
           <span className={styles.statusDot} aria-hidden="true" />
           <span>
-            {isVerified ? (
+            {isSenior ? <><strong>{isVerified ? "Access active:" : "Access restricted:"}</strong> {isVerified ? "Your festival account is active." : "Contact the festival team for account help."}</> : isVerified ? (
               <>
                 <strong>Counter Verified:</strong> Official festival credential active.
                 {ledgerReference && ` (Ref: ${ledgerReference})`}

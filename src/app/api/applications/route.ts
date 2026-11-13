@@ -40,6 +40,13 @@ export async function POST(request: Request) {
   const client = await makeClient(response)();
   const { data: userData } = await client.auth.getUser();
   if (!userData.user) return response;
+  const profile = await client.from("profiles").select("participant_category").eq("id", userData.user.id).single();
+  if (profile.error || !profile.data) return NextResponse.json({ error: "Unable to load registration access." }, { status: 503, headers });
+  if (profile.data.participant_category !== "ug") {
+    const registration = await client.rpc("register_senior_event", { p_event_id: parsed.data.eventId, p_answers: parsed.data.answers, p_details: parsed.data.additionalDetails ?? "" });
+    if (registration.error) return NextResponse.json({ error: ["22023", "42501"].includes(registration.error.code) ? registration.error.message : "Unable to save your entry. Retry safely." }, { status: registration.error.code === "42501" ? 403 : registration.error.code === "22023" ? 409 : 503, headers });
+    return NextResponse.json({ ok: true, kind: "senior", status: "confirmed" }, { headers });
+  }
   const { data, error } = await client.rpc("apply_to_event", {
     p_event_id: parsed.data.eventId,
     p_idempotency_key: parsed.data.idempotencyKey,

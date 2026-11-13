@@ -28,12 +28,12 @@ export function SeniorInvites({editions}:{editions:{edition_id:string;name:strin
   } catch(e){setMessage(e instanceof Error?e.message:"Recovery unavailable.");} finally {setPending(false);}
  }
  return <section className="control-panel">
-  <h2>PG / JR / Faculty accounts</h2><p className="control-copy">Verify identity and mobile first. An invite activates participation, not organiser permissions.</p>
+  <h2>PG / JR / FMG / Faculty accounts</h2><p className="control-copy">Verify identity and mobile first. An invite activates participation, not organiser permissions.</p>
   <form className="committee-form" onSubmit={e=>{e.preventDefault();void command({action:"issue",...Object.fromEntries(new FormData(e.currentTarget))});}}>
    <label>Festival<select name="editionId" required>{editions.filter(e=>e.status!=="archived").map(e=><option key={e.edition_id} value={e.edition_id}>{e.name}</option>)}</select></label>
    <label>Full name<input name="fullName" required maxLength={100}/></label>
    <label>Verified mobile<input name="phone" type="tel" required maxLength={20}/></label>
-   <label>Category<select name="category"><option value="pg">PG</option><option value="jr">JR</option><option value="faculty">Faculty</option></select></label>
+   <label>Category<select name="category"><option value="pg">PG</option><option value="jr">JR</option><option value="fmg">FMG</option><option value="faculty">Faculty</option></select></label>
    <label>Department<input name="department" required maxLength={120}/></label>
    <button className="primary-control" disabled={pending || !editions.length}>Create 48-hour invite</button>
   </form>
@@ -41,7 +41,7 @@ export function SeniorInvites({editions}:{editions:{edition_id:string;name:strin
   {link && <label className="committee-form">Private one-use link<input readOnly value={link} onFocus={e=>e.currentTarget.select()}/><button type="button" onClick={()=>navigator.clipboard.writeText(link).catch(()=>setMessage("Select and copy the link manually."))}>Copy link</button></label>}
   <ul className="committee-list">{invites.map(i=><li key={i.id}><div><strong>{i.full_name}</strong><span>{i.category.toUpperCase()} · {i.department} · {i.phone}</span><small>{i.profile_id?"Active account":i.revoked_at?"Revoked":nowMs>0&&new Date(i.expires_at).getTime()<nowMs?"Expired":i.used_at?"Setup attempted":"Awaiting setup"}</small>
    {i.profile_id?<details><summary>Account help / verified changes</summary><form className="committee-form" onSubmit={e=>{e.preventDefault();if(window.confirm("Have you verified these account changes with the person?"))void command({action:"update",profileId:i.profile_id,...Object.fromEntries(new FormData(e.currentTarget))});}}>
-    <label>Mobile<input name="phone" defaultValue={i.phone} type="tel" required/></label><label>Category<select name="category" defaultValue={i.category}><option value="pg">PG</option><option value="jr">JR</option><option value="faculty">Faculty</option></select></label><label>Department<input name="department" defaultValue={i.department} required maxLength={120}/></label><button disabled={pending}>Save verified changes</button>
+    <label>Mobile<input name="phone" defaultValue={i.phone} type="tel" required/></label><label>Category<select name="category" defaultValue={i.category}><option value="pg">PG</option><option value="jr">JR</option><option value="fmg">FMG</option><option value="faculty">Faculty</option></select></label><label>Department<input name="department" defaultValue={i.department} required maxLength={120}/></label><button disabled={pending}>Save verified changes</button>
    </form><button type="button" disabled={pending} onClick={()=>{if(window.confirm("Have you verified this recovery request?"))void recovery(i.profile_id!);}}>Issue password reset link</button></details>:<div><button type="button" disabled={pending} onClick={()=>void command({action:"reissue",inviteId:i.id})}>Reissue</button>{" "}<button type="button" disabled={pending || !!i.revoked_at} onClick={()=>void command({action:"revoke",inviteId:i.id})}>Revoke</button></div>}
   </div></li>)}</ul>
  </section>;

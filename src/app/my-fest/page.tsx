@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { batchDisplay, participantLabels, type ParticipantCategory } from "@/lib/participants";
+import { batchDisplay } from "@/lib/participants";
 import { hasSupabaseConfiguration } from "@/server/env";
 import { createRequestClient } from "@/server/supabase/server";
 import { createAdminClient } from "@/server/supabase/admin";
@@ -40,6 +40,7 @@ export default async function MyFestPage() {
     noticePermission,
     managedEvents,
     helpThreadsResult,
+    seniorEntriesResult,
   ] = await Promise.all([
     admin
       .from("profiles")
@@ -64,6 +65,7 @@ export default async function MyFestPage() {
       .select("id,subject,state,created_at,updated_at,help_messages(id,author_id,body,created_at,profiles(full_name))")
       .eq("owner_id", auth.user.id)
       .order("updated_at", { ascending: false }),
+    client.from("senior_event_registrations").select("id,created_at,events(id,slug,title,category,starts_at,venue)").eq("profile_id", auth.user.id).order("created_at", { ascending: false }),
   ]);
 
   if (profileResult.error || !profileResult.data) {
@@ -105,12 +107,12 @@ export default async function MyFestPage() {
     }
   }
 
-  const categoryLabel = participantLabels[profile.participant_category as ParticipantCategory] ?? "Participant";
+  const senior = profile.participant_category !== "ug";
   const batchLabel = batchDisplay(batch?.label ?? "Not assigned");
   const courseLabel = batch?.course_label ?? "MBBS";
 
   const access = accessResult.data;
-  const applications = (applicationResult.data ?? []) as unknown as ApplicationItem[];
+  const applications = (senior ? (seniorEntriesResult.data ?? []).map(entry => ({ ...entry, review_state: "approved", selection_state: "unselected" })) : applicationResult.data ?? []) as unknown as ApplicationItem[];
   const helpThreads = (helpThreadsResult.data ?? []) as unknown as HelpThread[];
   const status = access?.state ?? "pending";
 
@@ -147,7 +149,7 @@ export default async function MyFestPage() {
             My Fest &amp; <em>Delegate Pass</em>
           </h1>
           <p className={styles.heroSubtitle}>
-            Your official digital festival credentials, registered events, team invitations, and venue clearance.
+            {senior ? "Your festival pass and confirmed event registrations." : "Your official digital festival credentials, registered events, team invitations, and venue clearance."}
           </p>
         </section>
 
@@ -171,6 +173,8 @@ export default async function MyFestPage() {
           helpThreads={helpThreads}
           editionId={access?.edition_id}
           isActive={status === "active"}
+          senior={senior}
+          registrationsError={senior && !!seniorEntriesResult.error}
         />
 
         {/* Quick Festival Action Links */}

@@ -22,6 +22,7 @@ export function managementLinks(s: ManagementSummary) {
     { href: "/admin", label: "Overview", show: true },
     { href: "/admin/events", label: "Events", show: s.canCreate },
     { href: "/admin/review", label: "Participants", show: s.events.length > 0 },
+    { href: "/admin/senior-entries", label: "PG / JR / FMG / Faculty entries", show: s.isAdmin || s.events.length > 0 },
     { href: "/admin/groups", label: "Pairs, groups & teams", show: s.events.some(e => ["pair","group","sport"].includes(e.format)) },
     { href: "/admin/scoring", label: "Live scoring", show: s.events.some(e => eventMethod(e) === "live_matches") },
     { href: "/admin/fixtures", label: "Competition & Schedule", show: s.events.length > 0 },

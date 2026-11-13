@@ -356,6 +356,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
 
   // Check if the current user has already applied & detect schedule clashes (Doc 03)
   let existingApplication: { id: string; review_state: string; selection_state: string } | null = null;
+  let senior = false;
+  let seniorConfirmed = false;
   let userAccessState: string | null = null;
   let userGender: string | null = null;
   let isAuthenticated = false;
@@ -367,15 +369,18 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       const { data: { user } } = await client.auth.getUser();
       if (user) {
       isAuthenticated = true;
-      const [appResult, accessResult, profileResult, otherAppsResult] = await Promise.all([
+      const [appResult, accessResult, profileResult, otherAppsResult, seniorResult] = await Promise.all([
         client.from("applications").select("id,review_state,selection_state").eq("event_id", event.id).eq("student_id", user.id).maybeSingle(),
         client.from("access_records").select("state").eq("profile_id", user.id).maybeSingle(),
-        client.from("profiles").select("gender").eq("id", user.id).maybeSingle(),
+        client.from("profiles").select("gender,participant_category").eq("id", user.id).maybeSingle(),
         client.from("applications").select("id,events(id,title,starts_at)").eq("student_id", user.id).neq("review_state", "rejected").neq("review_state", "withdrawn"),
+        client.from("senior_event_registrations").select("id").eq("event_id", event.id).eq("profile_id", user.id).maybeSingle(),
       ]);
       existingApplication = appResult.data;
       userAccessState = accessResult.data?.state ?? null;
       userGender = profileResult.data?.gender ?? null;
+      senior = !!profileResult.data && profileResult.data.participant_category !== "ug";
+      seniorConfirmed = !!seniorResult.data;
 
       if (!existingApplication && event.starts_at && otherAppsResult.data) {
         const thisStart = new Date(event.starts_at).getTime();
@@ -421,6 +426,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     dockTone = "status";
   } else if (!event.registration_enabled) {
     dockStatus = "Information only"; dockLabel = "No registration required"; dockHref = null; dockTone = "status";
+  } else if (seniorConfirmed) {
+    dockStatus = "Confirmed"; dockLabel = "View in My Fest"; dockHref = "/my-fest"; dockTone = "status";
   } else if (existingApplication && existingApplication.review_state !== "withdrawn") {
     dockStatus = `Application ${existingApplication.review_state.replaceAll("_", " ")}`;
     dockLabel = "View application";
@@ -627,8 +634,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       )}
 
       <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Event updates</p><h2>{event.operating_method==="voting"?"Entries & public voting":"Schedule & official updates"}</h2><p>{event.operating_method==="voting"?"View approved work, submit your entry and vote during the announced window.":event.operating_method==="programme"?"Find the programme details and follow festival gallery updates.":"Check your event timings and published award positions."}</p><Link href={event.operating_method==="voting"?`/competition/${event.id}`:"/schedule"}>{event.operating_method==="voting"?"Open entries & voting →":"View schedule →"}</Link>{event.operating_method==="programme"&&<Link href="/gallery">Open gallery →</Link>}</div></section>
-      {event.registration_enabled&&event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
-      {(event.registration_enabled&&["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">{performance ? "Your performance" : "Your squad"}</p><p>{performance ? "Every performer registers individually. After approval, the coordinator appoints a performance lead, who proposes the performance name and members for final roster approval. Solo performers select only themselves. Each student can join one final performance per event. Stage results are not published in the app." : "Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster."}</p><Link href={`/my-fest/teams?event=${event.id}`}>{performance ? "My performance / Lead workspace \u2192" : "My team / Leader workspace \u2192"}</Link></div></section>}
+      {!senior&&event.registration_enabled&&event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
+      {(!senior&&event.registration_enabled&&["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">{performance ? "Your performance" : "Your squad"}</p><p>{performance ? "Every performer registers individually. After approval, the coordinator appoints a performance lead, who proposes the performance name and members for final roster approval. Solo performers select only themselves. Each student can join one final performance per event. Stage results are not published in the app." : "Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster."}</p><Link href={`/my-fest/teams?event=${event.id}`}>{performance ? "My performance / Lead workspace \u2192" : "My team / Leader workspace \u2192"}</Link></div></section>}
       {event.registration_enabled&&<EventRegistrationDock
         eventTitle={event.title}
         status={dockStatus}
@@ -639,11 +646,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       >
         {dockHref === "#event-registration" && (
           <>
-            <p className="event-registration-sheet-note">
+            {!senior && <p className="event-registration-sheet-note">
               Applying does not guarantee approval or final selection. Review your answers carefully before submitting.
-            </p>
+            </p>}
             {clashWarning && <div className="event-registration-sheet-warning">{clashWarning}</div>}
-            <ApplyButton eventId={event.id} questions={questions} themePolicy={themeRosterPolicy(event.eligibility?.theme_roster_policy)} />
+            <ApplyButton eventId={event.id} senior={senior} questions={questions} themePolicy={senior ? undefined : themeRosterPolicy(event.eligibility?.theme_roster_policy)} />
           </>
         )}
       </EventRegistrationDock>}

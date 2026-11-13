@@ -6,6 +6,7 @@ import { getManagementSummary } from "@/server/management";
 import { adminEventsFromSummary } from "@/lib/management";
 import { CommitteeControl } from "./committee-control";
 import { SeniorInvites } from "./senior-invites";
+import { SeniorSignupLinks } from "./senior-signup-links";
 import { FestivalSettings } from "./festival-settings";
 import { countRolePeople } from "@/lib/event-categories";
 import "../admin.css";
@@ -42,6 +43,7 @@ export default async function AdminControlPage() {
     <section className="control-content"><section className="portal-stats" aria-label="Committee role counts">{[["main_admin","Main Admins"],["treasurer","Treasurers"],["event_coordinator","Event Coordinators"]].map(([role,label])=><article className="portal-event" key={role}><strong>{countRolePeople(membersResult.data ?? [],role)}</strong><span>{label}</span></article>)}</section><nav className="portal-event-actions" aria-label="Administration sections"><a href="#roles">Roles & assignments</a><a href="#invitations">Invitations</a><a href="#settings">Festival settings</a><Link href="/admin/merchandise">Merchandise workspace ↗</Link><Link href="/admin/sponsors">Sponsors workspace ↗</Link></nav>
       <section id="roles" className="portal-section"><h2>Roles & assignments</h2><CommitteeControl candidates={(candidatesResult.data ?? []) as Candidate[]} members={(membersResult.data ?? []) as CommitteeMember[]} events={events} /></section>
       <details id="invitations" className="portal-section"><summary>Invitations</summary><SeniorInvites editions={(editionsResult.data ?? []) as Edition[]} /></details>
+      <details className="portal-section"><summary>PG / JR / FMG / Faculty signup links</summary><SeniorSignupLinks editions={(editionsResult.data ?? []) as Edition[]} /></details>
       <details id="settings" className="portal-section"><summary>Festival settings</summary><FestivalSettings editions={(editionsResult.data ?? []) as Edition[]} /></details>
     </section>
   </main>;
