@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useRef, useState } from "react";
+import { questionVisible, themeAnswerError, type ThemeRosterPolicy } from "@/lib/theme-roster";
 
 type Question = {
   key: string;
@@ -15,9 +16,11 @@ type Question = {
 export function ApplyButton({
   eventId,
   questions = [],
+  themePolicy,
 }: {
   eventId: string;
   questions?: Question[];
+  themePolicy?: ThemeRosterPolicy;
 }) {
   const router = useRouter();
   const idempotencyKey = useRef(crypto.randomUUID());
@@ -29,6 +32,8 @@ export function ApplyButton({
   async function apply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending || applied) return;
+    const themeError = themeAnswerError(answers, themePolicy);
+    if (themeError) { setMessage(themeError); return; }
     // Validate required questions
     for (const q of questions) {
       if (q.required && !answers[q.key]?.trim()) {
@@ -78,7 +83,7 @@ export function ApplyButton({
       {questions.length > 0 && (
         <fieldset className="event-questions">
           <legend>Registration questions</legend>
-          {questions.map((q) => (
+          {questions.filter(q => questionVisible(q.key, answers, themePolicy)).map((q) => (
             <div key={q.key} className="question-field">
               <label htmlFor={`q-${q.key}`}>
                 {q.label}

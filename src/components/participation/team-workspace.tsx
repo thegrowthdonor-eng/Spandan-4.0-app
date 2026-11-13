@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { participationTools } from "@/lib/event-participation";
 import type { Squad, SquadMember, TeamCommand, TeamWorkspaceData } from "@/lib/team-contracts";
+import { themeRosterError } from "@/lib/theme-roster";
 import "./team-workspace.css";
 
 type Command = (command: TeamCommand) => Promise<boolean>;
@@ -62,19 +63,22 @@ function SquadCard({ group, data, command, pending }: { group: Squad; data: Team
   const editable = !data.locked && tools?.leader && ((ownLeader && group.state === "draft" && group.proposalState !== "submitted") || (data.staff && group.ready));
   const leader = [...group.members, ...data.candidates].find(m => m.studentId === group.captainId);
   const status = group.state === "published" ? "Published · official roster" : !group.ready ? "Awaiting leader proposal" : group.proposalState === "submitted" ? "Under coordinator review" : group.proposalState === "changes_requested" ? "Changes requested" : "Draft proposal";
+  const themeError = themeRosterError(group.members.map(m => m.theme), data.themePolicy);
   return <article className="team-panel">
     <span className="team-badge">{status}</span><h3>{group.name}</h3>
     {group.batchId&&<p><strong>Batch:</strong> {data.batches.find(b=>b.id===group.batchId)?.label??"Assigned batch"}</p>}
     {tools?.leader && <p><strong>{tools.leader}:</strong> {leader?.fullName ?? "Not assigned — coordinator appointment needed"}</p>}
     {group.note && <p className="team-status"><strong>Coordinator note:</strong> {group.note}</p>}
-    <ul className="team-members">{group.members.map(m => <li key={m.applicationId}><strong>{m.fullName}{m.studentId === group.captainId ? ` · ${tools?.leader ?? ""}` : ""}</strong><small>{m.roll ? `Roll ${m.roll} · ` : ""}{m.batchLabel ?? "Participant"}{m.reviewState && m.reviewState !== "approved" ? ` · Registration ${m.reviewState}` : ""}</small></li>)}</ul>
+    {data.themePolicy && leader?.theme && <p><strong>Theme:</strong> {leader.theme} · {data.themePolicy.sizes[leader.theme]} performers required. The coordinator confirms Hero/Villain casting.</p>}
+    {data.themePolicy && group.ready && themeError && <p role="status">{themeError}</p>}
+    <ul className="team-members">{group.members.map(m => <li key={m.applicationId}><strong>{m.fullName}{m.studentId === group.captainId ? ` · ${tools?.leader ?? ""}` : ""}</strong><small>{m.roll ? `Roll ${m.roll} · ` : ""}{m.batchLabel ?? "Participant"}{m.reviewState && m.reviewState !== "approved" ? ` · Registration ${m.reviewState}` : ""}</small>{data.themePolicy && <small>{m.theme} · Character: {m.character}</small>}</li>)}</ul>
     {!group.members.length && <p>The appointed leader has not proposed members yet.</p>}
     {editable && <button type="button" className="team-secondary" disabled={pending} onClick={() => setEditing(!editing)}>{editing ? "Close editor" : group.ready ? "Edit proposal / roster" : "Choose name & members"}</button>}
     {editing && editable && <SquadEditor group={group} data={data} command={command} pending={pending} />}
-    {ownLeader && !data.staff && !data.locked && group.ready && group.state === "draft" && group.proposalState !== "submitted" && <button type="button" disabled={pending} onClick={() => void command({ action: "submit", eventId: data.eventId, groupId: group.id, version: group.version })}>Submit for coordinator approval</button>}
-    {ownLeader && data.staff && !data.locked && group.ready && group.state === "draft" && group.proposalState !== "submitted" && <button type="button" disabled={pending} onClick={() => void command({ action: "submit", eventId: data.eventId, groupId: group.id, version: group.version })}>Submit leader proposal</button>}
+    {ownLeader && !data.staff && !data.locked && group.ready && group.state === "draft" && group.proposalState !== "submitted" && <button type="button" disabled={pending || Boolean(themeError)} onClick={() => void command({ action: "submit", eventId: data.eventId, groupId: group.id, version: group.version })}>Submit for coordinator approval</button>}
+    {ownLeader && data.staff && !data.locked && group.ready && group.state === "draft" && group.proposalState !== "submitted" && <button type="button" disabled={pending || Boolean(themeError)} onClick={() => void command({ action: "submit", eventId: data.eventId, groupId: group.id, version: group.version })}>Submit leader proposal</button>}
     {data.staff && !data.locked && <>
-      {group.proposalState === "submitted" && group.state === "draft" && <button type="button" disabled={pending} onClick={() => { if (confirm(`Publish ${group.name} as the official roster?`)) void command({ action: "publish", eventId: data.eventId, groupId: group.id, version: group.version }); }}>Approve & publish {tools?.noun === "pairs" ? "pair" : performance ? "performance roster" : "roster"}</button>}
+      {group.proposalState === "submitted" && group.state === "draft" && <button type="button" disabled={pending || Boolean(themeError)} onClick={() => { if (confirm(`Publish ${group.name} as the official roster?`)) void command({ action: "publish", eventId: data.eventId, groupId: group.id, version: group.version }); }}>Approve & publish {tools?.noun === "pairs" ? "pair" : performance ? "performance roster" : "roster"}</button>}
       {(group.ready || !group.captainId) && <details className="team-review"><summary>Review & correction options</summary>
         <label>Reason / instructions<textarea value={reason} onChange={e => setReason(e.target.value)} maxLength={500} disabled={pending} /></label>
         {group.state === "draft" && group.ready && <button type="button" className="team-secondary" disabled={pending || !reason.trim()} onClick={() => void command({ action: "return", eventId: data.eventId, groupId: group.id, version: group.version, reason })}>{data.format === "pair" ? "Add review instructions" : "Return with instructions"}</button>}
@@ -92,17 +96,23 @@ function SquadEditor({ group, data, command, pending }: { group: Squad; data: Te
   const [query, setQuery] = useState("");
   const [reason, setReason] = useState("");
   const members = [...new Map([...data.candidates, ...group.members].map(m => [m.applicationId, m])).values()].filter(m => !data.batchRestricted || m.batchId === group.batchId);
-  const visible = members.filter(m => identity(m).toLowerCase().includes(query.toLowerCase()));
+  const leader = members.find(m => m.studentId === group.captainId);
+  const theme = leader?.theme ?? "";
+  const maxSize = data.themePolicy?.sizes[theme] ?? data.maxSize;
+  const visible = members.filter(m => (!data.themePolicy || (m.theme === theme && (maxSize !== 1 || m.studentId === group.captainId))) && identity(m).toLowerCase().includes(query.toLowerCase()));
+  const themeError = themeRosterError(selected.map(id => members.find(m => m.applicationId === id)?.theme), data.themePolicy, group.state === "published");
   return <form className="team-editor" onSubmit={e => { e.preventDefault(); void command({ action: "save", eventId: data.eventId, groupId: group.id, version: group.version, name, applicationIds: selected, reason }); }}>
     <label>{performance ? "Performance" : data.format === "group" ? "Group" : "Team"} name<input value={name} required maxLength={160} disabled={pending} onChange={e => setName(e.target.value)} placeholder="Choose your official name" /></label>
-    <p>{selected.length} selected · {data.minSize}–{data.maxSize} members{data.batchRestricted ? " · Same batch" : ""}</p>
+    <p>{selected.length} selected · {data.themePolicy ? maxSize : `${data.minSize}–${data.maxSize}`} members{data.batchRestricted ? " · Same batch" : ""}</p>
     <label>Find approved event participants<input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Name, roll or batch" /></label>
-    <fieldset className="team-candidates"><legend>Proposed members</legend>{visible.slice(0,100).map(m => <label key={m.applicationId} className="team-check"><input type="checkbox" checked={selected.includes(m.applicationId)} disabled={pending || m.studentId === group.captainId} onChange={() => setSelected(ids => ids.includes(m.applicationId) ? ids.filter(id => id !== m.applicationId) : [...ids,m.applicationId])} /><span><strong>{m.fullName}</strong><small>{m.roll ? `Roll ${m.roll} · ` : ""}{m.batchLabel ?? "Participant"}{m.studentId === group.captainId ? " · Appointed leader" : ""}</small></span></label>)}</fieldset>
+    <fieldset className="team-candidates"><legend>Proposed members</legend>{visible.slice(0,100).map(m => <label key={m.applicationId} className="team-check"><input type="checkbox" checked={selected.includes(m.applicationId)} disabled={pending || m.studentId === group.captainId || (Boolean(data.themePolicy) && !selected.includes(m.applicationId) && selected.length >= maxSize)} onChange={() => setSelected(ids => ids.includes(m.applicationId) ? ids.filter(id => id !== m.applicationId) : [...ids,m.applicationId])} /><span><strong>{m.fullName}</strong><small>{m.roll ? `Roll ${m.roll} · ` : ""}{m.batchLabel ?? "Participant"}{m.studentId === group.captainId ? " · Appointed leader" : ""}</small>{data.themePolicy && <small>{m.theme} · Character: {m.character}</small>}</span></label>)}</fieldset>
     {visible.length > 100 && <p>Showing 100 matches. Narrow your search.</p>}
-    {performance && <p>For solo, keep only yourself selected. For duo or group, include all performers within the event size limits.</p>}
+    {data.themePolicy && <p>{theme} requires {maxSize} {maxSize === 1 ? "performer" : "performers"}. Both duo members must register separately. Character casting is confirmed by the coordinator.</p>}
+    {themeError && <p role="alert">{themeError}</p>}
+    {performance && !data.themePolicy && <p>For solo, keep only yourself selected. For duo or group, include all performers within the event size limits.</p>}
     {!visible.length && <p>No matching approved participants. Missing participants must register and complete event review first.</p>}
     {group.state === "published" && <label>Correction reason<textarea required maxLength={500} value={reason} onChange={e => setReason(e.target.value)} disabled={pending} /></label>}
-    <button type="submit" disabled={pending || !selected.length || selected.length > data.maxSize}>{pending ? "Saving…" : group.state === "published" ? "Save official roster correction" : "Save proposal"}</button>
+    <button type="submit" disabled={pending || !selected.length || selected.length > maxSize || Boolean(themeError)}>{pending ? "Saving…" : group.state === "published" ? "Save official roster correction" : "Save proposal"}</button>
     <p className="team-footnote">Missing a participant? Share the event registration link. Nobody can answer registration questions on another student&apos;s behalf.</p>
   </form>;
 }

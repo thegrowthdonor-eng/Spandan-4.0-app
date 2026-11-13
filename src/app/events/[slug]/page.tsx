@@ -15,6 +15,7 @@ import { EventParticipantsDialog } from "../event-participants-dialog";
 import { FestTopNav } from "@/components/spandan-branding";
 import "../events.css";
 import { finalValueLabel, type OperatingMethod } from "@/lib/event-operations";
+import { themeRosterPolicy } from "@/lib/theme-roster";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,7 @@ type EventDetail = {
     sub_category?: string;
     match_format?: string;
     squad_details?: string;
+    theme_roster_policy?: unknown;
   } | null;
   group_min_size?: number | null;
   group_max_size?: number | null;
@@ -480,7 +482,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
               {divisionTitle}
             </span>}
             <span className="event-category-pill">{eventCategoryLabel(event.category)}</span>
-            {event.registration_enabled&&showFormatBadge && <span className="event-format-pill">{performance ? (event.group_min_size === 1 ? "Solo / duo / group" : "Performance") : event.format}</span>}
+            {event.registration_enabled&&showFormatBadge && <span className="event-format-pill">{performance ? (event.group_min_size === 1 ? (event.group_max_size === 2 ? "Solo / duo" : "Solo / duo / group") : "Performance") : event.format}</span>}
           </div>
           {event.registration_enabled&&<EventParticipantsDialog eventTitle={event.title} participants={publicParticipants} />}
         </div>
@@ -499,7 +501,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             <strong className="spec-val">
               {event.slug === "football-boys-7v7"
                 ? "7v7 Playing on Pitch"
-                : performance ? (event.group_min_size === 1 ? "Solo / duo / group" : "Performance") : event.eligibility?.match_format || event.format}
+                : performance ? (event.group_min_size === 1 ? (event.group_max_size === 2 ? "Solo / duo" : "Solo / duo / group") : "Performance") : event.eligibility?.match_format || event.format}
             </strong>
           </div>
           <div className="spec-card">
@@ -641,7 +643,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
               Applying does not guarantee approval or final selection. Review your answers carefully before submitting.
             </p>
             {clashWarning && <div className="event-registration-sheet-warning">{clashWarning}</div>}
-            <ApplyButton eventId={event.id} questions={questions} />
+            <ApplyButton eventId={event.id} questions={questions} themePolicy={themeRosterPolicy(event.eligibility?.theme_roster_policy)} />
           </>
         )}
       </EventRegistrationDock>}
