@@ -131,11 +131,6 @@ export default async function MyFestPage() {
             <Link href="/home" className={styles.homeBtn}>
               ← Home
             </Link>
-            <form action="/api/auth/logout" method="post">
-              <button type="submit" className={styles.signOutBtn}>
-                Sign Out
-              </button>
-            </form>
           </div>
         </div>
       </header>
@@ -256,6 +251,11 @@ export default async function MyFestPage() {
             )}
           </div>
         </section>
+        <form action="/api/auth/logout" method="post">
+          <button type="submit" className={styles.signOutBtn}>
+            Logout
+          </button>
+        </form>
       </div>
     </main>
   );
