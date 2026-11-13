@@ -72,8 +72,18 @@ export async function POST(request: Request) {
       { error: accessError ? "Sign-in is temporarily unavailable." : accessDeniedMessage(access?.state) },
       { status: accessError ? 503 : 403, headers: { "Cache-Control": "no-store" } },
     );
+    response.cookies.delete("spandan_ui_nav");
     await client.auth.signOut({ scope: "local" });
     return response;
   }
+
+  const { data: canManage } = await client.rpc("can_use_management");
+  response.cookies.set("spandan_ui_nav", canManage === true ? "staff" : "member", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: false,
+  });
   return response;
 }

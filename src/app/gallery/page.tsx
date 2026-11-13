@@ -3,30 +3,35 @@ import Link from "next/link";
 import { FestTopNav } from "@/components/spandan-branding";
 import { sortGalleryMoments, type GalleryMomentRow } from "@/lib/gallery";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { coalesceCached, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 import { createPublicClient } from "@/server/supabase/public";
-import { createRequestClient } from "@/server/supabase/server";
 import styles from "./gallery.module.css";
 import { mediaUrls } from "@/server/media/urls";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
+
+async function loadPublishedGalleryMoments() {
+  const publicClient = createPublicClient();
+  const { data, error } = await publicClient.rpc("get_published_gallery_moments");
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as GalleryMomentRow[];
+  const imageUrl = await mediaUrls(rows.map((row) => row.storage_path));
+  return sortGalleryMoments(rows).map((moment) => ({
+    ...moment,
+    imageUrl: imageUrl(moment.storage_path),
+  }));
+}
 
 export default async function GalleryPage() {
   let moments: (GalleryMomentRow & { imageUrl: string })[] = [];
-  let canUpload = false;
   if (hasPublicSupabaseConfiguration()) {
     try {
-      const publicClient = createPublicClient();
-      const requestClient = await createRequestClient();
-      const [{ data }, { data: allowed }] = await Promise.all([
-        publicClient.rpc("get_published_gallery_moments"),
-        requestClient.rpc("can_manage_gallery_moments"),
-      ]);
-      const imageUrl=await mediaUrls(((data ?? []) as GalleryMomentRow[]).map(row=>row.storage_path));
-      moments = sortGalleryMoments((data ?? []) as GalleryMomentRow[]).map(moment => ({
-        ...moment,
-        imageUrl: imageUrl(moment.storage_path),
-      }));
-      canUpload = allowed === true;
+      moments = await coalesceCached(
+        "public-gallery-moments",
+        [PUBLIC_CACHE_TAGS.gallery],
+        30,
+        loadPublishedGalleryMoments,
+      );
     } catch { /* Public empty state remains available during setup. */ }
   }
 
@@ -36,7 +41,6 @@ export default async function GalleryPage() {
       <p className={styles.eyebrow}>SPANDAN 4.0 · CAMPUS MOMENTS</p>
       <h1>The moments between <em>the moments.</em></h1>
       <p>Candid frames from fields, courts, stages and corridors—shared by the official festival team.</p>
-      {canUpload ? <Link className={styles.add} href="/admin/gallery"><span aria-hidden>＋</span> Add moment</Link> : null}
     </section>
     <section className={styles.content} aria-labelledby="moments-title">
       <div className={styles.heading}><div><p className={styles.eyebrow}>LATEST FROM CAMPUS</p><h2 id="moments-title">Festival moments</h2></div><span>{moments.length} {moments.length === 1 ? "moment" : "moments"}</span></div>

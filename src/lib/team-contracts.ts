@@ -22,7 +22,7 @@ export type TeamCommand = z.infer<typeof teamCommandSchema>;
 export type SquadMember = { applicationId: string; studentId: string; fullName: string; batchId: string | null; batchLabel: string | null; roll: string | null; reviewState?: string };
 export type Squad = { id: string; name: string; state: string; proposalState: string; ready: boolean; captainId: string | null; batchId: string | null; version: number; note: string | null; members: SquadMember[] };
 export type TeamWorkspaceData = {
-  eventId: string; title: string; format: string; staff: boolean; userId: string;
+  eventId: string; title: string; format: string; operatingMethod?: string; staff: boolean; userId: string;
   batchRestricted: boolean; minSize: number; maxSize: number; locked: boolean;
   groups: Squad[]; candidates: SquadMember[];
   invitations: { id: string; state: string; incoming: boolean; partnerName: string; partnerBatch: string | null; partnerRoll: string | null; groupId: string | null; createdAt: string }[];

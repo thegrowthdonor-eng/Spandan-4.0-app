@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { hasPublicSupabaseConfiguration, hasSupabaseConfiguration } from "@/server/env";
+import { coalesceCached, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 import { createAdminClient } from "@/server/supabase/admin";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { createPublicClient } from "@/server/supabase/public";
 import { createRequestClient } from "@/server/supabase/server";
 import { ApplyButton } from "../apply-button";
@@ -89,33 +92,41 @@ function datetime(value: string | null) {
 async function getEventResult(eventId: string): Promise<PublishedResult | null> {
   if (!hasPublicSupabaseConfiguration()) return null;
   try {
-    const { data, error } = await createPublicClient()
-      .from("result_publications")
-      .select("id, podium_photo_url, podium_caption, result_positions(placing, note, winner_name,awarded_points,final_value,value_unit,batches(label))")
-      .eq("event_id", eventId)
-      .eq("state", "published")
-      .maybeSingle();
+    return await coalesceCached(
+      `event-result:${eventId}`,
+      [PUBLIC_CACHE_TAGS.eventDetail, programmeCacheTag],
+      30,
+      async () => {
+        const { data, error } = await createPublicClient()
+          .from("result_publications")
+          .select("id, podium_photo_url, podium_caption, result_positions(placing, note, winner_name,awarded_points,final_value,value_unit,batches(label))")
+          .eq("event_id", eventId)
+          .eq("state", "published")
+          .maybeSingle();
 
-    if (error || !data) return null;
+        if (error) throw new Error(error.message);
+        if (!data) return null;
 
-    type RawPos = { placing: number; note: string | null; winner_name:string|null;awarded_points:number;final_value:string|number|null;value_unit:string|null;batches: { label: string } | null };
-    const rawPositions = ((data.result_positions ?? []) as unknown as RawPos[]);
-    const positions = rawPositions
-      .map((p) => ({
-        placing: p.placing,
-        batch_label: p.batches?.label ? `Batch ${p.batches.label}` : "Batch",
-        points: p.awarded_points,
-        winner_name:p.winner_name,final_value:p.final_value,value_unit:p.value_unit,
-        note: p.note,
-      }))
-      .sort((a, b) => a.placing - b.placing);
+        type RawPos = { placing: number; note: string | null; winner_name:string|null;awarded_points:number;final_value:string|number|null;value_unit:string|null;batches: { label: string } | null };
+        const rawPositions = ((data.result_positions ?? []) as unknown as RawPos[]);
+        const positions = rawPositions
+          .map((p) => ({
+            placing: p.placing,
+            batch_label: p.batches?.label ? `Batch ${p.batches.label}` : "Batch",
+            points: p.awarded_points,
+            winner_name:p.winner_name,final_value:p.final_value,value_unit:p.value_unit,
+            note: p.note,
+          }))
+          .sort((a, b) => a.placing - b.placing);
 
-    return {
-      publication_id: data.id,
-      podium_photo_url: (data as { podium_photo_url?: string | null }).podium_photo_url ?? null,
-      podium_caption: (data as { podium_caption?: string | null }).podium_caption ?? null,
-      positions,
-    };
+        return {
+          publication_id: data.id,
+          podium_photo_url: (data as { podium_photo_url?: string | null }).podium_photo_url ?? null,
+          podium_caption: (data as { podium_caption?: string | null }).podium_caption ?? null,
+          positions,
+        };
+      },
+    );
   } catch {
     return null;
   }
@@ -124,21 +135,29 @@ async function getEventResult(eventId: string): Promise<PublishedResult | null> 
 async function getEvent(slug: string): Promise<EventDetail | null> {
   if (!hasPublicSupabaseConfiguration()) return null;
   try {
-    const { data, error } = await createPublicClient()
-      .from("events")
-      .select("id,slug,title,category,format,registration_enabled,operating_method,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,poster_url,eligibility,group_min_size,group_max_size")
-      .eq("slug", slug)
-      .maybeSingle();
+    return await coalesceCached(
+      `event-detail:${slug}`,
+      [PUBLIC_CACHE_TAGS.eventDetail, programmeCacheTag],
+      30,
+      async () => {
+        const { data, error } = await createPublicClient()
+          .from("events")
+          .select("id,slug,title,category,format,registration_enabled,operating_method,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,poster_url,eligibility,group_min_size,group_max_size")
+          .eq("slug", slug)
+          .maybeSingle();
 
-    if (!error && data) return data as EventDetail;
+        if (!error && data) return data as EventDetail;
 
-    // Resilient fallback if poster_url migration is not yet applied
-    const fallback = await createPublicClient()
-      .from("events")
-      .select("id,slug,title,category,format,registration_enabled,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,eligibility,group_min_size,group_max_size")
-      .eq("slug", slug)
-      .maybeSingle();
-    return fallback.data ? { ...fallback.data, poster_url: null } as EventDetail : null;
+        // Resilient fallback if poster_url migration is not yet applied
+        const fallback = await createPublicClient()
+          .from("events")
+          .select("id,slug,title,category,format,registration_enabled,summary,rules_markdown,venue,state,starts_at,ends_at,reporting_at,application_opens_at,application_closes_at,roster_lock_at,waitlist_enabled,application_capacity,application_questions,eligibility,group_min_size,group_max_size")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (fallback.error) throw new Error(fallback.error.message);
+        return fallback.data ? { ...fallback.data, poster_url: null } as EventDetail : null;
+      },
+    );
   } catch {
     return null;
   }
@@ -147,37 +166,45 @@ async function getEvent(slug: string): Promise<EventDetail | null> {
 async function getEventManagers(eventId: string, category: string): Promise<EventManagers> {
   if (!hasSupabaseConfiguration()) return { coordinators: [], heads: [] };
   try {
-    const admin = createAdminClient();
-    const [coordinatorResult, headResult] = await Promise.all([
-      admin.from("staff_assignments").select("profile_id").eq("event_id", eventId).eq("role", "event_coordinator").is("revoked_at", null),
-      admin.from("staff_assignments").select("profile_id").eq("event_category", category).eq("role", "event_head").is("revoked_at", null),
-    ]);
-    const assignments = [...(coordinatorResult.data ?? []), ...(headResult.data ?? [])];
-    const assignmentError = coordinatorResult.error ?? headResult.error;
+    return await coalesceCached(
+      `event-managers:${eventId}:${category}`,
+      [PUBLIC_CACHE_TAGS.eventDetail, programmeCacheTag],
+      60,
+      async () => {
+        const admin = createAdminClient();
+        const [coordinatorResult, headResult] = await Promise.all([
+          admin.from("staff_assignments").select("profile_id").eq("event_id", eventId).eq("role", "event_coordinator").is("revoked_at", null),
+          admin.from("staff_assignments").select("profile_id").eq("event_category", category).eq("role", "event_head").is("revoked_at", null),
+        ]);
+        const assignments = [...(coordinatorResult.data ?? []), ...(headResult.data ?? [])];
+        const assignmentError = coordinatorResult.error ?? headResult.error;
 
-    if (assignmentError || !assignments.length) return { coordinators: [], heads: [] };
-    const profileIds = [...new Set(assignments.map((assignment) => assignment.profile_id))];
-    const { data: profiles, error: profileError } = await admin
-      .from("profiles")
-      .select("id,full_name,batches(label)")
-      .in("id", profileIds)
-      .order("full_name");
+        if (assignmentError) throw new Error(assignmentError.message);
+        if (!assignments.length) return { coordinators: [], heads: [] };
+        const profileIds = [...new Set(assignments.map((assignment) => assignment.profile_id))];
+        const { data: profiles, error: profileError } = await admin
+          .from("profiles")
+          .select("id,full_name,batches(label)")
+          .in("id", profileIds)
+          .order("full_name");
 
-    if (profileError || !profiles) return { coordinators: [], heads: [] };
-    const managers = profiles.map((profile) => {
-      const batch = profile.batches as unknown as { label?: string | null } | null;
-      return {
-        profile_id: profile.id,
-        full_name: profile.full_name,
-        batch_label: batch?.label ?? null,
-      };
-    });
-    const coordinatorIds = new Set((coordinatorResult.data ?? []).map((assignment) => assignment.profile_id));
-    const headIds = new Set((headResult.data ?? []).map((assignment) => assignment.profile_id));
-    return {
-      coordinators: managers.filter((manager) => coordinatorIds.has(manager.profile_id)),
-      heads: managers.filter((manager) => headIds.has(manager.profile_id)),
-    };
+        if (profileError || !profiles) throw new Error(profileError?.message ?? "Profiles unavailable");
+        const managers = profiles.map((profile) => {
+          const batch = profile.batches as unknown as { label?: string | null } | null;
+          return {
+            profile_id: profile.id,
+            full_name: profile.full_name,
+            batch_label: batch?.label ?? null,
+          };
+        });
+        const coordinatorIds = new Set((coordinatorResult.data ?? []).map((assignment) => assignment.profile_id));
+        const headIds = new Set((headResult.data ?? []).map((assignment) => assignment.profile_id));
+        return {
+          coordinators: managers.filter((manager) => coordinatorIds.has(manager.profile_id)),
+          heads: managers.filter((manager) => headIds.has(manager.profile_id)),
+        };
+      },
+    );
   } catch {
     return { coordinators: [], heads: [] };
   }
@@ -186,33 +213,41 @@ async function getEventManagers(eventId: string, category: string): Promise<Even
 async function getPublicParticipants(eventId: string): Promise<PublicParticipant[]> {
   if (!hasSupabaseConfiguration()) return [];
   try {
-    const admin = createAdminClient();
-    const { data: applications, error: applicationError } = await admin
-      .from("applications")
-      .select("student_id")
-      .eq("event_id", eventId)
-      .eq("review_state", "approved")
-      .eq("selection_state", "selected");
+    return await coalesceCached(
+      `event-participants:${eventId}`,
+      [PUBLIC_CACHE_TAGS.eventDetail, programmeCacheTag],
+      30,
+      async () => {
+        const admin = createAdminClient();
+        const { data: applications, error: applicationError } = await admin
+          .from("applications")
+          .select("student_id")
+          .eq("event_id", eventId)
+          .eq("review_state", "approved")
+          .eq("selection_state", "selected");
 
-    if (applicationError || !applications?.length) return [];
-    const profileIds = [...new Set(applications.map((application) => application.student_id))];
-    const { data: profiles, error: profileError } = await admin
-      .from("profiles")
-      .select("id,full_name,participant_category,batches(label)")
-      .in("id", profileIds)
-      .order("full_name");
+        if (applicationError) throw new Error(applicationError.message);
+        if (!applications?.length) return [];
+        const profileIds = [...new Set(applications.map((application) => application.student_id))];
+        const { data: profiles, error: profileError } = await admin
+          .from("profiles")
+          .select("id,full_name,participant_category,batches(label)")
+          .in("id", profileIds)
+          .order("full_name");
 
-    if (profileError || !profiles) return [];
-    return profiles
-      .map((profile) => {
-        const batch = profile.batches as unknown as { label?: string | null } | null;
-        return {
-          profile_id: profile.id,
-          full_name: profile.full_name,
-          batch_label: batch?.label ?? profile.participant_category?.toUpperCase() ?? "Participant",
-        };
-      })
-      .sort((a, b) => a.batch_label.localeCompare(b.batch_label) || a.full_name.localeCompare(b.full_name));
+        if (profileError || !profiles) throw new Error(profileError?.message ?? "Participants unavailable");
+        return profiles
+          .map((profile) => {
+            const batch = profile.batches as unknown as { label?: string | null } | null;
+            return {
+              profile_id: profile.id,
+              full_name: profile.full_name,
+              batch_label: batch?.label ?? profile.participant_category?.toUpperCase() ?? "Participant",
+            };
+          })
+          .sort((a, b) => a.batch_label.localeCompare(b.batch_label) || a.full_name.localeCompare(b.full_name));
+      },
+    );
   } catch {
     return [];
   }
@@ -324,9 +359,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   let isAuthenticated = false;
   let clashWarning: string | null = null;
   try {
-    const client = await createRequestClient();
-    const { data: { user } } = await client.auth.getUser();
-    if (user) {
+    const cookieStore = await cookies();
+    if (cookieStore.getAll().some((c) => c.name.startsWith("sb-"))) {
+      const client = await createRequestClient();
+      const { data: { user } } = await client.auth.getUser();
+      if (user) {
       isAuthenticated = true;
       const [appResult, accessResult, profileResult, otherAppsResult] = await Promise.all([
         client.from("applications").select("id,review_state,selection_state").eq("event_id", event.id).eq("student_id", user.id).maybeSingle(),
@@ -353,6 +390,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         }
       }
     }
+    }
   } catch {
     // Public visitor — ignore
   }
@@ -361,6 +399,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   const division = event.eligibility?.division?.toLowerCase() ?? "open";
   const requiredProfileGender = division === "boys" ? "male" : division === "girls" ? "female" : null;
   const divisionTitle = division === "boys" ? "👦 Boys Division" : division === "girls" ? "👧 Girls Division" : "👥 Open / Mixed";
+  const performance = event.format === "group" && event.operating_method === "programme";
   const showFormatBadge = event.format.trim().toLowerCase() !== event.category.trim().toLowerCase();
 
   let dockStatus = "Applications open";
@@ -441,7 +480,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
               {divisionTitle}
             </span>}
             <span className="event-category-pill">{eventCategoryLabel(event.category)}</span>
-            {event.registration_enabled&&showFormatBadge && <span className="event-format-pill">{event.format}</span>}
+            {event.registration_enabled&&showFormatBadge && <span className="event-format-pill">{performance ? (event.group_min_size === 1 ? "Solo / duo / group" : "Performance") : event.format}</span>}
           </div>
           {event.registration_enabled&&<EventParticipantsDialog eventTitle={event.title} participants={publicParticipants} />}
         </div>
@@ -456,17 +495,19 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             <strong className="spec-val highlight-gold">{divisionTitle}</strong>
           </div>
           <div className="spec-card">
-            <span className="spec-label">Match Format</span>
+            <span className="spec-label">{performance ? "Participation format" : "Match Format"}</span>
             <strong className="spec-val">
               {event.slug === "football-boys-7v7"
                 ? "7v7 Playing on Pitch"
-                : event.eligibility?.match_format || event.format}
+                : performance ? (event.group_min_size === 1 ? "Solo / duo / group" : "Performance") : event.eligibility?.match_format || event.format}
             </strong>
           </div>
           <div className="spec-card">
-            <span className="spec-label">Squad Capacity</span>
+            <span className="spec-label">{performance ? "Performance size" : "Squad Capacity"}</span>
             <strong className="spec-val highlight-gold">
-              {event.slug === "football-boys-7v7"
+              {performance && event.group_min_size && event.group_max_size
+                ? `${event.group_min_size === event.group_max_size ? event.group_min_size : `${event.group_min_size}–${event.group_max_size}`} performers per performance`
+                : event.slug === "football-boys-7v7"
                 ? "10–11 Players (7 on pitch + 3–4 substitutes)"
                 : event.eligibility?.squad_details
                   ? event.eligibility.squad_details
@@ -585,7 +626,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
 
       <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Event updates</p><h2>{event.operating_method==="voting"?"Entries & public voting":"Schedule & official updates"}</h2><p>{event.operating_method==="voting"?"View approved work, submit your entry and vote during the announced window.":event.operating_method==="programme"?"Find the programme details and follow festival gallery updates.":"Check your event timings and published award positions."}</p><Link href={event.operating_method==="voting"?`/competition/${event.id}`:"/schedule"}>{event.operating_method==="voting"?"Open entries & voting →":"View schedule →"}</Link>{event.operating_method==="programme"&&<Link href="/gallery">Open gallery →</Link>}</div></section>
       {event.registration_enabled&&event.format === "pair" && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Choose your partner</p><h2>Pair up by invitation.</h2><p>Both partners must agree. Complete your registration while inviting or accepting, then await coordinator approval.</p><Link href={`/my-fest/teams?event=${event.id}`}>Invite partner / View invitations →</Link></div></section>}
-      {(event.registration_enabled&&["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">Your squad</p><p>Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster.</p><Link href={`/my-fest/teams?event=${event.id}`}>My team / Leader workspace →</Link></div></section>}
+      {(event.registration_enabled&&["sport", "group"].includes(event.format)) && <section className="event-managed-by"><div className="event-managed-by-heading"><p className="eyebrow">{performance ? "Your performance" : "Your squad"}</p><p>{performance ? "Every performer registers individually. After approval, the coordinator appoints a performance lead, who proposes the performance name and members for final roster approval. Solo performers select only themselves. Each student can join one final performance per event. Stage results are not published in the app." : "Register to be considered. The appointed captain or group leader proposes members; the coordinator confirms the final roster."}</p><Link href={`/my-fest/teams?event=${event.id}`}>{performance ? "My performance / Lead workspace \u2192" : "My team / Leader workspace \u2192"}</Link></div></section>}
       {event.registration_enabled&&<EventRegistrationDock
         eventTitle={event.title}
         status={dockStatus}

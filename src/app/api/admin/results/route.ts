@@ -1,8 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { resultSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -135,6 +137,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unable to publish results right now." }, { status: 503, headers });
     }
 
+    invalidatePublicTags(
+      PUBLIC_CACHE_TAGS.feed,
+      PUBLIC_CACHE_TAGS.home,
+      PUBLIC_CACHE_TAGS.notifications,
+      PUBLIC_CACHE_TAGS.eventDetail,
+    );
+    revalidatePath("/standings");
+    revalidatePath("/feed");
     return NextResponse.json({ ok: true, data }, { headers });
   }
 

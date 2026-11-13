@@ -12,6 +12,7 @@ export async function verifyTeamWorkflows() {
     return client;
   }
   const [owner, one, two, three, four, coordinator, editor, inactive] = await Promise.all([login("91","2023"),login("1"),login("2"),login("3"),login("4"),login("95","2023"),login("100","2023"),login("99","2023")]);
+  const extraPerformers = await Promise.all(["5","6","7","8"].map(roll => login(roll)).concat(["1","2","3","4","5","6","7"].map(roll => login(roll,"2022"))));
   const users = await Promise.all([one,two,three,four].map(async c => (await c.auth.getUser()).data.user!.id));
   const { data: edition } = await admin.from("editions").select("id").single();
   const batchId=(await admin.from("profiles").select("batch_id").eq("id",users[0]).single()).data!.batch_id;
@@ -62,6 +63,39 @@ export async function verifyTeamWorkflows() {
     const ga=await one.rpc("apply_to_event",{p_event_id:groupEvent,p_idempotency_key:randomUUID(),p_answers:{position:"B"}});failIfError(ga.error,"Group registration");
     failIfError((await owner.rpc("review_application",{p_application_id:ga.data.id,p_state:"approved",p_reason:null})).error,"Approve group leader");
     failIfError((await team(owner,groupEvent,null,"appoint",{leaderApplicationId:ga.data.id})).error,"Appoint group leader");
+    // One mixed-size stage event reuses the group workflow, including single-member rosters.
+    const performanceEvent = await event("group");
+    failIfError((await admin.from("events").update({operating_method:"programme",group_min_size:1,group_max_size:8,batch_restricted:false}).eq("id",performanceEvent)).error,"Configure stage performances");
+    const performers = [one,two,three,four,...extraPerformers];
+    const performanceApps: string[] = [];
+    for (const performer of performers) {
+      const applied = await performer.rpc("apply_to_event",{p_event_id:performanceEvent,p_idempotency_key:randomUUID(),p_answers:{position:"A"}});
+      failIfError(applied.error,"Register performer"); performanceApps.push(applied.data.id);
+    }
+    for (const id of performanceApps.slice(0,-1)) failIfError((await owner.rpc("review_application",{p_application_id:id,p_state:"approved",p_reason:null})).error,"Approve performer");
+    const first = await team(owner,performanceEvent,null,"appoint",{leaderApplicationId:performanceApps[0]}); failIfError(first.error,"Appoint solo performance lead");
+    assert.equal((await team(one,performanceEvent,first.data.id,"save",{version:first.data.roster_version,name:"Unapproved member",applicationIds:[performanceApps[0],performanceApps.at(-1)]})).error?.code,"22023");
+    failIfError((await owner.rpc("review_application",{p_application_id:performanceApps.at(-1),p_state:"approved",p_reason:null})).error,"Approve remaining performer");
+    let offset = 0;
+    for (const size of [1,2,3,8]) {
+      const appointed = offset === 0 ? first : await team(owner,performanceEvent,null,"appoint",{leaderApplicationId:performanceApps[offset]}); failIfError(appointed.error,"Appoint performance lead");
+      let roster = appointed.data;
+      if (size === 8) assert.equal((await team(performers[offset],performanceEvent,roster.id,"save",{version:roster.roster_version,name:"Too many performers",applicationIds:performanceApps.slice(6,15)})).error?.code,"22023","Nine performers rejected");
+      const saved = await team(performers[offset],performanceEvent,roster.id,"save",{version:roster.roster_version,name:`Performance ${size}`,applicationIds:performanceApps.slice(offset,offset+size)}); failIfError(saved.error,"Save performance"); roster=saved.data;
+      const submitted = await team(performers[offset],performanceEvent,roster.id,"submit",{version:roster.roster_version}); failIfError(submitted.error,"Submit performance");
+      const published = await team(owner,performanceEvent,roster.id,"publish",{version:submitted.data.roster_version}); failIfError(published.error,"Publish performance roster");
+      assert.equal(published.data.state,"published");
+      assert.equal((await admin.from("group_memberships").select("*",{head:true,count:"exact"}).eq("group_id",roster.id).is("removed_at",null)).count,size);
+      offset += size;
+    }
+    const conflict = await team(owner,performanceEvent,null,"appoint",{leaderApplicationId:performanceApps[14]}); failIfError(conflict.error,"Appoint duplicate-membership probe lead");
+    const conflictingSave = await team(performers[14],performanceEvent,conflict.data.id,"save",{version:conflict.data.roster_version,name:"Conflicting performance",applicationIds:[performanceApps[14],performanceApps[0]]}); failIfError(conflictingSave.error,"Draft membership does not reserve performers");
+    const conflictingSubmit = await team(performers[14],performanceEvent,conflict.data.id,"submit",{version:conflictingSave.data.roster_version}); failIfError(conflictingSubmit.error,"Submit conflicting draft");
+    assert.equal((await team(owner,performanceEvent,conflict.data.id,"publish",{version:conflictingSubmit.data.roster_version})).error?.code,"22023","One final performance per student");
+    const stageResults = await owner.rpc("publish_unified_results",{p_event_id:performanceEvent,p_positions:[]});
+    assert.equal(stageResults.error?.code,"22023"); assert.match(stageResults.error!.message,/without official results/);
+    failIfError((await admin.from("events").update({roster_lock_at:"2026-01-01T00:00:00Z"}).eq("id",performanceEvent)).error,"Lock performance roster");
+    assert.equal((await team(performers[14],performanceEvent,conflict.data.id,"save",{version:conflictingSubmit.data.roster_version,name:"Locked",applicationIds:[performanceApps[14]]})).error?.code,"22023");
     assert.equal((await pair(one,pairs,"invite",null,users[1])).error?.code,"22023","Required questions cannot be skipped");
     assert.equal((await admin.from("applications").select("*",{head:true,count:"exact"}).eq("event_id",pairs)).count,0,"Failed invite registration is atomic");
     const inv=await pair(one,pairs,"invite",null,users[1],{position:"A"});failIfError(inv.error,"Invite intended partner");
@@ -97,6 +131,6 @@ export async function verifyTeamWorkflows() {
     console.log("Team/pair QA passed: captain-only initial roster, staff corrections, privacy, consent, automatic registration, concurrency, exclusivity, withdrawal guards, locks and legacy bypass denial.");
   } finally {
     for(const id of probeIds.reverse())failIfError((await owner.rpc("delete_owned_event",{p_event_id:id})).error,"Clean up team workflow probe");
-    await Promise.all([owner,one,two,three,four,coordinator,editor,inactive].map(c=>c.auth.signOut({scope:"local"})));
+    await Promise.all([owner,one,two,three,four,coordinator,editor,inactive,...extraPerformers].map(c=>c.auth.signOut({scope:"local"})));
   }
 }

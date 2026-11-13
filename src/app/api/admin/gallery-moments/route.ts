@@ -1,8 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { galleryMomentIdPattern, isWebpUpload, validateGalleryMomentDetails } from "@/lib/gallery";
 import { hasSupabaseConfiguration } from "@/server/env";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 import { archiveMedia,storePublicMedia } from "@/server/media/storage";
 
 export const runtime = "nodejs";
@@ -64,6 +66,9 @@ export async function POST(request: Request) {
     const status = createError.code === "42501" ? 403 : createError.code === "22023" ? 400 : 503;
     return NextResponse.json({ error: status === 403 ? "You are not authorised to publish this moment." : "Unable to publish this moment." }, { status, headers: noStore });
   }
+  invalidatePublicTags(PUBLIC_CACHE_TAGS.gallery, PUBLIC_CACHE_TAGS.feed);
+  revalidatePath("/gallery");
+  revalidatePath("/feed");
   return NextResponse.json({ ok: true, id: momentId }, { headers: noStore });
 }
 
@@ -78,6 +83,9 @@ export async function PATCH(request: Request) {
   if (!galleryMomentIdPattern.test(momentId) || !details) return NextResponse.json({ error: "Provide valid moment details." }, { status: 400, headers: noStore });
   const { error } = await client.rpc("update_gallery_moment", { p_moment_id: momentId, p_event_id: details.eventId, p_caption: details.caption, p_occurred_at: details.occurredAt });
   if (error) return NextResponse.json({ error: error.code === "42501" ? "You cannot edit this moment." : "Unable to update this moment." }, { status: error.code === "42501" ? 403 : 400, headers: noStore });
+  invalidatePublicTags(PUBLIC_CACHE_TAGS.gallery, PUBLIC_CACHE_TAGS.feed);
+  revalidatePath("/gallery");
+  revalidatePath("/feed");
   return NextResponse.json({ ok: true }, { headers: noStore });
 }
 
@@ -92,5 +100,8 @@ export async function DELETE(request: Request) {
   const { data: storagePath, error } = await client.rpc("archive_gallery_moment", { p_moment_id: momentId });
   if (error || typeof storagePath !== "string") return NextResponse.json({ error: error?.code === "42501" ? "You cannot delete this moment." : "Unable to delete this moment." }, { status: error?.code === "42501" ? 403 : 400, headers: noStore });
   const { error: removeError } = await archiveMedia([storagePath]);
+  invalidatePublicTags(PUBLIC_CACHE_TAGS.gallery, PUBLIC_CACHE_TAGS.feed);
+  revalidatePath("/gallery");
+  revalidatePath("/feed");
   return NextResponse.json({ ok: true, cleanupPending: Boolean(removeError) }, { headers: noStore });
 }

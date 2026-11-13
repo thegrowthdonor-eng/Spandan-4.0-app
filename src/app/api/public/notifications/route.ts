@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { coalesceCached, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { createPublicClient } from "@/server/supabase/public";
 
 export const runtime = "nodejs";
@@ -16,29 +18,7 @@ export type FestivalNotification = {
   timestamp: string; // ISO string
 };
 
-let cachedNotifications: {
-  payload: { ok: boolean; items: FestivalNotification[]; timestamp: string };
-  expiresAt: number;
-} | null = null;
-
-const CACHE_TTL_MS = 20_000; // 20 seconds cache
-
-export async function GET() {
-  if (!hasPublicSupabaseConfiguration()) {
-    return NextResponse.json({ ok: false, items: [], message: "Service unavailable" }, { status: 503 });
-  }
-
-  const nowMs = Date.now();
-  if (cachedNotifications && nowMs < cachedNotifications.expiresAt) {
-    return NextResponse.json(cachedNotifications.payload, {
-      headers: {
-        "Cache-Control": "public, s-maxage=20, stale-while-revalidate=40",
-        "X-Cache": "HIT",
-      },
-    });
-  }
-
-  try {
+async function loadNotifications() {
     const client = createPublicClient();
 
     const [noticesRes, resultsRes, eventsRes, fixturesRes] = await Promise.all([
@@ -205,27 +185,35 @@ export async function GET() {
     // Sort all by timestamp descending (newest first)
     items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-    const payload = {
+    return {
       ok: true,
       items: items.slice(0, 24),
       timestamp: new Date().toISOString(),
     };
+}
 
-    cachedNotifications = {
-      payload,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    };
+export async function GET() {
+  if (!hasPublicSupabaseConfiguration()) {
+    return NextResponse.json({ ok: false, items: [], message: "Service unavailable" }, { status: 503 });
+  }
+
+  try {
+    const payload = await coalesceCached(
+      "public-notifications",
+      [PUBLIC_CACHE_TAGS.notifications, PUBLIC_CACHE_TAGS.feed, programmeCacheTag],
+      20,
+      loadNotifications,
+    );
 
     return NextResponse.json(payload, {
       headers: {
         "Cache-Control": "public, s-maxage=20, stale-while-revalidate=40",
-        "X-Cache": "MISS",
       },
     });
   } catch (error) {
     return NextResponse.json(
       { ok: false, items: [], message: error instanceof Error ? error.message : "Failed to load notifications" },
-      { status: 500 }
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

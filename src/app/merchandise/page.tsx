@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { FestTopNav } from "@/components/spandan-branding";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { coalesceCached, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 import { createPublicClient } from "@/server/supabase/public";
 import "../public-info.css";
+
+export const revalidate = 120;
 
 export const metadata = {
   title: "Official Merchandise — Spandan 4.0 | ASMC Firozabad",
@@ -25,12 +28,18 @@ export default async function MerchandisePage() {
   let items: Merchandise[] = [];
   let unavailable = !hasPublicSupabaseConfiguration();
   if (!unavailable) {
-    const { data, error } = await createPublicClient()
-      .from("merchandise_items")
-      .select("id,name,description,image_url,image_alt,sizes,availability_note,collection_note,contact_note")
-      .order("created_at");
-    unavailable = Boolean(error);
-    items = (data ?? []) as Merchandise[];
+    try {
+      items = await coalesceCached("public-merchandise", [PUBLIC_CACHE_TAGS.merchandise], 120, async () => {
+        const { data, error } = await createPublicClient()
+          .from("merchandise_items")
+          .select("id,name,description,image_url,image_alt,sizes,availability_note,collection_note,contact_note")
+          .order("created_at");
+        if (error) throw new Error(error.message);
+        return (data ?? []) as Merchandise[];
+      });
+    } catch {
+      unavailable = true;
+    }
   }
 
   return <main className="public-page">

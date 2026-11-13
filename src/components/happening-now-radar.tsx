@@ -14,7 +14,7 @@ export function HappeningNowRadar() {
   const [now, setNow] = useState(0);
   useEffect(() => {
     const load = async () => {
-      try { const response = await fetch("/api/public/live"); if (response.ok) { setData(await response.json() as LiveGroundPayload); setNow(Date.now()); } } catch { /* retain the last successful update */ }
+      try { const response = await fetch("/api/public/live", { credentials: "omit" }); if (response.ok) { setData(await response.json() as LiveGroundPayload); setNow(Date.now()); } } catch { /* retain the last successful update */ }
     };
     void load();
     const timer = setInterval(() => { if (document.visibilityState === "visible") void load(); }, 60_000);

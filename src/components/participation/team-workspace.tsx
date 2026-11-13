@@ -16,7 +16,8 @@ export function TeamWorkspace({ data, participantView = false }: { data: TeamWor
   const [message, setMessage] = useState("");
   const [leader, setLeader] = useState("");
   const [batchId, setBatchId] = useState("");
-  const tools = participationTools(data.format);
+  const tools = participationTools(data.format, data.operatingMethod);
+  const performance = tools?.noun === "performances";
   const command: Command = async body => {
     if (pending) return false;
     setPending(true); setMessage("");
@@ -32,7 +33,7 @@ export function TeamWorkspace({ data, participantView = false }: { data: TeamWor
     {data.locked && <p className="team-status">This roster is locked. You can view it, but no changes can be made.</p>}
     <p className="team-status" role="status" aria-live="polite">{message}</p>
     {data.staff && tools?.leader && !data.locked && <section className="team-panel">
-      <p className="team-eyebrow">Start with a leader</p><h2>Appoint {tools.leader === "Captain" ? "a captain" : "a group leader"}</h2>
+      <p className="team-eyebrow">Start with a leader</p><h2>Appoint {tools.leader === "Captain" ? "a captain" : performance ? "a performance lead" : "a group leader"}</h2>
       <p>The appointed student chooses the name and initial members in My Fest. You review and edit their proposal afterwards.</p>
       <form onSubmit={e => { e.preventDefault(); void command({ action: "appoint", eventId: data.eventId, groupId: null, leaderApplicationId: leader, batchId:data.format==="sport"?batchId:null }); }}>
         {data.format==="sport"&&<label>Team batch<select required value={batchId} onChange={e=>{setBatchId(e.target.value);setLeader("");}} disabled={pending}><option value="">Select batch first</option>{data.batches.map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>}
@@ -44,10 +45,10 @@ export function TeamWorkspace({ data, participantView = false }: { data: TeamWor
     {data.format === "pair" && (!data.staff || participantView) && <PairInvitations key={JSON.stringify(data.invitations) + data.registered} data={data} command={command} pending={pending} />}
     <section className="team-section" aria-label={tools?.label ?? "Participation"}>
       <h2>{data.staff ? "Event " : "My "}{tools?.noun ?? "participation"}</h2>
-      {!data.groups.length && <div className="team-panel"><h3>{data.format === "pair" ? "No confirmed pairs yet" : "No squad yet"}</h3><p>{data.format === "pair" ? "A pair appears here after the invited partner accepts. Both registrations must be approved before publication." : data.staff ? "Appoint a captain or group leader above. Their proposal will appear here." : "Your coordinator will appoint a captain or group leader. Register for the event to be considered."}</p></div>}
+      {!data.groups.length && <div className="team-panel"><h3>{data.format === "pair" ? "No confirmed pairs yet" : performance ? "No performances yet" : "No squad yet"}</h3><p>{data.format === "pair" ? "A pair appears here after the invited partner accepts. Both registrations must be approved before publication." : performance ? "Register individually, then your coordinator appoints a performance lead. The lead proposes the name and members for approval. For a solo entry, select only yourself." : data.staff ? "Appoint a captain or group leader above. Their proposal will appear here." : "Your coordinator will appoint a captain or group leader. Register for the event to be considered."}</p></div>}
       {data.groups.map(group => <SquadCard key={`${group.id}:${group.version}`} group={group} data={data} command={command} pending={pending} />)}
     </section>
-    <p className="team-footnote">{data.format === "pair" ? "Pending invitations never reserve a partner. Only one mutually confirmed pair is allowed per event." : "Squad proposals do not reserve players. Only the coordinator-published roster is final."}</p>
+    <p className="team-footnote">{data.format === "pair" ? "Pending invitations never reserve a partner. Only one mutually confirmed pair is allowed per event." : performance ? "Each student can join one final performance per event. Only the coordinator-approved roster is final; this does not publish stage results." : "Squad proposals do not reserve players. Only the coordinator-published roster is final."}</p>
   </div>;
 }
 
@@ -55,7 +56,8 @@ function SquadCard({ group, data, command, pending }: { group: Squad; data: Team
   const [editing, setEditing] = useState(false);
   const [reason, setReason] = useState("");
   const [replacement, setReplacement] = useState("");
-  const tools = participationTools(data.format);
+  const tools = participationTools(data.format, data.operatingMethod);
+  const performance = tools?.noun === "performances";
   const ownLeader = group.captainId === data.userId;
   const editable = !data.locked && tools?.leader && ((ownLeader && group.state === "draft" && group.proposalState !== "submitted") || (data.staff && group.ready));
   const leader = [...group.members, ...data.candidates].find(m => m.studentId === group.captainId);
@@ -72,7 +74,7 @@ function SquadCard({ group, data, command, pending }: { group: Squad; data: Team
     {ownLeader && !data.staff && !data.locked && group.ready && group.state === "draft" && group.proposalState !== "submitted" && <button type="button" disabled={pending} onClick={() => void command({ action: "submit", eventId: data.eventId, groupId: group.id, version: group.version })}>Submit for coordinator approval</button>}
     {ownLeader && data.staff && !data.locked && group.ready && group.state === "draft" && group.proposalState !== "submitted" && <button type="button" disabled={pending} onClick={() => void command({ action: "submit", eventId: data.eventId, groupId: group.id, version: group.version })}>Submit leader proposal</button>}
     {data.staff && !data.locked && <>
-      {group.proposalState === "submitted" && group.state === "draft" && <button type="button" disabled={pending} onClick={() => { if (confirm(`Publish ${group.name} as the official roster?`)) void command({ action: "publish", eventId: data.eventId, groupId: group.id, version: group.version }); }}>Approve & publish {tools?.noun === "pairs" ? "pair" : "roster"}</button>}
+      {group.proposalState === "submitted" && group.state === "draft" && <button type="button" disabled={pending} onClick={() => { if (confirm(`Publish ${group.name} as the official roster?`)) void command({ action: "publish", eventId: data.eventId, groupId: group.id, version: group.version }); }}>Approve & publish {tools?.noun === "pairs" ? "pair" : performance ? "performance roster" : "roster"}</button>}
       {(group.ready || !group.captainId) && <details className="team-review"><summary>Review & correction options</summary>
         <label>Reason / instructions<textarea value={reason} onChange={e => setReason(e.target.value)} maxLength={500} disabled={pending} /></label>
         {group.state === "draft" && group.ready && <button type="button" className="team-secondary" disabled={pending || !reason.trim()} onClick={() => void command({ action: "return", eventId: data.eventId, groupId: group.id, version: group.version, reason })}>{data.format === "pair" ? "Add review instructions" : "Return with instructions"}</button>}
@@ -84,6 +86,7 @@ function SquadCard({ group, data, command, pending }: { group: Squad; data: Team
 }
 
 function SquadEditor({ group, data, command, pending }: { group: Squad; data: TeamWorkspaceData; command: Command; pending: boolean }) {
+  const performance = data.format === "group" && data.operatingMethod === "programme";
   const [name, setName] = useState(group.ready ? group.name : "");
   const [selected, setSelected] = useState(group.members.length ? group.members.map(m => m.applicationId) : data.candidates.filter(m => m.studentId === group.captainId).map(m => m.applicationId));
   const [query, setQuery] = useState("");
@@ -91,15 +94,16 @@ function SquadEditor({ group, data, command, pending }: { group: Squad; data: Te
   const members = [...new Map([...data.candidates, ...group.members].map(m => [m.applicationId, m])).values()].filter(m => !data.batchRestricted || m.batchId === group.batchId);
   const visible = members.filter(m => identity(m).toLowerCase().includes(query.toLowerCase()));
   return <form className="team-editor" onSubmit={e => { e.preventDefault(); void command({ action: "save", eventId: data.eventId, groupId: group.id, version: group.version, name, applicationIds: selected, reason }); }}>
-    <label>{data.format === "group" ? "Group" : "Team"} name<input value={name} required maxLength={160} disabled={pending} onChange={e => setName(e.target.value)} placeholder="Choose your official name" /></label>
+    <label>{performance ? "Performance" : data.format === "group" ? "Group" : "Team"} name<input value={name} required maxLength={160} disabled={pending} onChange={e => setName(e.target.value)} placeholder="Choose your official name" /></label>
     <p>{selected.length} selected · {data.minSize}–{data.maxSize} members{data.batchRestricted ? " · Same batch" : ""}</p>
     <label>Find approved event participants<input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Name, roll or batch" /></label>
     <fieldset className="team-candidates"><legend>Proposed members</legend>{visible.slice(0,100).map(m => <label key={m.applicationId} className="team-check"><input type="checkbox" checked={selected.includes(m.applicationId)} disabled={pending || m.studentId === group.captainId} onChange={() => setSelected(ids => ids.includes(m.applicationId) ? ids.filter(id => id !== m.applicationId) : [...ids,m.applicationId])} /><span><strong>{m.fullName}</strong><small>{m.roll ? `Roll ${m.roll} · ` : ""}{m.batchLabel ?? "Participant"}{m.studentId === group.captainId ? " · Appointed leader" : ""}</small></span></label>)}</fieldset>
     {visible.length > 100 && <p>Showing 100 matches. Narrow your search.</p>}
-    {!visible.length && <p>No matching approved participants. Missing players must register and complete event review first.</p>}
+    {performance && <p>For solo, keep only yourself selected. For duo or group, include all performers within the event size limits.</p>}
+    {!visible.length && <p>No matching approved participants. Missing participants must register and complete event review first.</p>}
     {group.state === "published" && <label>Correction reason<textarea required maxLength={500} value={reason} onChange={e => setReason(e.target.value)} disabled={pending} /></label>}
     <button type="submit" disabled={pending || !selected.length || selected.length > data.maxSize}>{pending ? "Saving…" : group.state === "published" ? "Save official roster correction" : "Save proposal"}</button>
-    <p className="team-footnote">Missing a player? Share the event registration link. Nobody can answer registration questions on another student&apos;s behalf.</p>
+    <p className="team-footnote">Missing a participant? Share the event registration link. Nobody can answer registration questions on another student&apos;s behalf.</p>
   </form>;
 }
 

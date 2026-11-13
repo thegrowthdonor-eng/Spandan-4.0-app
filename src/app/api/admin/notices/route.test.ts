@@ -83,7 +83,10 @@ function loadNoticeRoute({
       },
     },
     "next/headers": { cookies: async () => ({ getAll: () => [] }) },
-    "next/cache": { revalidatePath: (path: string) => revalidated.push(path) },
+    "next/cache": {
+      revalidatePath: (path: string) => revalidated.push(path),
+      revalidateTag: () => {},
+    },
     "@supabase/ssr": {
       createServerClient: () => ({
         auth: { getUser: async () => ({ data: { user: signedIn ? { id: "admin-1" } : null } }) },

@@ -1,5 +1,6 @@
 import "server-only";
 import type { User } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 import { cache } from "react";
 import { createRequestClient } from "@/server/supabase/server";
 
@@ -10,6 +11,11 @@ export type ActiveSession = {
 
 /** A Supabase identity is not app access until the Treasurer activates it. */
 export const getActiveSession = cache(async (): Promise<ActiveSession | null> => {
+  const store = await cookies();
+  if (!store.getAll().some((cookie) => cookie.name.startsWith("sb-"))) {
+    return null;
+  }
+
   const client = await createRequestClient();
   const { data: auth } = await client.auth.getUser();
   if (!auth.user) return null;

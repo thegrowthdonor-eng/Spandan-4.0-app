@@ -10,3 +10,12 @@ test("participation tools never offer captains for solo or pair events", () => {
   assert.equal(participationTools("sport")?.leader, "Captain");
   assert.equal(participationTools(undefined), null);
 });
+
+test("only programme groups use performance wording, including solo-sized entries", () => {
+  assert.deepEqual(participationTools("group", "programme"), {
+    href: "/admin/groups", label: "Performances", noun: "performances", leader: "Performance lead",
+  });
+  assert.equal(participationTools("group", "results_only")?.label, "Groups");
+  assert.equal(participationTools("sport", "programme")?.leader, "Captain");
+  assert.equal(participationTools("pair", "programme")?.label, "Pairs");
+});

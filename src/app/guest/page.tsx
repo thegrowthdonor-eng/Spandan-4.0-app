@@ -8,8 +8,6 @@ export const metadata = {
   description: "Public schedules, verified results, standings and campus circulars for Spandan 4.0 guests.",
 };
 
-export const dynamic = "force-dynamic";
-
 const destinations = [
   { href: "/schedule", title: "Programme schedule", detail: "Daily timings, venues and reporting calls.", path: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" },
   { href: "/standings", title: "Results & standings", detail: "Verified winners and the batch leaderboard.", path: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.45 1-1 1H8c-.55 0-1 .45-1 1v1h10v-1c0-.55-.45-1-1-1h-1c-.55 0-1-.45-1-1v-2.34M18 4H6v7a6 6 0 0 0 12 0V4Z" },

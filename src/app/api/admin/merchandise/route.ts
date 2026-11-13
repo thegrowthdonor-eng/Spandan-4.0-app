@@ -1,8 +1,10 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { createRequestClient } from "@/server/supabase/server";
 import { createAdminClient } from "@/server/supabase/admin";
 import { merchandiseItemSchema } from "@/server/promotional-contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store" };
@@ -70,6 +72,8 @@ export async function POST(request: Request) {
       object_id: payload.id,
     });
 
+    invalidatePublicTags(PUBLIC_CACHE_TAGS.merchandise);
+    revalidatePath("/merchandise");
     return NextResponse.json({ ok: true }, { headers });
   }
 
@@ -130,6 +134,8 @@ export async function POST(request: Request) {
       change_summary: { name: itemData.name, state: itemData.state },
     });
 
+    invalidatePublicTags(PUBLIC_CACHE_TAGS.merchandise);
+    revalidatePath("/merchandise");
     return NextResponse.json({ ok: true, item: data }, { headers });
   } else {
     // Insert
@@ -164,6 +170,8 @@ export async function POST(request: Request) {
       change_summary: { name: itemData.name, state: itemData.state },
     });
 
+    invalidatePublicTags(PUBLIC_CACHE_TAGS.merchandise);
+    revalidatePath("/merchandise");
     return NextResponse.json({ ok: true, item: data }, { headers });
   }
 }

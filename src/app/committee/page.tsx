@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { FestTopNav } from "@/components/spandan-branding";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { coalesceCached, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 import { createPublicClient } from "@/server/supabase/public";
 import styles from "./committee.module.css";
 import "../public-info.css";
+
+export const revalidate = 300;
 
 export const metadata = {
   title: "Festival Council — Spandan 4.0 | ASMC Firozabad",
@@ -55,8 +58,13 @@ function LeadershipCard({ person, featured = false }: { person: Leader; featured
 export default async function CommitteePage() {
   let directory: CouncilDirectory | null = null;
   if (hasPublicSupabaseConfiguration()) {
-    const { data, error } = await createPublicClient().rpc("get_public_council_directory");
-    if (!error && data && typeof data === "object") directory = data as CouncilDirectory;
+    try {
+      directory = await coalesceCached("public-committee-directory", [PUBLIC_CACHE_TAGS.committee], 300, async () => {
+        const { data, error } = await createPublicClient().rpc("get_public_council_directory");
+        if (error) throw new Error(error.message);
+        return data && typeof data === "object" ? (data as CouncilDirectory) : null;
+      });
+    } catch { /* fallback preview below */ }
   }
 
   // Production reads the council tables only. This verified development preview

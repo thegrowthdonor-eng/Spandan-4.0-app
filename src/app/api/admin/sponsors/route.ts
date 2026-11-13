@@ -1,8 +1,10 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { createRequestClient } from "@/server/supabase/server";
 import { createAdminClient } from "@/server/supabase/admin";
 import { sponsorItemSchema } from "@/server/promotional-contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "no-store" };
@@ -71,6 +73,8 @@ export async function POST(request: Request) {
       object_id: payload.id,
     });
 
+    invalidatePublicTags(PUBLIC_CACHE_TAGS.sponsors);
+    revalidatePath("/sponsors");
     return NextResponse.json({ ok: true }, { headers });
   }
 
@@ -131,6 +135,8 @@ export async function POST(request: Request) {
       change_summary: { name: sponsorData.name, tier: sponsorData.tier, state: sponsorData.state },
     });
 
+    invalidatePublicTags(PUBLIC_CACHE_TAGS.sponsors);
+    revalidatePath("/sponsors");
     return NextResponse.json({ ok: true, sponsor: data }, { headers });
   } else {
     // Insert
@@ -165,6 +171,8 @@ export async function POST(request: Request) {
       change_summary: { name: sponsorData.name, tier: sponsorData.tier, state: sponsorData.state },
     });
 
+    invalidatePublicTags(PUBLIC_CACHE_TAGS.sponsors);
+    revalidatePath("/sponsors");
     return NextResponse.json({ ok: true, sponsor: data }, { headers });
   }
 }

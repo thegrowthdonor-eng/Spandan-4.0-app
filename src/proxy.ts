@@ -75,9 +75,20 @@ export async function proxy(request: NextRequest) {
   }
 
   // 3. Normal session handling
-  // Shared public feeds must never refresh user cookies or turn CDN reads into private responses.
+  // Shared public feeds and guests without auth cookies must never touch Supabase or private-vary CDN reads.
   if (pathname.startsWith("/api/public/")) return NextResponse.next({ request });
   if (!hasPublicSupabaseConfiguration()) return NextResponse.next({ request });
+
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
+  const existingUiNav = request.cookies.get("spandan_ui_nav")?.value;
+  if (!hasAuthCookie) {
+    if (existingUiNav) {
+      const cleaned = NextResponse.next({ request });
+      cleaned.cookies.delete("spandan_ui_nav");
+      return cleaned;
+    }
+    return NextResponse.next({ request });
+  }
 
   let response = NextResponse.next({ request });
   const client = createServerClient(
@@ -103,10 +114,23 @@ export async function proxy(request: NextRequest) {
   );
 
   // Refresh and validate the cookie-backed session before Server Components run.
-  await client.auth.getClaims();
+  const { data } = await client.auth.getClaims();
+  if (data?.claims && existingUiNav !== "member" && existingUiNav !== "staff") {
+    const { data: canManage, error } = await client.rpc("can_use_management");
+    if (error) return response;
+    response.cookies.set("spandan_ui_nav", canManage === true ? "staff" : "member", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: false,
+    });
+  } else if (!data?.claims && existingUiNav) {
+    response.cookies.delete("spandan_ui_nav");
+  }
   return response;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest\\.webmanifest|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

@@ -20,7 +20,7 @@ export function ManagementEvents({events,editableIds=[],editing=false}:{events:W
       {!editing&&<p>{event.pending??0} pending requests · {event.format==="solo"?"Individual":event.format==="pair"?"Pair":event.format==="group"?"Group":"Team"} participation</p>}
       <div className="portal-event-actions">{editing?<Link href={"/admin/events?event="+event.id}>Edit event →</Link>:<>
         <Link href={"/admin/review?event="+event.id}>Participants →</Link>
-        {participationTools(event.format) && <Link href={participationTools(event.format)!.href+"?event="+event.id}>{participationTools(event.format)!.label}</Link>}
+        {participationTools(event.format, event.operating_method) && <Link href={participationTools(event.format, event.operating_method)!.href+"?event="+event.id}>{participationTools(event.format, event.operating_method)!.label}</Link>}
         {eventMethod(event)==="live_matches"&&<Link href={"/admin/scoring?event="+event.id}>Live scoring</Link>}
         {["live_matches","fixtures_only"].includes(eventMethod(event))&&<Link href={"/admin/fixtures?event="+event.id}>Fixtures</Link>}
         {eventMethod(event)==="voting"&&<Link href={"/admin/fixtures?event="+event.id}>Entries & voting</Link>}

@@ -5,33 +5,47 @@ import { buildFestivalFeed, type FeedMoment, type FeedNotice } from "@/lib/feed"
 import { getPublishedResults } from "@/lib/published-results";
 import type { Standing } from "@/lib/results";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { coalesceCached, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { createPublicClient } from "@/server/supabase/public";
 import { mediaUrls } from "@/server/media/urls";
 import "../public-info.css";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30;
 
 type GalleryRow = Omit<FeedMoment, "imageUrl">;
 type NoticeRow = Omit<FeedNotice, "event_title"> & { events: { title: string }[] | null };
+
+async function loadPublicFeed() {
+  const client = createPublicClient();
+  const [results, standingsResponse, momentsResponse, noticesResponse] = await Promise.all([
+    getPublishedResults(client),
+    client.from("published_batch_standing_board").select("batch_id,label,course_label,points").order("points", { ascending: false }).order("label"),
+    client.rpc("get_published_gallery_moments"),
+    client.from("notices").select("id,title,body,urgency,publish_at,events(title)").order("publish_at", { ascending: false }),
+  ]);
+  const imageUrl = await mediaUrls(((momentsResponse.data ?? []) as GalleryRow[]).map((row) => row.storage_path));
+  const moments = ((momentsResponse.data ?? []) as GalleryRow[]).map((moment) => ({
+    ...moment,
+    imageUrl: imageUrl(moment.storage_path),
+  }));
+  const notices = ((noticesResponse.data ?? []) as NoticeRow[]).map(({ events, ...notice }) => ({
+    ...notice,
+    event_title: events?.[0]?.title ?? null,
+  }));
+  return buildFestivalFeed({ results, standings: (standingsResponse.data ?? []) as Standing[], moments, notices });
+}
 
 export default async function FeedPage() {
   let posts = [] as ReturnType<typeof buildFestivalFeed>;
   if (hasPublicSupabaseConfiguration()) {
     try {
-      const client = createPublicClient();
-      const [results, standingsResponse, momentsResponse, noticesResponse] = await Promise.all([
-        getPublishedResults(client),
-        client.from("published_batch_standing_board").select("batch_id,label,course_label,points").order("points", { ascending: false }).order("label"),
-        client.rpc("get_published_gallery_moments"),
-        client.from("notices").select("id,title,body,urgency,publish_at,events(title)").order("publish_at", { ascending: false }),
-      ]);
-      const imageUrl = await mediaUrls(((momentsResponse.data ?? []) as GalleryRow[]).map(row=>row.storage_path));
-      const moments = ((momentsResponse.data ?? []) as GalleryRow[]).map((moment) => ({
-        ...moment,
-        imageUrl: imageUrl(moment.storage_path),
-      }));
-      const notices = ((noticesResponse.data ?? []) as NoticeRow[]).map(({ events, ...notice }) => ({ ...notice, event_title: events?.[0]?.title ?? null }));
-      posts = buildFestivalFeed({ results, standings: (standingsResponse.data ?? []) as Standing[], moments, notices });
+      posts = await coalesceCached(
+        "public-feed-posts",
+        [PUBLIC_CACHE_TAGS.feed, PUBLIC_CACHE_TAGS.gallery, programmeCacheTag],
+        30,
+        loadPublicFeed,
+      );
     } catch { /* The public feed remains empty until official content is available. */ }
   }
 

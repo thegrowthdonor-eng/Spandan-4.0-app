@@ -7,6 +7,7 @@ import { ShareFeedbackButton } from "@/components/share-feedback-modal";
 import { AutomatedFeedbackBanner } from "@/components/automated-feedback-banner";
 import { FestivalNotificationBell } from "@/components/festival-notification-bell";
 import { hasPublicSupabaseConfiguration, hasSupabaseConfiguration } from "@/server/env";
+import { coalesceCached, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 import { createPublicClient } from "@/server/supabase/public";
 import { createAdminClient } from "@/server/supabase/admin";
 import { createRequestClient } from "@/server/supabase/server";
@@ -27,12 +28,15 @@ type NoticeSnapshot = { id: string; title: string; urgency: "normal" | "importan
 async function getTopBatches(): Promise<StandingSnapshot[]> {
   if (!hasPublicSupabaseConfiguration()) return [];
   try {
-    const { data } = await createPublicClient()
-      .from("published_batch_standing_board")
-      .select("batch_id,label,course_label,points")
-      .order("points", { ascending: false })
-      .limit(3);
-    return (data ?? []) as StandingSnapshot[];
+    return await coalesceCached("home-top-batches", [PUBLIC_CACHE_TAGS.home], 30, async () => {
+      const { data, error } = await createPublicClient()
+        .from("published_batch_standing_board")
+        .select("batch_id,label,course_label,points")
+        .order("points", { ascending: false })
+        .limit(3);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as StandingSnapshot[];
+    });
   } catch {
     return [];
   }
@@ -41,13 +45,16 @@ async function getTopBatches(): Promise<StandingSnapshot[]> {
 async function getLatestNotice(): Promise<NoticeSnapshot | null> {
   if (!hasPublicSupabaseConfiguration()) return null;
   try {
-    const { data } = await createPublicClient()
-      .from("notices")
-      .select("id,title,urgency,publish_at")
-      .order("publish_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data as NoticeSnapshot | null;
+    return await coalesceCached("home-latest-notice", [PUBLIC_CACHE_TAGS.home, PUBLIC_CACHE_TAGS.feed], 30, async () => {
+      const { data, error } = await createPublicClient()
+        .from("notices")
+        .select("id,title,urgency,publish_at")
+        .order("publish_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data as NoticeSnapshot | null;
+    });
   } catch {
     return null;
   }
@@ -56,34 +63,35 @@ async function getLatestNotice(): Promise<NoticeSnapshot | null> {
 async function getActiveEditionId(): Promise<string> {
   if (!hasPublicSupabaseConfiguration()) return "";
   try {
-    const client = createPublicClient();
-    const { data } = await client
-      .from("editions")
-      .select("id")
-      .neq("status", "archived")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (data?.id) return data.id;
-  } catch {
-    // fallback to admin client
-  }
-  if (hasSupabaseConfiguration()) {
-    try {
-      const admin = createAdminClient();
-      const { data } = await admin
-        .from("editions")
-        .select("id")
-        .neq("status", "archived")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data?.id ?? "";
-    } catch {
+    return await coalesceCached("home-active-edition", [PUBLIC_CACHE_TAGS.home], 300, async () => {
+      try {
+        const { data } = await createPublicClient()
+          .from("editions")
+          .select("id")
+          .neq("status", "archived")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data?.id) return data.id;
+      } catch {
+        // fallback to admin client
+      }
+      if (hasSupabaseConfiguration()) {
+        const { data, error } = await createAdminClient()
+          .from("editions")
+          .select("id")
+          .neq("status", "archived")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw new Error(error.message);
+        return data?.id ?? "";
+      }
       return "";
-    }
+    });
+  } catch {
+    return "";
   }
-  return "";
 }
 
 async function getAuthStatus() {

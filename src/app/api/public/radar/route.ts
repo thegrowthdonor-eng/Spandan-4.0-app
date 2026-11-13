@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { coalesceCached, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { createPublicClient } from "@/server/supabase/public";
 
 export const runtime = "nodejs";
@@ -20,49 +22,25 @@ export type RadarItem = {
   event_slug?: string | null;
 };
 
-let cachedRadar: {
-  payload: { ok: boolean; live: RadarItem | null; nextUp: RadarItem | null; serverTime: string };
-  expiresAt: number;
-} | null = null;
-
-const CACHE_TTL_MS = 15_000; // 15 seconds
-
-export async function GET() {
-  if (!hasPublicSupabaseConfiguration()) {
-    return NextResponse.json({ ok: false, live: null, nextUp: null, message: "Service unavailable" }, { status: 503 });
-  }
-
-  // Return in-memory cache if still fresh — protects Supabase from 1000 concurrent students
-  const nowMs = Date.now();
-  if (cachedRadar && nowMs < cachedRadar.expiresAt) {
-    return NextResponse.json(cachedRadar.payload, {
-      headers: {
-        "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
-        "X-Cache": "HIT",
-      },
-    });
-  }
-
-  try {
+async function loadRadar() {
     const client = createPublicClient();
     const now = new Date();
     const nowIso = now.toISOString();
 
-    // 1. Fetch relevant fixtures
-    const { data: fixtures } = await client
-      .from("fixtures")
-      .select("id,stage,participant_a_label,participant_b_label,venue,starts_at,reporting_at,state,events(id,title,category,score_template,slug),score_snapshots(version,status,score_payload,updated_at)")
-      .neq("state", "cancelled")
-      .order("starts_at", { ascending: true })
-      .limit(30);
-
-    // 2. Fetch relevant standalone events
-    const { data: events } = await client
-      .from("events")
-      .select("id,title,category,venue,starts_at,reporting_at,state,score_template,slug")
-      .in("state", ["open", "published"])
-      .order("starts_at", { ascending: true })
-      .limit(20);
+    const [{ data: fixtures }, { data: events }] = await Promise.all([
+      client
+        .from("fixtures")
+        .select("id,stage,participant_a_label,participant_b_label,venue,starts_at,reporting_at,state,events(id,title,category,score_template,slug),score_snapshots(version,status,score_payload,updated_at)")
+        .neq("state", "cancelled")
+        .order("starts_at", { ascending: true })
+        .limit(30),
+      client
+        .from("events")
+        .select("id,title,category,venue,starts_at,reporting_at,state,score_template,slug")
+        .in("state", ["open", "published"])
+        .order("starts_at", { ascending: true })
+        .limit(20),
+    ]);
 
     let liveItem: RadarItem | null = null;
     let nextUpItem: RadarItem | null = null;
@@ -176,25 +154,33 @@ export async function GET() {
       }
     }
 
-    const payload = {
+    return {
       ok: true,
       live: liveItem,
       nextUp: nextUpItem,
       serverTime: nowIso,
     };
+}
 
-    cachedRadar = {
-      payload,
-      expiresAt: Date.now() + CACHE_TTL_MS,
-    };
+export async function GET() {
+  if (!hasPublicSupabaseConfiguration()) {
+    return NextResponse.json({ ok: false, live: null, nextUp: null, message: "Service unavailable" }, { status: 503 });
+  }
+
+  try {
+    const payload = await coalesceCached(
+      "public-radar",
+      [PUBLIC_CACHE_TAGS.live, programmeCacheTag],
+      15,
+      loadRadar,
+    );
 
     return NextResponse.json(payload, {
       headers: {
         "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
-        "X-Cache": "MISS",
       },
     });
   } catch {
-    return NextResponse.json({ ok: false, live: null, nextUp: null }, { status: 500 });
+    return NextResponse.json({ ok: false, live: null, nextUp: null }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }

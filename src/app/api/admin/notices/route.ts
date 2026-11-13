@@ -1,5 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { publicNoticeSchema } from "@/server/auth/contracts";
@@ -46,6 +46,9 @@ function revalidateNoticeRoutes() {
   revalidatePath("/feed");
   revalidatePath("/home");
   revalidatePath("/admin/notices");
+  revalidateTag("public-feed", { expire: 0 });
+  revalidateTag("public-notifications", { expire: 0 });
+  revalidateTag("public-home", { expire: 0 });
 }
 
 export async function POST(request: Request) {

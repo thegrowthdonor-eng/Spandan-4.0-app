@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { coalesceCached } from "@/server/public-cache";
+import { programmeCacheTag } from "@/server/supabase/programme-fetch";
 import { createPublicClient } from "@/server/supabase/public";
 import { FestTopNav } from "@/components/spandan-branding";
 import { EventCatalogue, EventsLandingHero, type EventCard } from "./event-catalogue";
@@ -10,6 +12,26 @@ export const metadata: Metadata = {
   title: "Events | SPANDAN 4.0",
   description: "Browse all Spandan 4.0 events. Find competitions, cultural shows, literary events, and sports. Apply once your account is active.",
 };
+
+async function loadPublicEvents(): Promise<EventCard[]> {
+  const client = createPublicClient();
+  const { data, error } = await client
+    .from("events")
+    .select("id,title,slug,category,format,registration_enabled,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,poster_url,eligibility,group_min_size,group_max_size")
+    .order("starts_at", { ascending: true, nullsFirst: false })
+    .order("title");
+
+  if (!error) return (data ?? []) as EventCard[];
+
+  // Fallback query if poster_url column not yet applied.
+  const fallback = await client
+    .from("events")
+    .select("id,title,slug,category,format,registration_enabled,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,eligibility,group_min_size,group_max_size")
+    .order("starts_at", { ascending: true, nullsFirst: false })
+    .order("title");
+  if (fallback.error) throw new Error(fallback.error.message);
+  return (fallback.data ?? []).map((event) => ({ ...event, poster_url: null })) as EventCard[];
+}
 
 export default async function EventsPage({
   searchParams,
@@ -22,24 +44,10 @@ export default async function EventsPage({
   let unavailable = !hasPublicSupabaseConfiguration();
 
   if (!unavailable) {
-    const client = createPublicClient({ cacheProgramme: true });
-    const { data, error } = await client
-      .from("events")
-      .select("id,title,slug,category,format,registration_enabled,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,poster_url,eligibility,group_min_size,group_max_size")
-      .order("starts_at", { ascending: true, nullsFirst: false })
-      .order("title");
-
-    if (error) {
-      // Fallback query if poster_url column not yet applied.
-      const fallback = await client
-        .from("events")
-        .select("id,title,slug,category,format,registration_enabled,summary,state,starts_at,application_opens_at,application_closes_at,application_capacity,eligibility,group_min_size,group_max_size")
-        .order("starts_at", { ascending: true, nullsFirst: false })
-        .order("title");
-      unavailable = Boolean(fallback.error);
-      events = (fallback.data ?? []).map((event) => ({ ...event, poster_url: null })) as EventCard[];
-    } else {
-      events = (data ?? []) as EventCard[];
+    try {
+      events = await coalesceCached("public-events-catalogue", [programmeCacheTag], 30, loadPublicEvents);
+    } catch {
+      unavailable = true;
     }
   }
 

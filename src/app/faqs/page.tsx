@@ -2,8 +2,6 @@ import Link from "next/link";
 import { FestTopNav } from "@/components/spandan-branding";
 import "../public-info.css";
 
-export const dynamic = "force-dynamic";
-
 const faqSections = [
   {
     category: "Registration & Account Activation",

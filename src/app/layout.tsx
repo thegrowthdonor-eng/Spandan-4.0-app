@@ -1,13 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
-import { InstalledAppNotificationPrompt } from "@/components/installed-app-notification-prompt";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PwaRegistration } from "@/components/pwa-registration";
-import { BottomNav } from "@/components/bottom-nav";
 import { NavigationProgress } from "@/components/navigation-progress";
-import { hasPublicSupabaseConfiguration } from "@/server/env";
-import { getActiveSession } from "@/server/auth/access";
-import { hasManagementAccess } from "@/server/management";
+import { SessionNavigation } from "@/components/session-navigation";
 import "./globals.css";
 import "./app-ui.css";
 
@@ -37,22 +32,6 @@ export const viewport: Viewport = {
   themeColor: "#f6f5f1",
 };
 
-async function hasAuthenticatedSession() {
-  if (!hasPublicSupabaseConfiguration()) return false;
-
-  try {
-    return Boolean(await getActiveSession());
-  } catch {
-    return false;
-  }
-}
-
-async function SessionNavigation() {
-  const isAuthenticated = await hasAuthenticatedSession();
-  const canManage = isAuthenticated && await hasManagementAccess();
-  return <><InstalledAppNotificationPrompt isAuthenticated={isAuthenticated} /><BottomNav isAuthenticated={isAuthenticated} canManage={canManage} /></>;
-}
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en-IN">
@@ -61,7 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <PwaRegistration />
         <PwaInstallPrompt />
         {children}
-        <Suspense fallback={null}><SessionNavigation /></Suspense>
+        <SessionNavigation />
       </body>
     </html>
   );

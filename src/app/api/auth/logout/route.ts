@@ -34,7 +34,8 @@ export async function POST(request: Request) {
     }
   }
 
-  // Explicitly purge all supabase/auth cookies
+  // Explicitly purge all supabase/auth cookies and the client UI nav hint cookie
+  response.cookies.delete("spandan_ui_nav");
   cookieStore.getAll().forEach((c) => {
     if (c.name.includes("sb-") || c.name.includes("auth") || c.name.includes("supabase")) {
       response.cookies.delete(c.name);

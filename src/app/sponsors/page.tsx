@@ -6,7 +6,7 @@ import styles from "@/components/sponsors.module.css";
 import { FestTopNav } from "@/components/spandan-branding";
 import "../public-info.css";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export default async function SponsorsPage() {
   const sponsors = await getPublishedSponsors();
