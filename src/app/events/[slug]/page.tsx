@@ -457,6 +457,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     dockLabel = "Get help";
     dockHref = "/my-fest";
     dockTone = "inactive";
+  } else if (requiredProfileGender && userGender == null) {
+    dockStatus = "Gender details incomplete";
+    dockLabel = "Get profile help";
+    dockHref = "/my-fest?tab=support";
+    dockTone = "status";
   } else if (requiredProfileGender && userGender !== requiredProfileGender) {
     dockStatus = "Outside your division";
     dockLabel = "Browse eligible events";

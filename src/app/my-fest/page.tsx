@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function MyFestPage() {
+export default async function MyFestPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   if (!hasSupabaseConfiguration()) {
     redirect("/account");
   }
@@ -181,6 +181,7 @@ export default async function MyFestPage() {
           isActive={status === "active"}
           senior={senior}
           registrationsError={senior ? !!seniorEntriesResult.error : !!(applicationResult.error || rosters?.error)}
+          initialSupport={(await searchParams).tab === "support"}
         />
 
         {/* Quick Festival Action Links */}

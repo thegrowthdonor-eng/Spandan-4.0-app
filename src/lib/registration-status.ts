@@ -28,6 +28,7 @@ const registrationErrors = {
   unavailable: { status: 409, error: "This event is not accepting registrations." },
   access_inactive: { status: 403, error: "Your festival account must be active before you register. Check verification in My Fest." },
   gender_mismatch: { status: 403, error: "This event is outside your registered gender division." },
+  gender_missing: { status: 403, error: "Gender details incomplete. Contact the registration desk through My Fest so your profile can be corrected." },
   invalid_answers: { status: 400, error: "Complete the required event questions using the listed choices." },
   capacity_full: { status: 409, error: "This individual event has reached its application capacity." },
   profile_unavailable: { status: 503, error: "Unable to load your registration profile. Refresh and try again." },

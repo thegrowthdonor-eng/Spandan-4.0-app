@@ -5,10 +5,11 @@ import { createRequestClient } from "@/server/supabase/server";
 import { getManagementSummary } from "@/server/management";
 import { competitionEventsFromSummary } from "@/lib/management";
 import { loadEventFixtures } from "@/server/competition/fixtures";
-import { FixturesClient } from "./fixtures-client";
+import { FixturesClient, type FixtureEntrant } from "./fixtures-client";
 import { AdminEventPicker } from "@/components/admin/event-picker";
 import { CompetitionWorkspacePanel } from "@/components/admin/competition-workspace";
 import type { CompetitionWorkspace } from "@/lib/competition";
+import type { TeamWorkspaceData } from "@/lib/team-contracts";
 import "./fixtures.css";
 
 export const dynamic = "force-dynamic";
@@ -79,22 +80,22 @@ export default async function FixturesPage({
   const client = await createRequestClient();
   const [
     { fixtures, error: fixturesError },
-    { data: batchesData },
-    { data: groupsData },
-    { data: soloData },
-    { data: eventDetails },
+    { data: participantData, error: participantError },
+    { data: teamData, error: teamError },
+    { data: eventDetails, error: detailsError },
     { data: workspace, error: workspaceError },
   ] = await Promise.all([
     loadEventFixtures(client, selected.id),
-    client.rpc("list_event_eligible_batches", { p_event_id: selected.id }),
-    client.rpc("list_event_participant_groups", { p_event_id: selected.id }),
-    client.rpc("list_event_selection_queue", { p_event_id: selected.id }),
+    client.rpc("list_result_participants", { p_event_id: selected.id }),
+    selected.format !== "solo" ? client.rpc("get_team_workspace", { p_event_id: selected.id }) : Promise.resolve({ data: null, error: null }),
     client.from("events").select("venue, starts_at, ends_at, score_template,operating_method").eq("id", selected.id).single(),
     client.rpc("competition_workspace", { p_event_id: selected.id }),
   ]);
-  const batches = (batchesData ?? []) as Array<{ batch_id: string; label: string; course_label?: string | null }>;
-  const groups = (groupsData ?? []) as Array<{ group_id: string; name: string; batch_id: string; state: string }>;
-  const soloStudents = (soloData ?? []) as Array<{ application_id: string; student_id: string; full_name: string; batch_label: string; course_label?: string | null; roll_canonical: string }>;
+  const teams = teamData as TeamWorkspaceData | null;
+  const participants = ((participantData ?? []) as FixtureEntrant[]).map(participant => {
+    const group = teams?.groups.find(group => group.id === participant.target_id);
+    return { ...participant, leader: group?.members.find(member => member.studentId === group.captainId)?.fullName, members: group?.members.map(member => `${member.fullName}${member.batchLabel ? ` · Batch ${member.batchLabel}` : ""}${member.roll ? ` · Roll ${member.roll}` : ""}`) };
+  });
   const defaultVenue = eventDetails?.venue ?? "";
 
   return (
@@ -133,9 +134,8 @@ export default async function FixturesPage({
             ends_at: eventDetails?.ends_at ?? null,
           }}
           fixtures={fixtures}
-          eligibleBatches={batches}
-          registeredGroups={groups}
-          soloStudents={soloStudents}
+          participants={participants}
+          rosterError={!!(participantError || teamError || detailsError || workspaceError || !eventDetails || !workspace || (selected.format !== "solo" && !teams))}
           isMainAdmin={summary.isAdmin}
         />}
         </CompetitionWorkspacePanel>

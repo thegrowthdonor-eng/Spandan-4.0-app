@@ -114,11 +114,10 @@ export async function POST(request: Request) {
   }
 
   if (command.action === "create") {
-    const { data, error } = await client.rpc("create_fixture", {
+    const { data, error } = await client.rpc(command.participantA ? "create_roster_fixture" : "create_fixture", {
       p_event_id: command.eventId,
       p_stage: command.stage,
-      p_participant_a_label: command.participantALabel,
-      p_participant_b_label: command.participantBLabel,
+      ...(command.participantA ? { p_participant_a: command.participantA, p_participant_b: command.participantB } : { p_participant_a_label: command.participantALabel, p_participant_b_label: command.participantBLabel }),
       p_venue: command.venue || null,
       p_reporting_at: command.reportingAt,
       p_starts_at: command.startsAt,
@@ -265,32 +264,12 @@ export async function POST(request: Request) {
   }
 
   if (command.action === "bulk_create") {
-    const { data: canManage } = await client.rpc("can_manage_event", { p_event_id: command.eventId });
-    const { data: isMainAdmin } = await client.rpc("is_main_admin");
-    if (!canManage && !isMainAdmin) return denied;
-
-    const created: string[] = [];
-    for (const item of command.fixtures) {
-      const { data, error } = await client.rpc("create_fixture", {
-        p_event_id: command.eventId,
-        p_stage: item.stage,
-        p_participant_a_label: item.participantALabel,
-        p_participant_b_label: item.participantBLabel,
-        p_venue: item.venue || null,
-        p_reporting_at: item.reportingAt,
-        p_starts_at: item.startsAt,
-      });
-      if (error) {
-        if (error.code === "42501" || error.code === "28000") return denied;
-        return NextResponse.json(
-          { error: `Error creating ${item.stage} (${item.participantALabel} vs ${item.participantBLabel}): ${error.message}` },
-          { status: 400, headers }
-        );
-      }
-      if (data?.id) created.push(data.id);
+    const { data, error } = await client.rpc("bulk_create_roster_fixtures", { p_event_id: command.eventId, p_fixtures: command.fixtures });
+    if (error) {
+      if (["42501", "28000"].includes(error.code)) return denied;
+      return NextResponse.json({ error: ["22023", "23514", "22P02", "22007"].includes(error.code) ? "No fixtures were created. Check the opponents and match times, refresh the roster, and retry." : "Unable to create fixtures. No partial schedule was saved." }, { status: 409, headers });
     }
-    return withCanonicalFixtures(client, command.eventId, { ok: true, createdCount: created.length });
+    return withCanonicalFixtures(client, command.eventId, { ok: true, createdCount: (data ?? []).length });
   }
-
-  return NextResponse.json({ error: "Unknown action." }, { status: 400, headers });
+  return NextResponse.json({ error: "Unknown fixture command." }, { status: 400, headers });
 }

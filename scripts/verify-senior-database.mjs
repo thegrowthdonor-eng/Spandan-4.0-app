@@ -33,8 +33,11 @@ let database;
   }
   await db.exec("set spandan.isolated_tests='on'");
   await db.exec(fs.readFileSync('supabase/tests/senior_signup_and_entries.sql', 'utf8'));
-  await db.exec(fs.readFileSync('supabase/tests/individual_registration_and_batch_teams.sql', 'utf8'));
+  const participationSql = fs.readFileSync('supabase/tests/individual_registration_and_batch_teams.sql', 'utf8');
+  const fixtureSql = fs.readFileSync('supabase/tests/integrated_fixture_creation.sql', 'utf8');
+  assert.ok(participationSql.includes('-- Actual end-user permissions,'));
+  await db.exec(participationSql.replace('-- Actual end-user permissions,', () => fixtureSql + '\n-- Actual end-user permissions,'));
   assert.equal((await db.query('select count(*)::int as n from public.senior_event_registrations')).rows[0].n, 0);
-  console.log('Local migrations, senior isolation, registration pools, batch teams, pair consent and privacy checks passed; fixtures rolled back.');
+  console.log('Local migrations, registration pools, batch teams, typed fixtures, atomic bulk creation, match reminders, scoring/results and privacy checks passed; fixtures rolled back.');
   await db.close();
 })().catch(async error => { console.error(error.message); await database?.close(); process.exitCode = 1; });

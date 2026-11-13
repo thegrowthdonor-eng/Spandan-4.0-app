@@ -32,6 +32,7 @@ export type ActivityHubProps = {
   isActive: boolean;
   senior?: boolean;
   registrationsError?: boolean;
+  initialSupport?: boolean;
 };
 
 function formatEventTime(value: string | null) {
@@ -54,8 +55,9 @@ export function ActivityHub({
   isActive,
   senior = false,
   registrationsError = false,
+  initialSupport = false,
 }: ActivityHubProps) {
-  const [activeTab, setActiveTab] = useState<"registrations" | "teams" | "support">("registrations");
+  const [activeTab, setActiveTab] = useState<"registrations" | "teams" | "support">(initialSupport ? "support" : "registrations");
 
   return (
     <section className={styles.hubSection} aria-label="Participant Activity Hub">

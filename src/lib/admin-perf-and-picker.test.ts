@@ -127,6 +127,7 @@ test("AdminControlPage reuses management summary without getUser, is_main_admin,
 });
 
 test("FixturesPage reuses management summary, parallelises competition_workspace, and renders full AdminEventPicker", async () => {
+  let rosterFails = false;
   const jsxRuntime = { jsx: (type: unknown, props: unknown) => ({ type, props }), jsxs: (type: unknown, props: unknown) => ({ type, props }) };
   const rpcCalls: string[] = [];
   let getUserCalls = 0;
@@ -145,6 +146,7 @@ test("FixturesPage reuses management summary, parallelises competition_workspace
         auth: { getUser: async () => { getUserCalls++; return { data: { user: { id: "u-1" } } }; } },
         rpc: async (fn: string) => {
           rpcCalls.push(fn);
+          if (fn === "list_result_participants" && rosterFails) return {data:null,error:{message:"Roster unavailable"}};
           if (fn === "competition_workspace") {
             workspaceStartedBeforeFixturesResolved = true;
             releaseFixtures();
@@ -205,6 +207,9 @@ test("FixturesPage reuses management summary, parallelises competition_workspace
   assert.match(serialized, /"basePath":"\/admin\/fixtures"/);
   assert.doesNotMatch(serialized, /"compact":true/);
   void pickerProps;
+  assert.match(JSON.stringify(tree), /"rosterError":false/);
+  rosterFails = true;
+  assert.match(JSON.stringify(await FixturesPage({searchParams:Promise.resolve({})})), /"rosterError":true/);
 });
 
 test("POST /api/admin/committee skips getUser, relies on RPC auth, and returns changed assignment", async () => {
@@ -268,6 +273,7 @@ test("POST /api/admin/committee skips getUser, relies on RPC auth, and returns c
 });
 
 test("POST /api/admin/fixtures returns canonical updated fixtures on create, reschedule, reminders, and delete", async () => {
+  const calls: Array<{name:string;args:unknown}> = [];
   const eventId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const fixtureId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
   const canonicalFixtures = [
@@ -279,8 +285,10 @@ test("POST /api/admin/fixtures returns canonical updated fixtures on create, res
     "@supabase/ssr": {
       createServerClient: () => ({
         auth: { getUser: async () => ({ data: { user: { id: "admin-1" } } }) },
-        rpc: async (fn: string) => {
-          if (fn === "create_fixture" || fn === "reschedule_fixture") return { data: { id: fixtureId, event_id: eventId }, error: null };
+        rpc: async (fn: string, args: unknown) => {
+          calls.push({name:fn,args});
+          if (fn === "create_fixture" || fn === "create_roster_fixture" || fn === "reschedule_fixture") return { data: { id: fixtureId, event_id: eventId }, error: null };
+          if (fn === "bulk_create_roster_fixtures") return {data:[{id:fixtureId}],error:null};
           if (fn === "generate_fixture_reminders") return { data: 12, error: null };
           if (fn === "delete_fixture") return { data: true, error: null };
           return { data: true, error: null };
@@ -321,6 +329,8 @@ test("POST /api/admin/fixtures returns canonical updated fixtures on create, res
 
   for (const payload of [
     { action: "create", eventId, stage: "Final", participantALabel: "A", participantBLabel: "B", venue: "Ground", reportingAt: null, startsAt: "2026-12-02T10:00:00Z" },
+    { action: "create", eventId, stage: "Final", participantA:{kind:"group",id:eventId},participantB:{kind:"group",id:fixtureId},venue:"Ground",reportingAt:null,startsAt:null },
+    { action: "bulk_create", eventId, fixtures:[{stage:"Final",participantA:{kind:"group",id:eventId},participantB:{kind:"group",id:fixtureId},reportingAt:null,startsAt:null}] },
     { action: "reschedule", fixtureId, reportingAt: null, startsAt: "2026-12-02T11:00:00Z", venue: "Court", reason: "Weather" },
     { action: "reminders", fixtureId, body: "Report early" },
     { action: "delete", fixtureId },
@@ -335,6 +345,8 @@ test("POST /api/admin/fixtures returns canonical updated fixtures on create, res
     assert.equal(json.ok, true);
     assert.deepEqual(json.fixtures, canonicalFixtures);
   }
+  assert.equal(calls.filter(call=>call.name==="bulk_create_roster_fixtures").length,1);
+  assert.deepEqual(JSON.parse(JSON.stringify(calls.find(call=>call.name==="create_roster_fixture")?.args)),{p_event_id:eventId,p_stage:"Final",p_participant_a:{kind:"group",id:eventId},p_participant_b:{kind:"group",id:fixtureId},p_venue:"Ground",p_reporting_at:null,p_starts_at:null});
 });
 
 test("client panels avoid blocking router.refresh() on fixture and competition workspace saves", () => {

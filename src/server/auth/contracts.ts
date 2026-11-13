@@ -97,21 +97,25 @@ export const bulkSoloSelectionSchema = z.object({
   reason: z.string().trim().max(500).optional(),
 });
 
+const fixtureEntrantSchema = z.object({ kind: z.enum(["application", "group"]), id: z.string().uuid() }).strict();
+const fixtureFields = {
+  stage: z.string().trim().min(1).max(100),
+  participantA: fixtureEntrantSchema.optional(), participantB: fixtureEntrantSchema.optional(),
+  participantALabel: z.string().trim().min(1).max(160).optional(), participantBLabel: z.string().trim().min(1).max(160).optional(),
+  venue: z.string().trim().max(160).optional(), reportingAt: z.string().datetime().nullable(), startsAt: z.string().datetime().nullable(),
+};
+const fixtureItemSchema = z.object(fixtureFields);
+function validateFixture(value: z.infer<typeof fixtureItemSchema>, context: z.RefinementCtx) {
+  const typed = !!value.participantA && !!value.participantB && !value.participantALabel && !value.participantBLabel;
+  const legacy = !value.participantA && !value.participantB && !!value.participantALabel && !!value.participantBLabel;
+  if (!typed && !legacy) context.addIssue({ code: "custom", message: "Choose both roster opponents." });
+  if ((typed && (value.participantA!.kind !== value.participantB!.kind || value.participantA!.id === value.participantB!.id)) || (legacy && value.participantALabel === value.participantBLabel)) context.addIssue({ code: "custom", message: "Choose two different opponents of the same format." });
+  if (value.reportingAt && (!value.startsAt || Date.parse(value.reportingAt) > Date.parse(value.startsAt))) context.addIssue({ code: "custom", message: "Reporting time must be before match start." });
+}
+
 export const fixtureCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("start"), fixtureId: z.string().uuid() }),
-  z.object({
-    action: z.literal("create"),
-    eventId: z.string().uuid(),
-    stage: z.string().trim().min(1).max(100),
-    participantALabel: z.string().trim().min(1).max(160),
-    participantBLabel: z.string().trim().min(1).max(160),
-    venue: z.string().trim().max(160).optional(),
-    reportingAt: z.string().datetime().nullable(),
-    startsAt: z.string().datetime().nullable(),
-  }).superRefine((value, context) => {
-    if (value.participantALabel === value.participantBLabel)
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "Fixture participants must differ." });
-  }),
+  z.object({ ...fixtureFields, action: z.literal("create"), eventId: z.string().uuid() }).superRefine(validateFixture),
   z.object({
     action: z.literal("reschedule"),
     fixtureId: z.string().uuid(),
@@ -143,32 +147,12 @@ export const fixtureCommandSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("bulk_create"),
     eventId: z.string().uuid(),
-    fixtures: z.array(z.object({
-      stage: z.string().trim().min(1).max(100),
-      participantALabel: z.string().trim().min(1).max(160),
-      participantBLabel: z.string().trim().min(1).max(160),
-      venue: z.string().trim().max(160).optional(),
-      reportingAt: z.string().datetime().nullable(),
-      startsAt: z.string().datetime().nullable(),
-    }).superRefine((value, context) => {
-      if (value.participantALabel === value.participantBLabel)
-        context.addIssue({ code: z.ZodIssueCode.custom, message: "Fixture participants must differ." });
-    })).min(1).max(50),
+    fixtures: z.array(fixtureItemSchema.superRefine(validateFixture)).min(1).max(50),
   }),
 ]);
 
 // Keep old schema for backwards compatibility
-export const fixtureCreateSchema = z.object({
-  eventId: z.string().uuid(),
-  stage: z.string().trim().min(1).max(100),
-  participantALabel: z.string().trim().min(1).max(160),
-  participantBLabel: z.string().trim().min(1).max(160),
-  venue: z.string().trim().max(160).optional(),
-  reportingAt: z.string().datetime().nullable(),
-  startsAt: z.string().datetime().nullable(),
-}).superRefine((value, context) => {
-  if (value.participantALabel === value.participantBLabel) context.addIssue({ code: z.ZodIssueCode.custom, message: "Fixture participants must differ." });
-});
+export const fixtureCreateSchema = z.object({ ...fixtureFields, eventId: z.string().uuid() }).superRefine(validateFixture);
 
 export const helpThreadSchema = z.object({
   editionId: z.string().uuid(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { PortalDialog } from "@/components/admin/portal-dialog";
 import { canStartMatch, fromISTInput, toISTInput } from "@/lib/match-clock";
@@ -15,9 +15,7 @@ export type FixtureItem = {
   score_payload: Record<string, unknown> | null; actual_started_at?: string | null;
 };
 type EventMeta = { id: string; title: string; category: string; format: string; state: string; operating_method?: OperatingMethod; score_template?: string; venue?: string | null; starts_at?: string | null; ends_at?: string | null };
-type BatchItem = { batch_id: string; label: string; course_label?: string | null };
-type GroupItem = { group_id: string; name: string; batch_id: string; state: string };
-export type SoloStudentItem = { application_id: string; student_id: string; full_name: string; batch_label: string; course_label?: string | null; roll_canonical: string; review_state?: string; selection_state?: string };
+export type FixtureEntrant = { target_id: string; target_kind: "application" | "group"; label: string; batch_label: string | null; roll_canonical: string | null; leader?: string; members?: string[] };
 type HistoryEntry = { id: string; actor_name: string | null; previous_schedule: { starts_at?: string; venue?: string }; reason: string; created_at: string };
 type Operation = "reschedule" | "reminders" | "history" | "delete" | null;
 
@@ -31,16 +29,13 @@ function fixtureStatus(f: FixtureItem, scoring: boolean) {
   return f.actual_started_at ? "live" : "scheduled";
 }
 
-export function FixturesClient({ event, fixtures, eligibleBatches = [], registeredGroups = [], soloStudents = [], isMainAdmin }: {
-  event: EventMeta; fixtures: FixtureItem[]; eligibleBatches?: BatchItem[]; registeredGroups?: GroupItem[]; soloStudents?: SoloStudentItem[]; isMainAdmin: boolean;
+export function FixturesClient({ event, fixtures, participants = [], rosterError = false, isMainAdmin }: {
+  event: EventMeta; fixtures: FixtureItem[]; participants?: FixtureEntrant[]; rosterError?: boolean; isMainAdmin: boolean;
 }) {
   const scoring = eventMethod(event) === "live_matches";
   const status = (fixture: FixtureItem) => fixtureStatus(fixture, scoring);
   const grouped = ["pair", "group", "sport"].includes(event.format);
-  const participantType = event.format === "pair" ? "pair" : grouped ? "team" : "player";
-  const participants = useMemo(() => grouped
-    ? registeredGroups.filter(g => g.state === "published").map(g => ({ id: g.group_id, label: g.name, detail: eligibleBatches.find(b => b.batch_id === g.batch_id)?.label ?? "Approved roster" }))
-    : soloStudents.filter(s => (!s.review_state || s.review_state === "approved") && s.selection_state !== "not_selected").map(s => ({ id: s.student_id, label: `${s.full_name} (${s.batch_label}${s.roll_canonical ? `, #${s.roll_canonical}` : ""})`, detail: s.batch_label })), [grouped, registeredGroups, eligibleBatches, soloStudents]);
+  const participantType = event.format === "pair" ? "pair" : event.format === "group" ? "group" : grouped ? "team" : "player";
   const [prevFixtures, setPrevFixtures] = useState(fixtures);
   const [matchList, setMatchList] = useState(fixtures);
   if (fixtures !== prevFixtures) {
@@ -104,10 +99,10 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
   }
   async function create(e: FormEvent) {
     e.preventDefault();
-    const a = participants.find(p => p.id === sideA), b = participants.find(p => p.id === sideB);
-    if (!a || !b || a.id === b.id) { setNotice({ text: "Choose two different approved participants.", error: true }); return; }
+    const a = participants.find(p => p.target_id === sideA), b = participants.find(p => p.target_id === sideB);
+    if (rosterError || !a || !b || a.target_id === b.target_id) { setNotice({ text: "Choose two different final-roster participants.", error: true }); return; }
     if (reporting && reporting > starts) { setNotice({ text: "Reporting time must be before match start.", error: true }); return; }
-    if (await send({ action: "create", eventId: event.id, stage: round, participantALabel: a.label, participantBLabel: b.label, venue, startsAt: fromISTInput(starts), reportingAt: fromISTInput(reporting) }, scoring ? "Match scheduled. Start & Score is available on match day." : "Pairing and match time published.")) { setCreating(false); setSideA(""); setSideB(""); }
+    if (await send({ action: "create", eventId: event.id, stage: round, participantA: { kind: a.target_kind, id: a.target_id }, participantB: { kind: b.target_kind, id: b.target_id }, venue, startsAt: fromISTInput(starts), reportingAt: fromISTInput(reporting) }, scoring ? "Match scheduled. Start & Score is available on match day." : "Pairing and match time published.")) { setCreating(false); setSideA(""); setSideB(""); }
   }
   async function openOperation(next: Operation) {
     if (!current) return;
@@ -146,10 +141,15 @@ export function FixturesClient({ event, fixtures, eligibleBatches = [], register
   return <div className="fx-workspace">
     <section className="fx-command"><div><span className="fx-eyebrow">Match centre</span><h2>{event.title}</h2><p>{participants.length} approved {participantType}s <span>·</span> {matchList.length} matches</p></div><div className="fx-actions"><Link href={participantHref}>{grouped ? "Manage teams & pairs" : "Player roster"} ↗</Link><button className="fx-primary" type="button" onClick={openCreate}>{creating ? "Close creator" : "+ Schedule match"}</button></div></section>
     {!grouped && <p className="fx-guidance">Choose two approved players and publish their pairing and match time.</p>}
+    <section className="fx-guidance" aria-label="Prepare event roster"><p>{event.format === "pair" ? "Both students register individually and accept their pair before coordinator publication." : grouped ? "Review registrations, appoint a captain or leader, then publish their proposed roster before scheduling." : "Review registrations and confirm the final participant roster before scheduling."}</p><div className="fx-actions"><Link href={`/admin/review?event=${event.id}`}>1 · Review registrations</Link><Link href={participantHref}>{grouped ? event.format === "pair" ? "2 · Review pairs" : "2 · Appoint captain / leader" : "2 · Final player roster"}</Link>{grouped && <Link href={participantHref}>3 · Publish roster</Link>}</div></section>
+    {rosterError && <p role="alert" className="fx-notice fx-error">The official roster could not be loaded. Existing matches remain visible; reload this page before creating a fixture. <Link href={`/admin/fixtures?event=${event.id}`}>Retry roster loading</Link></p>}
     {!current && message}
     {creating && <section className="fx-creator"><div className="fx-section-heading"><div><span className="fx-eyebrow">New fixture</span><h3>Build the next matchup.</h3></div><span className="fx-step">{scoring ? "Roster → Match → Start → Score" : "Players → Pairing → Publish"}</span></div>
-      {participants.length < 2 ? <div className="fx-empty"><h3>{grouped ? "Publish your rosters first" : "Approve at least two players"}</h3><p>{grouped ? "Captains choose their team name and squad. Approve and publish those teams before scheduling. Pairs must be confirmed and approved." : "Your approved participant roster will appear here automatically."}</p><Link className="fx-primary" href={participantHref}>{grouped ? "Open team workspace" : "Open player roster"} →</Link></div> : <form onSubmit={create}>
-        <div className="fx-two">{["A", "B"].map(side => <label key={side} className="fx-participant"><span className="fx-eyebrow">{participantType} {side === "A" ? "1" : "2"}</span><select required aria-label={`${participantType} ${side === "A" ? "1" : "2"}`} value={side === "A" ? sideA : sideB} onChange={e => (side === "A" ? setSideA : setSideB)(e.target.value)}><option value="">Choose {participantType}</option>{participants.map(p => <option key={p.id} value={p.id} disabled={p.id === (side === "A" ? sideB : sideA)}>{p.label} · {p.detail}</option>)}</select></label>)}</div>
+      {rosterError ? <p role="alert">Reload the official roster to continue.</p> : participants.length < 2 ? <div className="fx-empty"><h3>{grouped ? `Publish two ${event.format === "pair" ? "pairs" : "rosters"} first` : "Confirm at least two players"}</h3><p>{participants.length} official {participantType}s available. {grouped ? "Only coordinator-published rosters can be scheduled. Complete the preparation steps above." : "Only approved students on the final roster appear here; reserves are excluded."}</p><Link className="fx-primary" href={participantHref}>{grouped ? "Open team workspace" : "Open player roster"} →</Link></div> : <form onSubmit={create}>
+        <div className="fx-two">{["A", "B"].map(side => {
+          const chosen = participants.find(p => p.target_id === (side === "A" ? sideA : sideB));
+          return <div key={side}><label className="fx-participant"><span className="fx-eyebrow">{participantType} {side === "A" ? "1" : "2"}</span><select required aria-label={`${participantType} ${side === "A" ? "1" : "2"}`} value={side === "A" ? sideA : sideB} onChange={e => (side === "A" ? setSideA : setSideB)(e.target.value)}><option value="">Choose {participantType}</option>{participants.map(p => <option key={p.target_id} value={p.target_id} disabled={p.target_id === (side === "A" ? sideB : sideA)}>{p.label}{p.batch_label ? ` · Batch ${p.batch_label}` : ""}{p.roll_canonical ? ` · Roll ${p.roll_canonical}` : ""}{p.leader ? ` · ${p.leader}` : ""}</option>)}</select></label>{chosen && <p>{chosen.batch_label ? `Batch ${chosen.batch_label}` : "Mixed batch roster"}{chosen.roll_canonical ? ` · Roll ${chosen.roll_canonical}` : ""}{chosen.leader ? ` · ${chosen.leader}` : ""}</p>}{chosen?.members && <details><summary>View {participantType} roster{chosen.leader ? ` · ${chosen.leader}` : ""}</summary><ul>{chosen.members.map((member,index) => <li key={index}>{member}</li>)}</ul></details>}</div>;
+        })}</div>
         <label>Round<input value={round} onChange={e => setRound(e.target.value)} list="fixture-rounds" required maxLength={100} placeholder="Round 1, Group A, Semi-final…" /><datalist id="fixture-rounds">{["Round 1", "Group A", "Group B", "Quarter-final", "Semi-final", "Final", "Third place"].map(r => <option key={r} value={r} />)}</datalist></label>
         {scheduleFields}<div className="fx-actions"><button className="fx-primary" type="submit" disabled={busy}>{busy ? "Scheduling…" : "Schedule match"}</button><button className="fx-secondary" type="button" onClick={() => setCreating(false)}>Cancel</button></div>
       </form>}

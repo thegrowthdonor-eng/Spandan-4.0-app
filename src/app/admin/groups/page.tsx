@@ -28,6 +28,7 @@ export default async function GroupsPage({ searchParams }: { searchParams: Promi
   return <main className="groups-page">
     <section className="portal-heading"><div><p className="portal-eyebrow">Event participation</p><h1>{tools?.label}</h1><p>{selected.format === "pair" ? "Review mutually confirmed pairs. No captains or manual partner assignment." : tools?.noun === "performances" ? "Appoint a performance lead, including for solo entries. They propose the performance name and members; you review and approve the roster." : "Appoint a leader. They choose the initial name and squad; you review, edit and approve."}</p></div></section>
     <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/groups" />
+    <nav className="portal-event-actions" aria-label="Event participation steps"><Link href={`/admin/review?event=${selected.id}`}>Review registrations</Link><Link href={`/admin/fixtures?event=${selected.id}`}>Continue to event operations →</Link></nav>
     {error || !data ? <p role="alert">The participation workspace could not be loaded. Refresh to retry.</p> : <TeamWorkspace key={selected.id} data={{...data as TeamWorkspaceData, operatingMethod: event?.operating_method}} />}
   </main>;
 }

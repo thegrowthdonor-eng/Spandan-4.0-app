@@ -20,6 +20,7 @@ export function TeamWorkspace({ data, participantView = false }: { data: TeamWor
   const [batchId, setBatchId] = useState("");
   const tools = participationTools(data.format, data.operatingMethod);
   const performance = tools?.noun === "performances";
+  const availableLeaders = data.candidates.filter(candidate => !data.groups.some(group => group.captainId === candidate.studentId || (group.state === "published" && group.members.some(member => member.applicationId === candidate.applicationId))));
   const command: Command = async body => {
     if (pending) return false;
     setPending(true); setMessage("");
@@ -27,7 +28,7 @@ export function TeamWorkspace({ data, participantView = false }: { data: TeamWor
       const response = await fetch(data.staff ? "/api/admin/groups" : "/api/teams", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Could not save. Try again.");
-      setMessage("Saved successfully."); router.refresh(); return true;
+      setMessage("Saved successfully."); setLeader(""); setBatchId(""); router.refresh(); return true;
     } catch (error) { setMessage(error instanceof Error ? error.message : "Connection lost. Your saved proposal is preserved."); return false; }
     finally { setPending(false); }
   };
@@ -36,15 +37,20 @@ export function TeamWorkspace({ data, participantView = false }: { data: TeamWor
     {data.format === "sport" && <p className="team-status">Same batch only · One team per batch. Team size limits apply to the final roster; every eligible student can register individually.</p>}
     {data.locked && <p className="team-status">This roster is locked. You can view it, but no changes can be made.</p>}
     <p className="team-status" role="status" aria-live="polite">{message}</p>
-    {data.staff && tools?.leader && !data.locked && <section className="team-panel">
+    {data.staff && tools?.leader && !data.locked && <section className="team-panel" id="appointments">
       <p className="team-eyebrow">Start with a leader</p><h2>Appoint {tools.leader === "Captain" ? "a captain" : performance ? "a performance lead" : "a group leader"}</h2>
       <p>The appointed student chooses the name and initial members in My Fest. You review and edit their proposal afterwards.</p>
       <form onSubmit={e => { e.preventDefault(); void command({ action: "appoint", eventId: data.eventId, groupId: null, leaderApplicationId: leader, batchId:data.format==="sport"?batchId:null }); }}>
-        {data.format==="sport"&&<label>Team batch<select required value={batchId} onChange={e=>{setBatchId(e.target.value);setLeader("");}} disabled={pending}><option value="">Select batch first</option>{data.batches.filter(b=>!data.groups.some(g=>g.batchId===b.id)).map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>}
-        <label>{tools.leader}<select required value={leader} onChange={e => setLeader(e.target.value)} disabled={pending||(data.format==="sport"&&!batchId)}><option value="">Choose an approved event participant</option>{data.candidates.filter(c => (data.format!=="sport"||c.batchId===batchId)&&!data.groups.some(g => g.captainId === c.studentId)).map(c => <option value={c.applicationId} key={c.applicationId}>{identity(c)}</option>)}</select></label>
+        {data.format==="sport"&&<label>Team batch<select required value={batchId} onChange={e=>{setBatchId(e.target.value);setLeader("");}} disabled={pending}><option value="">Select batch first</option>{data.batches.filter(b=>!data.groups.some(g=>g.batchId===b.id)).map(b=><option key={b.id} value={b.id}>{b.label} · {availableLeaders.filter(candidate=>candidate.batchId===b.id).length} approved available</option>)}</select></label>}
+        <label>{tools.leader}<select required value={leader} onChange={e => setLeader(e.target.value)} disabled={pending||(data.format==="sport"&&!batchId)}><option value="">Choose an approved event participant</option>{data.batches.map(batch => {
+          const candidates = availableLeaders.filter(candidate => candidate.batchId === batch.id && (data.format !== "sport" || batch.id === batchId));
+          return candidates.length ? <optgroup key={batch.id} label={`Batch ${batch.label}`}>{candidates.map(candidate => <option value={candidate.applicationId} key={candidate.applicationId}>{identity(candidate)}</option>)}</optgroup> : null;
+        })}</select></label>
         <button type="submit" disabled={pending || !leader}>Appoint {tools.leader}</button>
       </form>
       {!data.candidates.length && <p>No eligible approved participants yet. <Link href={`/admin/review?event=${data.eventId}`}>Review event registrations →</Link></p>}
+      {data.format === "sport" && data.groups.length > 0 && <p>Already appointed batches appear below. Use <strong>Change Captain</strong> on their existing team.</p>}
+      {batchId && !availableLeaders.some(candidate => candidate.batchId === batchId) && <p>No unassigned approved participants in this batch. <Link href={`/admin/review?event=${data.eventId}`}>Review this event&apos;s registrations →</Link></p>}
     </section>}
     {data.format === "pair" && (!data.staff || participantView) && <PairInvitations key={JSON.stringify(data.invitations) + data.registered} data={data} command={command} pending={pending} />}
     <section className="team-section" aria-label={tools?.label ?? "Participation"}>
@@ -87,7 +93,7 @@ function SquadCard({ group, data, command, pending }: { group: Squad; data: Team
         {group.state === "draft" && group.ready && <button type="button" className="team-secondary" disabled={pending || !reason.trim()} onClick={() => void command({ action: "return", eventId: data.eventId, groupId: group.id, version: group.version, reason })}>{data.format === "pair" ? "Add review instructions" : "Return with instructions"}</button>}
         {data.format === "pair" && <button type="button" className="team-danger" disabled={pending || !reason.trim()} onClick={() => { if (confirm("Release both partners? Any new pairing will require a fresh invitation. Existing result snapshots will not change.")) void command({ action: "dissolve", eventId: data.eventId, groupId: group.id, version: group.version, reason }); }}>Release pair for fresh invitations</button>}
       </details>}
-      {tools?.leader && <details className="team-review"><summary>{group.captainId ? `Change ${tools.leader}` : `Appoint ${tools.leader}`}</summary><form onSubmit={e => { e.preventDefault(); void command({ action: "appoint", eventId: data.eventId, groupId: group.id, leaderApplicationId: replacement, batchId:group.batchId }); }}><label>{tools.leader}<select required value={replacement} onChange={e => setReplacement(e.target.value)} disabled={pending}><option value="">Choose approved participant</option>{data.candidates.filter(c => (!data.batchRestricted || c.batchId === group.batchId) && (group.state !== "published" || group.members.some(m => m.applicationId === c.applicationId))).map(c => <option key={c.applicationId} value={c.applicationId}>{identity(c)}</option>)}</select></label><button type="submit" disabled={pending || !replacement}>Confirm appointment</button></form></details>}
+      {tools?.leader && <details className="team-review"><summary>{group.captainId ? `Change ${tools.leader}` : `Appoint ${tools.leader}`}</summary><form onSubmit={e => { e.preventDefault(); void command({ action: "appoint", eventId: data.eventId, groupId: group.id, leaderApplicationId: replacement, batchId:group.batchId }); }}><label>{tools.leader}<select required value={replacement} onChange={e => setReplacement(e.target.value)} disabled={pending}><option value="">Choose approved participant</option>{data.candidates.filter(c => (!data.batchRestricted || c.batchId === group.batchId) && !data.groups.some(other => other.id !== group.id && (other.captainId === c.studentId || (other.state === "published" && other.members.some(member => member.applicationId === c.applicationId)))) && (group.state !== "published" || group.members.some(m => m.applicationId === c.applicationId))).map(c => <option key={c.applicationId} value={c.applicationId}>{identity(c)}</option>)}</select></label><button type="submit" disabled={pending || !replacement}>Confirm appointment</button></form></details>}
     </>}
   </article>;
 }

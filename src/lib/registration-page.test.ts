@@ -15,7 +15,7 @@ const Component = () => null;
 const source = readFileSync(new URL("../app/events/[slug]/page.tsx", import.meta.url), "utf8");
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
 
-async function renderDock(format: string, options: { gender?: string; failed?: boolean; state?: string; opens?: string; verified?: boolean } = {}) {
+async function renderDock(format: string, options: { gender?: string | null; failed?: boolean; state?: string; opens?: string; verified?: boolean } = {}) {
   const event = { id: "event", edition_id: "edition", slug: "football", title: "Football", category: "sport", format, registration_enabled: true, state: options.state ?? "open", operating_method: "live_matches", summary: "Football", rules_markdown: "Play fairly", venue: "Ground", starts_at: null, ends_at: null, reporting_at: null, application_opens_at: options.opens ?? "2000-01-01T00:00:00Z", application_closes_at: "2099-01-01T00:00:00Z", application_questions: [], eligibility: { division: "boys" }, group_min_size: 2, group_max_size: 15 };
   function query(data: unknown, error: unknown = null) {
     const result = { data, error };
@@ -24,7 +24,7 @@ async function renderDock(format: string, options: { gender?: string; failed?: b
   }
   const client = {
     auth: { getUser: async () => ({ data: { user: { id: "verified-ug" } }, error: null }) },
-    from: (table: string) => query(table === "profiles" ? { gender: options.gender ?? "male", participant_category: "ug" } : table === "access_records" ? { state: "active", verified_at: options.verified === false ? null : "2000-01-01" } : null, options.failed && table === "profiles" ? { message: "upstream failure" } : null),
+    from: (table: string) => query(table === "profiles" ? { gender: options.gender === undefined ? "male" : options.gender, participant_category: "ug" } : table === "access_records" ? { state: "active", verified_at: options.verified === false ? null : "2000-01-01" } : null, options.failed && table === "profiles" ? { message: "upstream failure" } : null),
   };
   const dependencies: Record<string, unknown> = {
     "react/jsx-runtime": jsxRuntime,
@@ -73,6 +73,9 @@ test("scheduled dates, gender and verification retain distinct registration stat
   assert.equal(scheduled.href, null);
   assert.equal(scheduled.status, "Scheduled");
   assert.equal((await renderDock("sport", { gender: "female" })).status, "Outside your division");
+  const missing = await renderDock("sport", {gender:null});
+  assert.equal(missing.status, "Gender details incomplete");
+  assert.equal(missing.href, "/my-fest?tab=support");
   assert.equal((await renderDock("sport", { verified: false })).status, "Account verification pending");
   const failed = await renderDock("sport", { failed: true });
   assert.equal(failed.status, "Unable to load registration access");
