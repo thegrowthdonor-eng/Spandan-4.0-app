@@ -82,6 +82,7 @@ const POLICY_SECTIONS = [
             <strong>Public Information:</strong> Participant names, roll numbers for published individual winners,
             batch representations (e.g. Batch 2022 Spartans), competition event names, match scores, and official
             podium standings are published publicly on the live schedule, radar, and leaderboard.
+            Event pages also show the names of approved participants and whether their roster place is confirmed.
           </li>
           <li>
             <strong>Restricted Information:</strong> Personal contact numbers, private application notes, and treasury

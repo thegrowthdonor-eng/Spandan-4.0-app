@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { applicationReviewSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,5 +24,6 @@ export async function POST(request: Request) {
     if (error.code === "22023") return NextResponse.json({ error: "This review cannot be saved with the supplied details." }, { status: 400, headers });
     return NextResponse.json({ error: "Unable to save this review right now." }, { status: 503, headers });
   }
+  invalidatePublicTags(PUBLIC_CACHE_TAGS.eventParticipants);
   return NextResponse.json({ ok: true }, { headers });
 }

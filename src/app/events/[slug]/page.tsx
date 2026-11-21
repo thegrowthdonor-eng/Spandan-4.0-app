@@ -11,7 +11,7 @@ import { ApplyButton } from "../apply-button";
 import Link from "next/link";
 import { eventCategoryLabel } from "@/lib/event-categories";
 import { EventRegistrationDock } from "../event-registration-dock";
-import { EventParticipantsDialog } from "../event-participants-dialog";
+import { EventParticipantsDialog, type PublicParticipant } from "../event-participants-dialog";
 import { FestTopNav } from "@/components/spandan-branding";
 import "../events.css";
 import { finalValueLabel, type OperatingMethod } from "@/lib/event-operations";
@@ -79,12 +79,6 @@ type EventManager = {
 type EventManagers = {
   coordinators: EventManager[];
   heads: EventManager[];
-};
-
-type PublicParticipant = {
-  profile_id: string;
-  full_name: string;
-  batch_label: string;
 };
 
 function datetime(value: string | null) {
@@ -214,46 +208,46 @@ async function getEventManagers(eventId: string, category: string): Promise<Even
   }
 }
 
-async function getPublicParticipants(eventId: string): Promise<PublicParticipant[]> {
-  if (!hasSupabaseConfiguration()) return [];
+async function getPublicParticipants(eventId: string): Promise<PublicParticipant[] | null> {
+  if (!hasSupabaseConfiguration()) return null;
   try {
     return await coalesceCached(
-      `event-participants:${eventId}`,
-      [PUBLIC_CACHE_TAGS.eventDetail, programmeCacheTag],
+      `approved-event-participants:${eventId}`,
+      [PUBLIC_CACHE_TAGS.eventParticipants],
       30,
       async () => {
         const admin = createAdminClient();
-        const { data: applications, error: applicationError } = await admin
-          .from("applications")
-          .select("student_id")
-          .eq("event_id", eventId)
-          .eq("review_state", "approved")
-          .eq("selection_state", "selected");
+        const participants: PublicParticipant[] = [];
+        const pageSize = 200;
+        let afterStudentId: string | undefined;
+        for (;;) {
+          const page = admin.from("applications")
+            .select("student_id,selection_state,student:profiles!applications_student_id_fkey(full_name,participant_category,batches(label))")
+            .eq("event_id", eventId)
+            .eq("review_state", "approved")
+            .order("student_id")
+            .limit(pageSize);
+          const { data, error } = await (afterStudentId ? page.gt("student_id", afterStudentId) : page);
+          if (error || !data) throw new Error(error?.message ?? "Participants unavailable");
 
-        if (applicationError) throw new Error(applicationError.message);
-        if (!applications?.length) return [];
-        const profileIds = [...new Set(applications.map((application) => application.student_id))];
-        const { data: profiles, error: profileError } = await admin
-          .from("profiles")
-          .select("id,full_name,participant_category,batches(label)")
-          .in("id", profileIds)
-          .order("full_name");
-
-        if (profileError || !profiles) throw new Error(profileError?.message ?? "Participants unavailable");
-        return profiles
-          .map((profile) => {
-            const batch = profile.batches as unknown as { label?: string | null } | null;
-            return {
-              profile_id: profile.id,
-              full_name: profile.full_name,
-              batch_label: batch?.label ?? profile.participant_category?.toUpperCase() ?? "Participant",
-            };
-          })
-          .sort((a, b) => a.batch_label.localeCompare(b.batch_label) || a.full_name.localeCompare(b.full_name));
+          for (const row of data) {
+            const student = row.student as unknown as { full_name: string; participant_category: string | null; batches: { label: string } | null } | null;
+            if (!student) throw new Error("Participant profile unavailable");
+            const confirmed = row.selection_state === "selected";
+            participants.push({
+              fullName: student.full_name,
+              confirmed,
+              batchLabel: confirmed ? student.batches?.label ?? student.participant_category?.toUpperCase() ?? null : null,
+            });
+          }
+          if (data.length < pageSize) break;
+          afterStudentId = data[data.length - 1].student_id;
+        }
+        return participants.sort((a, b) => Number(b.confirmed) - Number(a.confirmed) || (a.batchLabel ?? "").localeCompare(b.batchLabel ?? "") || a.fullName.localeCompare(b.fullName));
       },
     );
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -342,7 +336,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   const [eventResult, eventManagers, publicParticipants] = await Promise.all([
     getEventResult(event.id),
     getEventManagers(event.id, event.category),
-    getPublicParticipants(event.id),
+    event.registration_enabled ? getPublicParticipants(event.id) : null,
   ]);
 
   const now = new Date();
@@ -507,7 +501,6 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
           </div>
           {event.registration_enabled && <EventParticipantsDialog
             eventTitle={event.title}
-            teamEvent={event.format !== "solo"}
             participants={publicParticipants}
             approvedRegistrationsHref={canManageEvent ? `/admin/review?event=${event.id}&status=approved` : undefined}
           />}
@@ -666,7 +659,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
         {dockHref === "#event-registration" && (
           <>
             {!senior && <p className="event-registration-sheet-note">
-              Applying does not guarantee approval or final selection. Review your answers carefully before submitting.
+              If approved, your name will appear on the public event page. The roster status shows when your place is confirmed.
             </p>}
             {clashWarning && <div className="event-registration-sheet-warning">{clashWarning}</div>}
             <ApplyButton eventId={event.id} senior={senior} questions={questions} themePolicy={senior ? undefined : themeRosterPolicy(event.eligibility?.theme_roster_policy)} />

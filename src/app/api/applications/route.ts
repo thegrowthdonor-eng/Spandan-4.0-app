@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { eventApplicationSchema, applicationWithdrawSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
 import { registrationError } from "@/lib/registration-status";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -81,5 +82,6 @@ export async function DELETE(request: Request) {
     if (error.code === "22023") return NextResponse.json({ error: error.message }, { status: 409, headers });
     return NextResponse.json({ error: "Unable to withdraw. Please try again." }, { status: 503, headers });
   }
+  invalidatePublicTags(PUBLIC_CACHE_TAGS.eventParticipants);
   return NextResponse.json({ ok: true }, { headers });
 }

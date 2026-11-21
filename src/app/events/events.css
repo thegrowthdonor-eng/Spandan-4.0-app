@@ -937,7 +937,7 @@ body .events-page .events-hero p:not(.eyebrow):not(.college-affil-pill) {
   gap: 8px;
   margin: 0;
 }
-.event-detail-hero-topline { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.event-detail-hero-topline { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .event-category-pill, .event-format-pill {
   font: 700 11px/1.2 "DM Mono", monospace;
   text-transform: uppercase;
@@ -955,9 +955,10 @@ body .events-page .events-hero p:not(.eyebrow):not(.college-affil-pill) {
   color: #26382f;
 }
 
-/* Public selected-participant roster */
+/* Public participant list */
 .event-participants-trigger {
-  min-height: 38px;
+  min-height: 44px;
+  margin-inline-start: auto;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -1039,13 +1040,10 @@ body:has(.event-participants-dialog[open]) .event-registration-dock { opacity: 0
 .event-participants-list li:last-child { border-bottom: 0; }
 .event-participant-index { color: #a36753; font: 700 10px/1 "DM Mono", monospace; }
 .event-participant-name { min-width: 0; display: grid; gap: 3px; }
-.event-participant-name strong { overflow: hidden; color: #261923; font-size: 13.5px; text-overflow: ellipsis; white-space: nowrap; }
+.event-participant-name strong { overflow-wrap: anywhere; color: #261923; font-size: 13.5px; }
 .event-participant-name small { color: #7b7068; font: 600 9px/1.25 "DM Mono", monospace; letter-spacing: .04em; text-transform: uppercase; }
 .event-participant-status { padding: 5px 8px; border-radius: 99px; background: #e6f0e6; color: #326046; font: 700 8px/1 "DM Mono", monospace; letter-spacing: .06em; text-transform: uppercase; }
-.event-participants-empty { display: grid; justify-items: center; gap: 8px; padding: 46px 26px 50px; text-align: center; }
-.event-participants-empty > span { color: #c98d40; font-size: 24px; }
-.event-participants-empty strong { color: #20352c; font: 650 21px/1.2 "Playfair Display", serif; }
-.event-participants-empty p { max-width: 360px; margin: 0; color: #74685f; font-size: 12.5px; line-height: 1.55; }
+.event-participant-status-approved { background: #f8ebd2; color: #694d21; }
 .event-participants-actions { padding: 0 16px 16px; text-align: center; }
 .event-participants-actions a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; color: #633e63; font-size: 13px; font-weight: 700; text-decoration: underline; }
 .event-summary {
@@ -1346,7 +1344,7 @@ body:has(.event-participants-dialog[open]) .event-registration-dock { opacity: 0
   .event-detail-hero { padding: 40px 5vw 32px; }
   .event-detail-hero-topline { align-items: center; gap: 10px; }
   .event-detail-badge-strip { gap: 6px; }
-  .event-participants-trigger { min-height: 36px; gap: 5px; padding: 0 7px; font-size: 9.5px; }
+  .event-participants-trigger { gap: 5px; padding: 0 7px; font-size: 10.5px; }
   .event-participants-trigger strong { min-width: 20px; height: 20px; padding-inline: 4px; }
   .event-participants-dialog { width: 100%; max-height: min(88dvh, 760px); margin: auto 0 0; border-width: 1px 0 0; border-radius: 24px 24px 0 0; }
   .event-participants-sheet { max-height: min(88dvh, 760px); }
@@ -1360,10 +1358,6 @@ body:has(.event-participants-dialog[open]) .event-registration-dock { opacity: 0
 
 @media (max-width: 420px) {
   .event-facts { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 360px) {
-  .event-participants-trigger > span { display: none; }
 }
 
 /* Event Poster Banner */

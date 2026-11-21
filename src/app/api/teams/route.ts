@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { teamCommandSchema } from "@/lib/team-contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,7 +42,10 @@ export async function POST(request: Request) {
     const code = result.error.code;
     const status = code === "42501" || code === "P0002" ? 403 : ["22023", "23505", "55000"].includes(code) ? 409 : 503;
     output = NextResponse.json({ error: status === 403 ? "You do not have access to this team or invitation." : status === 409 ? (code === "23505" ? "This student or invitation is already assigned. Refresh and try again." : result.error.message) : "Could not update right now. Your saved proposal is preserved." }, { status, headers });
-  } else output = NextResponse.json({ ok: true, data: result.data }, { headers });
+  } else {
+    if (["save", "publish", "dissolve"].includes(cmd.action)) invalidatePublicTags(PUBLIC_CACHE_TAGS.eventParticipants);
+    output = NextResponse.json({ ok: true, data: result.data }, { headers });
+  }
   for (const cookie of response.cookies.getAll()) output.cookies.set(cookie);
   return output;
 }

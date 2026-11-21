@@ -155,6 +155,7 @@ test("application API routes seniors separately and preserves the UG RPC respons
     const calls: string[] = [];
     const route = loadRoute("../../app/api/applications/route.ts", {
       "@/lib/registration-status": registrationStatus,
+      "@/server/public-cache": { invalidatePublicTags: () => assert.fail("Submitted registrations do not change the public list") },
       "@supabase/ssr": { createServerClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: "participant" } } }) }, from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { participant_category: category } }) }) }) }), rpc: async (name: string) => { calls.push(name); return { data: { review_state: "submitted" } }; } }) },
       "next/headers": { cookies: async () => ({ getAll: () => [] }) }, "next/server": { NextResponse },
       "@/server/auth/contracts": await import("./contracts"), "@/server/env": { hasPublicSupabaseConfiguration: () => true },
@@ -170,6 +171,7 @@ test("UG registration API reports stable reasons without leaking unknown databas
   for (const [details, code, status] of [["scheduled","22023",409],["gender_mismatch","42501",403],["invalid_answers","22023",400],["private details","XX000",503]] as const) {
     const route = loadRoute("../../app/api/applications/route.ts", {
       "@/lib/registration-status": registrationStatus,
+      "@/server/public-cache": { invalidatePublicTags: () => assert.fail("Failed registrations do not change the public list") },
       "@supabase/ssr": { createServerClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: "participant" } } }) }, from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { participant_category: "ug" } }) }) }) }), rpc: async () => ({ error: { code, details, message: "private details" } }) }) },
       "next/headers": { cookies: async () => ({ getAll: () => [] }) }, "next/server": { NextResponse },
       "@/server/auth/contracts": await import("./contracts"), "@/server/env": { hasPublicSupabaseConfiguration: () => true },

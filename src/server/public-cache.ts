@@ -10,6 +10,7 @@ export const PUBLIC_CACHE_TAGS = {
   merchandise: "public-merchandise",
   committee: "public-committee",
   eventDetail: "public-event-detail",
+  eventParticipants: "public-event-participants",
   home: "public-home",
   live: "public-live",
   notifications: "public-notifications",

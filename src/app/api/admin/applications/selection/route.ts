@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { soloSelectionSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,5 +17,6 @@ export async function POST(request: Request) {
   if (!(await client.auth.getUser()).data.user) return denied;
   const { error } = await client.rpc("select_solo_application", { p_application_id: parsed.data.applicationId, p_state: parsed.data.state, p_reason: parsed.data.reason || null });
   if (error) { if (error.code === "42501") return denied; if (error.code === "22023") return NextResponse.json({ error: "This application cannot be selected in this workflow." }, { status: 400, headers }); return NextResponse.json({ error: "Unable to save selection right now." }, { status: 503, headers }); }
+  invalidatePublicTags(PUBLIC_CACHE_TAGS.eventParticipants);
   return NextResponse.json({ ok: true }, { headers });
 }

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { bulkApplicationReviewSchema } from "@/server/auth/contracts";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { invalidatePublicTags, PUBLIC_CACHE_TAGS } from "@/server/public-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,5 +61,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unable to process bulk review right now." }, { status: 503, headers });
   }
 
+  invalidatePublicTags(PUBLIC_CACHE_TAGS.eventParticipants);
   return NextResponse.json({ ok: true, processedCount: count }, { headers });
 }
