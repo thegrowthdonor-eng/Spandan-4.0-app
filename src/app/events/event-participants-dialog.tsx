@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 
 type PublicParticipant = {
   profile_id: string;
@@ -10,10 +11,14 @@ type PublicParticipant = {
 
 export function EventParticipantsDialog({
   eventTitle,
+  teamEvent,
   participants,
+  approvedRegistrationsHref,
 }: {
   eventTitle: string;
+  teamEvent: boolean;
   participants: PublicParticipant[];
+  approvedRegistrationsHref?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -51,7 +56,7 @@ export function EventParticipantsDialog({
             <div>
               <span className="event-participants-eyebrow">Official participant list</span>
               <h2 id="event-participants-title">{eventTitle}</h2>
-              <p>{participants.length ? `${participants.length} selected ${participants.length === 1 ? "participant" : "participants"}` : "Selection is yet to be published"}</p>
+              <p>{participants.length ? `${participants.length} selected ${participants.length === 1 ? "participant" : "participants"}` : "No confirmed participants yet"}</p>
             </div>
             <button type="button" onClick={closeDialog} aria-label="Close participant list">&times;</button>
           </header>
@@ -73,9 +78,10 @@ export function EventParticipantsDialog({
             <div className="event-participants-empty">
               <span aria-hidden="true">✦</span>
               <strong>Roster awaiting confirmation</strong>
-              <p>Approved participants will appear here after the organiser publishes the final selection.</p>
+              <p>{teamEvent ? "Approved registrations go into the selection pool. Participants appear here once the organiser publishes their roster." : "Participants appear here once they are added to the final roster."}</p>
             </div>
           )}
+          {approvedRegistrationsHref && <div className="event-participants-actions"><Link href={approvedRegistrationsHref}>View approved registrations</Link></div>}
         </div>
       </dialog>
     </>

@@ -12,10 +12,11 @@ import * as categories from "./event-categories";
 
 const Dock = () => null;
 const Component = () => null;
+const Participants = () => null;
 const source = readFileSync(new URL("../app/events/[slug]/page.tsx", import.meta.url), "utf8");
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
 
-async function renderDock(format: string, options: { gender?: string | null; failed?: boolean; state?: string; opens?: string; verified?: boolean } = {}) {
+async function renderEvent(format: string, options: { gender?: string | null; failed?: boolean; state?: string; opens?: string; verified?: boolean; managesEvent?: boolean } = {}) {
   const event = { id: "event", edition_id: "edition", slug: "football", title: "Football", category: "sport", format, registration_enabled: true, state: options.state ?? "open", operating_method: "live_matches", summary: "Football", rules_markdown: "Play fairly", venue: "Ground", starts_at: null, ends_at: null, reporting_at: null, application_opens_at: options.opens ?? "2000-01-01T00:00:00Z", application_closes_at: "2099-01-01T00:00:00Z", application_questions: [], eligibility: { division: "boys" }, group_min_size: 2, group_max_size: 15 };
   function query(data: unknown, error: unknown = null) {
     const result = { data, error };
@@ -24,6 +25,11 @@ async function renderDock(format: string, options: { gender?: string | null; fai
   }
   const client = {
     auth: { getUser: async () => ({ data: { user: { id: "verified-ug" } }, error: null }) },
+    rpc: async (name: string, args: { p_event_id: string }) => {
+      assert.equal(name, "can_manage_event");
+      assert.equal(args.p_event_id, event.id);
+      return { data: options.managesEvent === true };
+    },
     from: (table: string) => query(table === "profiles" ? { gender: options.gender === undefined ? "male" : options.gender, participant_category: "ug" } : table === "access_records" ? { state: "active", verified_at: options.verified === false ? null : "2000-01-01" } : null, options.failed && table === "profiles" ? { message: "upstream failure" } : null),
   };
   const dependencies: Record<string, unknown> = {
@@ -39,7 +45,7 @@ async function renderDock(format: string, options: { gender?: string | null; fai
     "@/server/supabase/programme-fetch": { programmeCacheTag: "test" },
     "../apply-button": { ApplyButton: Component },
     "../event-registration-dock": { EventRegistrationDock: Dock },
-    "../event-participants-dialog": { EventParticipantsDialog: Component },
+    "../event-participants-dialog": { EventParticipantsDialog: Participants },
     "@/components/spandan-branding": { FestTopNav: Component },
     "../events.css": {},
     "@/lib/event-categories": categories, "@/lib/event-operations": operations,
@@ -49,17 +55,33 @@ async function renderDock(format: string, options: { gender?: string | null; fai
   new Script(code).runInNewContext({ module: moduleObject, exports: moduleObject.exports, require: (name: string) => {
     assert.ok(name in dependencies, `Unexpected dependency ${name}`); return dependencies[name];
   }, Date, Intl });
-  const page = await moduleObject.exports.default({ params: Promise.resolve({ slug: "football" }) });
-  function find(node: React.ReactNode): Record<string, unknown> | null {
-    if (!React.isValidElement<{ children?: React.ReactNode }>(node)) return null;
-    if (node.type === Dock) return node.props;
-    for (const child of React.Children.toArray(node.props.children)) { const found = find(child); if (found) return found; }
-    return null;
+  return moduleObject.exports.default({ params: Promise.resolve({ slug: "football" }) });
+}
+
+function find(node: React.ReactNode, component: () => null): Record<string, unknown> | null {
+  if (!React.isValidElement<{ children?: React.ReactNode }>(node)) return null;
+  if (node.type === component) return node.props;
+  for (const child of React.Children.toArray(node.props.children)) {
+    const found = find(child, component);
+    if (found) return found;
   }
-  const dock = find(page);
+  return null;
+}
+
+async function renderDock(...args: Parameters<typeof renderEvent>) {
+  const dock = find(await renderEvent(...args), Dock);
   assert.ok(dock);
   return dock;
 }
+
+test("the public roster only links to approved registrations for an organiser who manages the event", async () => {
+  const organiser = find(await renderEvent("sport", { managesEvent: true }), Participants);
+  assert.equal(organiser?.approvedRegistrationsHref, "/admin/review?event=event&status=approved");
+  assert.equal(organiser?.teamEvent, true);
+  const student = find(await renderEvent("sport"), Participants);
+  assert.ok(student);
+  assert.equal(student.approvedRegistrationsHref, undefined);
+});
 
 test("verified matching-gender UG can register without a captain, partner or team in every format", async () => {
   for (const format of ["solo", "pair", "group", "sport"]) {

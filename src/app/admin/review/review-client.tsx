@@ -1,6 +1,8 @@
 "use client";
 
 import { PortalDialog } from "@/components/admin/portal-dialog";
+import Link from "next/link";
+import { participationTools } from "@/lib/event-participation";
 import type { WorkspaceEvent } from "@/lib/management";
 
 import { useMemo, useState } from "react";
@@ -23,13 +25,19 @@ export type ApplicationRow = {
 export function ReviewClient({
   event,
   applications,
+  showApproved,
 }: {
-  event: Pick<WorkspaceEvent, "id" | "title" | "format">;
+  event: Pick<WorkspaceEvent, "id" | "title" | "format" | "operating_method">;
   applications: ApplicationRow[];
+  showApproved: boolean;
 }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [reviewFilter, setReviewFilter] = useState<string>("submitted");
+  const [selectedReviewFilter, setReviewFilter] = useState<string | null>(null);
+  const pendingCount = applications.filter(application => application.review_state === "submitted").length;
+  const approvedCount = applications.filter(application => application.review_state === "approved").length;
+  const reviewFilter = selectedReviewFilter ?? (showApproved ? "approved" : pendingCount ? "submitted" : approvedCount ? "approved" : "all");
+  const rosterTool = participationTools(event.format, event.operating_method);
   const [limit, setLimit] = useState(40);
   const [batchFilter, setBatchFilter] = useState<string>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -202,6 +210,7 @@ export function ReviewClient({
     <div className="review-workspace">
       {/* Action Navigation Bar */}
       <div className="review-top-bar">
+        {rosterTool && <Link className="export-button" href={`${rosterTool.href}?event=${event.id}`}>Manage {rosterTool.label.toLowerCase()}</Link>}
         <a
           className="export-button"
           href={`/api/admin/applications/export?event=${event.id}`}
@@ -240,8 +249,8 @@ export function ReviewClient({
           <div className="filter-chips" role="group" aria-label="Review state filter">
             {[
               { id: "all", label: `All (${applications.length})` },
-              { id: "submitted", label: `Pending (${applications.filter((a) => a.review_state === "submitted").length})` },
-              { id: "approved", label: `Approved (${applications.filter((a) => a.review_state === "approved").length})` },
+              { id: "submitted", label: `Pending (${pendingCount})` },
+              { id: "approved", label: `Approved (${approvedCount})` },
               { id: "waitlisted", label: `Waitlisted (${applications.filter((a) => a.review_state === "waitlisted").length})` },
               { id: "rejected", label: `Rejected (${applications.filter((a) => a.review_state === "rejected").length})` },
               { id: "withdrawn", label: `Withdrawn (${applications.filter((a) => a.review_state === "withdrawn").length})` },

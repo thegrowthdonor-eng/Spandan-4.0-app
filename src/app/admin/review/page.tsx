@@ -9,7 +9,7 @@ import "./review.css";
 
 export const dynamic = "force-dynamic";
 
-export default async function ReviewPage({ searchParams }: { searchParams: Promise<{ event?: string }> }) {
+export default async function ReviewPage({ searchParams }: { searchParams: Promise<{ event?: string; status?: string }> }) {
   if (!hasPublicSupabaseConfiguration()) {
     return (
       <main className="review-page">
@@ -25,7 +25,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
   if (!summary) return <main className="review-page"><p className="review-empty">Applications are temporarily unavailable.</p></main>;
 
   const { events } = summary;
-  const wanted = (await searchParams).event;
+  const { event: wanted, status } = await searchParams;
   const requestedEvent = events.find(event => event.id === wanted);
   if (wanted && !requestedEvent) return <main className="portal-unavailable"><h1>Event unavailable</h1><p>This event is outside your responsibility or has been removed.</p><Link href="/admin">Back to my workspace</Link></main>;
 
@@ -83,7 +83,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
       {error ? (
         <p className="review-empty">Applications are temporarily unavailable.</p>
       ) : (
-        <ReviewClient key={selected.id} event={selected} applications={queue} />
+        <ReviewClient key={`${selected.id}:${status === "approved"}`} event={selected} applications={queue} showApproved={status === "approved"} />
       )}
     </main>
   );

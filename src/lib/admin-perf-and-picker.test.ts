@@ -8,6 +8,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { filterPickableEvents, pickableCategories, type PickableEvent } from "./admin-event-picker";
 import { adminEventsFromSummary, competitionEventsFromSummary, type ManagementSummary } from "./management";
+import { participationTools } from "./event-participation";
+import type { ApplicationRow } from "../app/admin/review/review-client";
 
 function loadTsModule(relativePath: string, modules: Record<string, unknown>) {
   const source = readFileSync(new URL(relativePath, import.meta.url), "utf8");
@@ -94,10 +96,10 @@ test("participant requests link each pending event to its own review queue", asy
       }),
     },
     "@/components/admin/event-picker": { AdminEventPicker: () => null },
-    "./review-client": { ReviewClient: ({ applications }: { applications: { full_name: string }[] }) => applications[0].full_name },
+    "./review-client": { ReviewClient: ({ applications, showApproved }: { applications: { full_name: string }[]; showApproved: boolean }) => `${applications[0].full_name}${showApproved ? " (approved view)" : ""}` },
     "./review.css": {},
-  }).default as (props: { searchParams: Promise<{ event?: string }> }) => Promise<ReactElement>;
-  const reviewMarkup = async (event?: string) => renderToStaticMarkup(await review({ searchParams: Promise.resolve({ event }) }));
+  }).default as (props: { searchParams: Promise<{ event?: string; status?: string }> }) => Promise<ReactElement>;
+  const reviewMarkup = async (event?: string, status?: string) => renderToStaticMarkup(await review({ searchParams: Promise.resolve({ event, status }) }));
 
   const card = renderToStaticMarkup(await hub()).match(/<article[^>]*>.*?<\/article>/)?.[0] ?? "";
   assert.match(card, /<strong>3<\/strong>/);
@@ -108,9 +110,10 @@ test("participant requests link each pending event to its own review queue", asy
   assert.match(defaultReview, /Application review · Debate/);
   assert.match(defaultReview, /Applicant for ev-2/);
   assert.match(await reviewMarkup("ev-3"), /Applicant for ev-3/);
+  assert.match(await reviewMarkup("ev-3", "approved"), /Applicant for ev-3 \(approved view\)/);
   assert.match(await reviewMarkup("ev-1"), /Application review · Cricket Cup/);
   assert.match(await reviewMarkup("unassigned"), /Event unavailable/);
-  assert.deepEqual(fetchedEvents, ["ev-2", "ev-3", "ev-1"]);
+  assert.deepEqual(fetchedEvents, ["ev-2", "ev-3", "ev-3", "ev-1"]);
 
   summary = { ...summary, events: [first] };
   const emptyCard = renderToStaticMarkup(await hub());
@@ -118,6 +121,33 @@ test("participant requests link each pending event to its own review queue", asy
   assert.match(emptyCard, /href="\/admin\/review">Open application review/);
   assert.match(await reviewMarkup(), /Application review · Cricket Cup/);
   assert.equal(fetchedEvents.at(-1), "ev-1");
+});
+
+test("review surfaces approved team applicants without losing the pending queue", async () => {
+  const React = await import("react");
+  const event = sampleSummary.events[0];
+  const ReviewClient = loadTsModule("../app/admin/review/review-client.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    react: React,
+    "next/link": (props: { href: string }) => createElement("a", props),
+    "next/navigation": { useRouter: () => ({}) },
+    "@/components/admin/portal-dialog": { PortalDialog: () => null },
+    "@/lib/event-participation": { participationTools },
+  }).ReviewClient as (props: { event: typeof event; applications: ApplicationRow[]; showApproved: boolean }) => ReactElement;
+  const approved: ApplicationRow = {
+    application_id: "approved", student_id: "student-1", full_name: "Approved Player", batch_label: "2024", course_label: null,
+    roll_canonical: "1", review_state: "approved", selection_state: "unselected", answers: null, review_reason: null, submitted_at: "2026-11-21T00:00:00Z",
+  };
+  const pending: ApplicationRow = { ...approved, application_id: "pending", full_name: "Pending Player", review_state: "submitted" };
+  const render = (applications: ApplicationRow[], showApproved = false) => renderToStaticMarkup(createElement(ReviewClient, { event, applications, showApproved }));
+
+  const afterApproval = render([approved]);
+  assert.match(afterApproval, /Approved Player/);
+  assert.match(afterApproval, /href="\/admin\/groups\?event=ev-1">Manage teams/);
+  assert.match(render([approved, pending]), /Pending Player/);
+  assert.doesNotMatch(render([approved, pending]), /Approved Player/);
+  assert.match(render([approved, pending], true), /Approved Player/);
+  assert.doesNotMatch(render([approved, pending], true), /Pending Player/);
 });
 
 test("management summary helpers derive competition and admin events without extra RPCs", () => {

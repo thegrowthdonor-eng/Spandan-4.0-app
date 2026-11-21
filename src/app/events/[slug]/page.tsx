@@ -357,6 +357,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   let userAccessState: string | null = null;
   let userGender: string | null = null;
   let isAuthenticated = false;
+  let canManageEvent = false;
   let accessLoadFailed = false;
   let clashWarning: string | null = null;
   try {
@@ -367,14 +368,16 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
       if (authError) accessLoadFailed = true;
       if (user) {
       isAuthenticated = true;
-      const [appResult, accessResult, profileResult, otherAppsResult, seniorResult] = await Promise.all([
+      const [appResult, accessResult, profileResult, otherAppsResult, seniorResult, managementResult] = await Promise.all([
         client.from("applications").select("id,review_state,selection_state").eq("event_id", event.id).eq("student_id", user.id).maybeSingle(),
         client.from("access_records").select("state,verified_at").eq("profile_id", user.id).eq("edition_id", event.edition_id).maybeSingle(),
         client.from("profiles").select("gender,participant_category").eq("id", user.id).maybeSingle(),
         client.from("applications").select("id,events(id,title,starts_at)").eq("student_id", user.id).neq("review_state", "rejected").neq("review_state", "withdrawn"),
         client.from("senior_event_registrations").select("id").eq("event_id", event.id).eq("profile_id", user.id).maybeSingle(),
+        event.registration_enabled ? client.rpc("can_manage_event", { p_event_id: event.id }) : null,
       ]);
       existingApplication = appResult.data;
+      canManageEvent = managementResult?.data === true;
       accessLoadFailed = !!(appResult.error || accessResult.error || profileResult.error || seniorResult.error || !profileResult.data);
       userAccessState = accessResult.data?.state ?? null;
       userGender = profileResult.data?.gender ?? null;
@@ -502,7 +505,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             <span className="event-category-pill">{eventCategoryLabel(event.category)}</span>
             {event.registration_enabled&&showFormatBadge && <span className="event-format-pill">{performance ? (event.group_min_size === 1 ? (event.group_max_size === 2 ? "Solo / duo" : "Solo / duo / group") : "Performance") : event.format}</span>}
           </div>
-          {event.registration_enabled&&<EventParticipantsDialog eventTitle={event.title} participants={publicParticipants} />}
+          {event.registration_enabled && <EventParticipantsDialog
+            eventTitle={event.title}
+            teamEvent={event.format !== "solo"}
+            participants={publicParticipants}
+            approvedRegistrationsHref={canManageEvent ? `/admin/review?event=${event.id}&status=approved` : undefined}
+          />}
         </div>
 
         <h1>{event.title}</h1>
