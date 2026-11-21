@@ -14,7 +14,7 @@ export function pickableCategories(events: PickableEvent[]) {
 }
 
 /** Filter pickable events by search query (title, format, status, category) and category. */
-export function filterPickableEvents(events: PickableEvent[], query: string, category: string) {
+export function filterPickableEvents<T extends PickableEvent>(events: T[], query: string, category: string) {
   const search = query.trim().toLowerCase();
   return events.filter((event) => {
     if (category !== "all" && event.category !== category) return false;

@@ -5,6 +5,7 @@ import { getManagementSummary } from "@/server/management";
 import { createRequestClient } from "@/server/supabase/server";
 import { ReviewClient, ApplicationRow } from "./review-client";
 import { AdminEventPicker } from "@/components/admin/event-picker";
+import { RequestEvents } from "./request-events";
 import "./review.css";
 
 export const dynamic = "force-dynamic";
@@ -53,10 +54,9 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const selected = requestedEvent ?? events.find(event => (event.pending ?? 0) > 0) ?? events[0];
-
-  const { data: queueData, error } = await client.rpc("list_event_review_queue", { p_event_id: selected.id });
-  const queue = (queueData ?? []) as ApplicationRow[];
+  const queue = requestedEvent
+    ? await client.rpc("list_event_review_queue", { p_event_id: requestedEvent.id })
+    : null;
 
   return (
     <main className="review-page">
@@ -72,19 +72,19 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
 
       <section className="review-intro">
         <p className="eyebrow">Participant management</p>
-        <h1>Application review · {selected.title}</h1>
-        <p>
-          You can review applications only for events assigned to you. Solo approval adds the student to the final roster. Pairs need mutual invitations; group/team leaders propose members for your final approval.
-        </p>
+        <h1>{requestedEvent ? `Application review · ${requestedEvent.title}` : "Participant requests"}</h1>
+        {requestedEvent && <>
+          <p>Solo approval adds the student to the final roster. Pairs need mutual invitations. Group and team leaders propose members for your final approval.</p>
+          <div className="portal-event-actions"><Link href="/admin/review">← Back to participant requests</Link></div>
+        </>}
       </section>
 
-      <AdminEventPicker events={events} selectedId={selected.id} basePath="/admin/review" />
-
-      {error ? (
-        <p className="review-empty">Applications are temporarily unavailable.</p>
-      ) : (
-        <ReviewClient key={`${selected.id}:${status === "approved"}`} event={selected} applications={queue} showApproved={status === "approved"} />
-      )}
+      {requestedEvent ? <>
+        <AdminEventPicker events={events} selectedId={requestedEvent.id} basePath="/admin/review" />
+        {queue?.error ? <p className="review-empty">Applications are temporarily unavailable.</p> : (
+          <ReviewClient key={`${requestedEvent.id}:${status === "approved"}`} event={requestedEvent} applications={(queue?.data ?? []) as ApplicationRow[]} showApproved={status === "approved"} />
+        )}
+      </> : <RequestEvents events={events} />}
     </main>
   );
 }

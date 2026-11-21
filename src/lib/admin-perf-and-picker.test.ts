@@ -7,6 +7,7 @@ import * as jsxRuntime from "react/jsx-runtime";
 import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { filterPickableEvents, pickableCategories, type PickableEvent } from "./admin-event-picker";
+import { eventCategoryLabel } from "./event-categories";
 import { adminEventsFromSummary, competitionEventsFromSummary, type ManagementSummary } from "./management";
 import { participationTools } from "./event-participation";
 import type { ApplicationRow } from "../app/admin/review/review-client";
@@ -55,7 +56,7 @@ const sampleSummary: ManagementSummary = {
   pendingVerification: 2,
 };
 
-test("participant requests link each pending event to its own review queue", async () => {
+test("the participant requests card opens the overview and only event links load a queue", async () => {
   const [first] = sampleSummary.events;
   let summary = {
     ...sampleSummary,
@@ -96,31 +97,64 @@ test("participant requests link each pending event to its own review queue", asy
       }),
     },
     "@/components/admin/event-picker": { AdminEventPicker: () => null },
+    "./request-events": { RequestEvents: ({ events }: { events: ManagementSummary["events"] }) => `${events.length} managed events` },
     "./review-client": { ReviewClient: ({ applications, showApproved }: { applications: { full_name: string }[]; showApproved: boolean }) => `${applications[0].full_name}${showApproved ? " (approved view)" : ""}` },
     "./review.css": {},
   }).default as (props: { searchParams: Promise<{ event?: string; status?: string }> }) => Promise<ReactElement>;
   const reviewMarkup = async (event?: string, status?: string) => renderToStaticMarkup(await review({ searchParams: Promise.resolve({ event, status }) }));
 
-  const card = renderToStaticMarkup(await hub()).match(/<article[^>]*>.*?<\/article>/)?.[0] ?? "";
-  assert.match(card, /<strong>3<\/strong>/);
-  assert.deepEqual([...card.matchAll(/href="\/admin\/review\?event=([^"]+)">([^<]+)/g)].map(match => match.slice(1)), [
-    ["ev-2", "Debate · 2 pending"], ["ev-3", "Quiz · 1 pending"],
-  ]);
+  assert.match(renderToStaticMarkup(await hub()), /href="\/admin\/review"><strong>3<\/strong><span>Participant requests/);
   const defaultReview = await reviewMarkup();
-  assert.match(defaultReview, /Application review · Debate/);
-  assert.match(defaultReview, /Applicant for ev-2/);
+  assert.match(defaultReview, /<h1>Participant requests<\/h1>/);
+  assert.match(defaultReview, /3 managed events/);
+  assert.deepEqual(fetchedEvents, []);
   assert.match(await reviewMarkup("ev-3"), /Applicant for ev-3/);
   assert.match(await reviewMarkup("ev-3", "approved"), /Applicant for ev-3 \(approved view\)/);
-  assert.match(await reviewMarkup("ev-1"), /Application review · Cricket Cup/);
+  const eventReview = await reviewMarkup("ev-1");
+  assert.match(eventReview, /Application review · Cricket Cup/);
+  assert.match(eventReview, /href="\/admin\/review">← Back to participant requests/);
   assert.match(await reviewMarkup("unassigned"), /Event unavailable/);
-  assert.deepEqual(fetchedEvents, ["ev-2", "ev-3", "ev-3", "ev-1"]);
+  assert.deepEqual(fetchedEvents, ["ev-3", "ev-3", "ev-1"]);
 
   summary = { ...summary, events: [first] };
-  const emptyCard = renderToStaticMarkup(await hub());
-  assert.match(emptyCard, /No pending participant requests/);
-  assert.match(emptyCard, /href="\/admin\/review">Open application review/);
-  assert.match(await reviewMarkup(), /Application review · Cricket Cup/);
-  assert.equal(fetchedEvents.at(-1), "ev-1");
+  assert.match(renderToStaticMarkup(await hub()), /href="\/admin\/review"><strong>0<\/strong><span>Participant requests/);
+  assert.match(await reviewMarkup(), /1 managed events/);
+  assert.equal(fetchedEvents.length, 3);
+});
+
+test("participant request events sort by pending count and support combined filters", () => {
+  const first = sampleSummary.events[0];
+  const events = [
+    ...Array.from({ length: 8 }, (_, index) => ({ ...first, id: `sport-${index}`, title: `Cup ${index}`, pending: 1 })),
+    { ...first, id: "quiz", title: "Quiz Cup", category: "literary", pending: 3 },
+    { ...first, id: "debate", title: "Debate Cup", category: "literary", pending: 3 },
+    first,
+  ];
+  let filters: (string | boolean)[] = [];
+  let hookIndex = 0;
+  const RequestEvents = loadTsModule("../app/admin/review/request-events.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    react: { useState: (initial: unknown) => [filters[hookIndex++] ?? initial, () => undefined] },
+    "next/link": (props: { href: string }) => createElement("a", props),
+    "@/lib/admin-event-picker": { filterPickableEvents, pickableCategories },
+    "@/lib/event-categories": { eventCategoryLabel },
+  }).RequestEvents as (props: { events: ManagementSummary["events"] }) => ReactElement;
+  function render(list = events, filterValues: typeof filters = []) {
+    filters = filterValues;
+    hookIndex = 0;
+    return renderToStaticMarkup(createElement(RequestEvents, { events: list }));
+  }
+  const defaults = render();
+  assert.match(defaults, /<option value="pending" selected="">Pending only/);
+  assert.equal([...defaults.matchAll(/<li>/g)].length, 10);
+  assert.match(defaults, /event=debate"><strong>Debate Cup<\/strong><span>3 pending.*event=quiz.*event=sport-0/);
+  assert.doesNotMatch(defaults, /Cricket Cup/);
+  const filtered = render(events, ["cup", "literary", true]);
+  assert.equal([...filtered.matchAll(/<li>/g)].length, 2);
+  assert.match(filtered, /Debate Cup.*Quiz Cup/);
+  assert.match(render(events, ["cricket", "sport", false]), /Cricket Cup<\/strong><span>0 pending/);
+  assert.match(render(events, ["cricket", "literary", false]), /No events match your filters/);
+  assert.match(render([first]), /No pending participant requests/);
 });
 
 test("review surfaces approved team applicants without losing the pending queue", async () => {

@@ -9,8 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const summary = await getManagementSummary();
   if (!summary) return <p className="portal-unavailable">Workspace temporarily unavailable. Refresh to try again.</p>;
-  const pendingEvents = summary.events.filter(event => (event.pending ?? 0) > 0);
-  const pending = pendingEvents.reduce((total, event) => total + (event.pending ?? 0), 0);
+  const pending = summary.events.reduce((total, event) => total + (event.pending ?? 0), 0);
   const drafts = summary.editableEvents.filter(e => e.state === "draft");
   const tools = managementLinks(summary).filter(link => link.href !== "/admin");
   const seniorCount = summary.isAdmin || summary.events.length > 0
@@ -23,17 +22,7 @@ export default async function AdminPage() {
     <section className="portal-stats" aria-label="Work awaiting attention">
       {(summary.isAdmin || summary.events.length > 0) && <Link href="/admin/senior-entries"><strong>{seniorCount?.error ? "—" : seniorCount?.count ?? 0}</strong><span>New PG / JR / FMG / Faculty entries (24h) →</span></Link>}
       {summary.canVerify && <Link href="/admin/activation"><strong>{summary.pendingVerification ?? 0}</strong><span>Students awaiting verification →</span></Link>}
-      {summary.events.length > 0 && <article className="portal-request-stat" aria-label="Participant requests">
-        <strong>{pending}</strong><span>Participant requests</span>
-        {pendingEvents.length > 0 ? <ul>
-          {pendingEvents.map(event => <li key={event.id}>
-            <Link href={`/admin/review?event=${event.id}`}>{event.title} · {event.pending} pending</Link>
-          </li>)}
-        </ul> : <>
-          <span>No pending participant requests</span>
-          <Link href="/admin/review">Open application review</Link>
-        </>}
-      </article>}
+      {summary.events.length > 0 && <Link href="/admin/review"><strong>{pending}</strong><span>Participant requests →</span></Link>}
       {summary.canCreate && <Link href="/admin/events?state=draft"><strong>{drafts.length}</strong><span>Event drafts →</span></Link>}
     </section>
     <section className="portal-section"><h2>Quick actions</h2><div className="portal-tools">{tools.map(tool =>
