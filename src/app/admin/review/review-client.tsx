@@ -1,6 +1,7 @@
 "use client";
 
 import { PortalDialog } from "@/components/admin/portal-dialog";
+import type { WorkspaceEvent } from "@/lib/management";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -19,19 +20,11 @@ export type ApplicationRow = {
   submitted_at: string;
 };
 
-type EventMeta = {
-  id: string;
-  title: string;
-  category: string;
-  format: "solo" | "pair" | "group" | "sport";
-  state: string;
-};
-
 export function ReviewClient({
   event,
   applications,
 }: {
-  event: EventMeta;
+  event: Pick<WorkspaceEvent, "id" | "title" | "format">;
   applications: ApplicationRow[];
 }) {
   const router = useRouter();

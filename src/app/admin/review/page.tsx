@@ -1,20 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasPublicSupabaseConfiguration } from "@/server/env";
+import { getManagementSummary } from "@/server/management";
 import { createRequestClient } from "@/server/supabase/server";
 import { ReviewClient, ApplicationRow } from "./review-client";
 import { AdminEventPicker } from "@/components/admin/event-picker";
 import "./review.css";
 
 export const dynamic = "force-dynamic";
-
-type ManagedEvent = {
-  id: string;
-  title: string;
-  category: string;
-  format: "solo" | "pair" | "group" | "sport";
-  state: string;
-};
 
 export default async function ReviewPage({ searchParams }: { searchParams: Promise<{ event?: string }> }) {
   if (!hasPublicSupabaseConfiguration()) {
@@ -28,8 +21,13 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
   const client = await createRequestClient();
   if (!(await client.auth.getUser()).data.user) redirect("/account");
 
-  const { data: eventData } = await client.rpc("list_managed_events");
-  const events = (eventData ?? []) as ManagedEvent[];
+  const summary = await getManagementSummary();
+  if (!summary) return <main className="review-page"><p className="review-empty">Applications are temporarily unavailable.</p></main>;
+
+  const { events } = summary;
+  const wanted = (await searchParams).event;
+  const requestedEvent = events.find(event => event.id === wanted);
+  if (wanted && !requestedEvent) return <main className="portal-unavailable"><h1>Event unavailable</h1><p>This event is outside your responsibility or has been removed.</p><Link href="/admin">Back to my workspace</Link></main>;
 
   if (!events.length) {
     return (
@@ -55,9 +53,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
     );
   }
 
-  const wanted = (await searchParams).event;
-  if (wanted && !events.some(event => event.id === wanted)) return <main className="portal-unavailable"><h1>Event unavailable</h1><p>This event is outside your responsibility or has been removed.</p><Link href="/admin">Back to my workspace</Link></main>;
-  const selected = events.find((event) => event.id === wanted) ?? events[0];
+  const selected = requestedEvent ?? events.find(event => (event.pending ?? 0) > 0) ?? events[0];
 
   const { data: queueData, error } = await client.rpc("list_event_review_queue", { p_event_id: selected.id });
   const queue = (queueData ?? []) as ApplicationRow[];
@@ -76,7 +72,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
 
       <section className="review-intro">
         <p className="eyebrow">Participant management</p>
-        <h1>Application review</h1>
+        <h1>Application review · {selected.title}</h1>
         <p>
           You can review applications only for events assigned to you. Solo approval adds the student to the final roster. Pairs need mutual invitations; group/team leaders propose members for your final approval.
         </p>

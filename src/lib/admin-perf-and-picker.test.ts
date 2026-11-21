@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { Script } from "node:vm";
+import { createElement, type ReactElement } from "react";
+import * as jsxRuntime from "react/jsx-runtime";
+import { renderToStaticMarkup } from "react-dom/server";
 import ts from "typescript";
 import { filterPickableEvents, pickableCategories, type PickableEvent } from "./admin-event-picker";
 import { adminEventsFromSummary, competitionEventsFromSummary, type ManagementSummary } from "./management";
@@ -49,6 +52,73 @@ const sampleSummary: ManagementSummary = {
   ],
   pendingVerification: 2,
 };
+
+test("participant requests link each pending event to its own review queue", async () => {
+  const [first] = sampleSummary.events;
+  let summary = {
+    ...sampleSummary,
+    events: [
+      first,
+      { ...first, id: "ev-2", title: "Debate", pending: 2 },
+      { ...first, id: "ev-3", title: "Quiz", pending: 1 },
+    ],
+  };
+  const link = (props: { href: string }) => createElement("a", props);
+  const summaryModule = { getManagementSummary: async () => summary };
+  const hub = loadTsModule("../app/admin/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": link,
+    "@/server/management": summaryModule,
+    "@/lib/management": { managementLinks: () => [] },
+    "@/components/admin/management-events": { ManagementEvents: () => null },
+    "@/server/supabase/server": {
+      createRequestClient: async () => ({ from: () => ({ select: () => ({ gte: async () => ({ count: 0 }) }) }) }),
+    },
+  }).default as () => Promise<ReactElement>;
+
+  const fetchedEvents: string[] = [];
+  const review = loadTsModule("../app/admin/review/page.tsx", {
+    "react/jsx-runtime": jsxRuntime,
+    "next/link": link,
+    "next/navigation": { redirect: (url: string) => assert.fail(`Unexpected redirect to ${url}`) },
+    "@/server/env": { hasPublicSupabaseConfiguration: () => true },
+    "@/server/management": summaryModule,
+    "@/server/supabase/server": {
+      createRequestClient: async () => ({
+        auth: { getUser: async () => ({ data: { user: { id: "organiser" } } }) },
+        rpc: async (name: string, { p_event_id }: { p_event_id: string }) => {
+          assert.equal(name, "list_event_review_queue");
+          fetchedEvents.push(p_event_id);
+          return { data: [{ full_name: `Applicant for ${p_event_id}` }] };
+        },
+      }),
+    },
+    "@/components/admin/event-picker": { AdminEventPicker: () => null },
+    "./review-client": { ReviewClient: ({ applications }: { applications: { full_name: string }[] }) => applications[0].full_name },
+    "./review.css": {},
+  }).default as (props: { searchParams: Promise<{ event?: string }> }) => Promise<ReactElement>;
+  const reviewMarkup = async (event?: string) => renderToStaticMarkup(await review({ searchParams: Promise.resolve({ event }) }));
+
+  const card = renderToStaticMarkup(await hub()).match(/<article[^>]*>.*?<\/article>/)?.[0] ?? "";
+  assert.match(card, /<strong>3<\/strong>/);
+  assert.deepEqual([...card.matchAll(/href="\/admin\/review\?event=([^"]+)">([^<]+)/g)].map(match => match.slice(1)), [
+    ["ev-2", "Debate · 2 pending"], ["ev-3", "Quiz · 1 pending"],
+  ]);
+  const defaultReview = await reviewMarkup();
+  assert.match(defaultReview, /Application review · Debate/);
+  assert.match(defaultReview, /Applicant for ev-2/);
+  assert.match(await reviewMarkup("ev-3"), /Applicant for ev-3/);
+  assert.match(await reviewMarkup("ev-1"), /Application review · Cricket Cup/);
+  assert.match(await reviewMarkup("unassigned"), /Event unavailable/);
+  assert.deepEqual(fetchedEvents, ["ev-2", "ev-3", "ev-1"]);
+
+  summary = { ...summary, events: [first] };
+  const emptyCard = renderToStaticMarkup(await hub());
+  assert.match(emptyCard, /No pending participant requests/);
+  assert.match(emptyCard, /href="\/admin\/review">Open application review/);
+  assert.match(await reviewMarkup(), /Application review · Cricket Cup/);
+  assert.equal(fetchedEvents.at(-1), "ev-1");
+});
 
 test("management summary helpers derive competition and admin events without extra RPCs", () => {
   assert.deepEqual(competitionEventsFromSummary(sampleSummary).map((e) => e.id), ["ev-1", "ev-2"]);
