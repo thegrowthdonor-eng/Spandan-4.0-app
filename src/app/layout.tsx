@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PwaRegistration } from "@/components/pwa-registration";
 import { NavigationProgress } from "@/components/navigation-progress";
+import { FestivalOpening } from "@/components/festival-opening";
 import { SessionNavigation } from "@/components/session-navigation";
 import "./globals.css";
 import "./app-ui.css";
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en-IN">
       <body>
+        <FestivalOpening />
         <NavigationProgress />
         <PwaRegistration />
         <PwaInstallPrompt />
