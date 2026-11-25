@@ -9,7 +9,7 @@ import { mediaUrls } from "@/server/media/urls";
 export const dynamic = "force-dynamic";
 
 type EventOption = { event_id: string; event_title: string; starts_at: string | null };
-type ManageableMoment = { id: string; event_id: string; event_title: string; caption: string; storage_path: string; occurred_at: string; is_owner: boolean };
+type ManageableMoment = { id: string; event_id: string | null; event_title: string | null; caption: string; storage_path: string; occurred_at: string; is_owner: boolean };
 
 export default async function AdminGalleryPage() {
   if (!hasPublicSupabaseConfiguration()) return <main className={styles.page}><p>Gallery management is not connected.</p></main>;

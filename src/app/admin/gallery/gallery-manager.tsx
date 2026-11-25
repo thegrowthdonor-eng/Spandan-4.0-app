@@ -7,7 +7,7 @@ import { maxGalleryImageBytes } from "@/lib/gallery";
 import styles from "./gallery-admin.module.css";
 
 type EventOption = { event_id: string; event_title: string; starts_at: string | null };
-type Moment = { id: string; event_id: string; event_title: string; caption: string; occurred_at: string; is_owner: boolean; imageUrl: string };
+type Moment = { id: string; event_id: string | null; event_title: string | null; caption: string; occurred_at: string; is_owner: boolean; imageUrl: string };
 
 function istInput(value = new Date().toISOString()) {
   return new Date(new Date(value).valueOf() + 330 * 60_000).toISOString().slice(0, 16);
@@ -80,7 +80,7 @@ export function GalleryManager({ events, initialMoments }: { events: EventOption
   }
 
   async function remove(moment: Moment) {
-    if (!window.confirm("Delete this published moment? The photo cannot be recovered.")) return;
+    if (!window.confirm("Remove this post from the public Gallery?")) return;
     setBusy(true); setMessage("Deleting moment…");
     const response = await fetch("/api/admin/gallery-moments", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ momentId: moment.id }) });
     const result = await response.json() as { error?: string; cleanupPending?: boolean };
@@ -118,12 +118,12 @@ export function GalleryManager({ events, initialMoments }: { events: EventOption
         {/* Public Storage URLs are already compressed and CDN-backed. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={moment.imageUrl} alt={moment.caption} loading="lazy" />
-        {editing === moment.id ? <form action={form => void save(moment, form)} className={styles.editForm}>
+        {editing === moment.id && moment.event_id ? <form action={form => void save(moment, form)} className={styles.editForm}>
           <label>Event<select name="eventId" defaultValue={moment.event_id}>{events.map(item => <option key={item.event_id} value={item.event_id}>{item.event_title}</option>)}</select></label>
           <label>Caption<textarea name="caption" defaultValue={moment.caption} maxLength={1000} rows={3} required /></label>
           <label>Moment date and time (IST)<input name="occurredAt" type="datetime-local" defaultValue={istInput(moment.occurred_at)} required /></label>
           <div className={styles.actions}><button type="submit" disabled={busy}>Save</button><button type="button" onClick={() => setEditing(null)}>Cancel</button></div>
-        </form> : <div className={styles.momentCopy}><strong>{moment.event_title}</strong><p>{moment.caption}</p><time>{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(moment.occurred_at))} IST</time><div className={styles.actions}><button type="button" onClick={() => setEditing(moment.id)}>Edit</button><button type="button" className={styles.delete} onClick={() => void remove(moment)} disabled={busy}>Delete</button></div></div>}
+        </form> : <div className={styles.momentCopy}><strong>{moment.event_title ?? "Student post"}</strong><p>{moment.caption}</p><time>{new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(moment.occurred_at))} IST</time><div className={styles.actions}>{moment.event_id && <button type="button" onClick={() => setEditing(moment.id)}>Edit</button>}<button type="button" className={styles.delete} onClick={() => void remove(moment)} disabled={busy}>Delete</button></div></div>}
       </article>)}</div>
       {!moments.length ? <p className={styles.empty}>No manageable moments have been published yet.</p> : null}
     </section>

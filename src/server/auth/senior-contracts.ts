@@ -20,7 +20,7 @@ export const seniorSignupSchema = z.object({
  token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
  fullName: z.string().trim().min(1).max(100),
  ...details,
- gender: z.enum(["male", "female", "other", "prefer_not_to_say"]),
+ gender: z.preprocess(value => value === "" ? undefined : value, z.enum(["male", "female", "other", "prefer_not_to_say"]).default("prefer_not_to_say")),
  password: z.string().min(8).max(256),
 });
 

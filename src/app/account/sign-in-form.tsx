@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { ugBatches } from "@/lib/participants";
 import { PasswordInput } from "@/components/password-input";
 import { AccountHelpModal } from "./account-help-modal";
@@ -87,7 +88,7 @@ export function SignInForm({
         </> : <div className="field-group">
           <label htmlFor="signin-phone"><span className="label-text">Registered mobile number</span></label>
           <input id="signin-phone" name="phone" type="tel" inputMode="tel" autoComplete="username" placeholder="10-digit mobile" required disabled={!configured || pending} />
-          <p className="label-hint">First visit? Use the personal setup link shared by the festival committee.</p>
+          <p className="label-hint"><Link href="/account/join">PG / JR / FMG / Faculty signup</Link></p>
         </div>}
         {mode === "ug" && <div className="field-group">
           <label htmlFor="signin-roll">

@@ -13,17 +13,18 @@ export function SeniorSignupForm() {
   useEffect(() => {
     let ignore = false;
     const value = window.location.hash.slice(1);
+    if (!/^[A-Za-z0-9_-]{43}$/.test(value)) return;
     fetch("/api/auth/senior", { cache: "no-store", headers: { "X-Signup-Token": value } }).then(async response => {
       const body = await response.json();
       if (ignore) return;
       setToken(value);
       if (!response.ok) setMessage(body.error ?? "Signup unavailable.");
-      else if (!/^[A-Za-z0-9_-]{43}$/.test(value)) setMessage("Open the private signup link shared by the festival team.");
       else setReady(true);
     }).catch(() => { if (!ignore) setMessage("Unable to open signup. Reload to retry."); });
     return () => { ignore = true; };
   }, []);
   if (created) return <div role="status"><p>Account created. Sign in with your mobile number and password.</p><Link className="submit-btn primary-gold" href="/account?mode=senior">Continue to Sign In</Link></div>;
+  if (!ready) return <p role="status">{message || "Ask the festival registration desk for the private signup link and open it to create your account."}</p>;
   return <form className="account-form-inner" onSubmit={async event => {
     event.preventDefault();
     if (!ready || busy) return;
@@ -48,7 +49,7 @@ export function SeniorSignupForm() {
       <div className="field-group"><label htmlFor="senior-phone">Mobile number</label><input id="senior-phone" name="phone" type="tel" autoComplete="tel" required maxLength={20} /></div>
       <div className="field-group"><label htmlFor="senior-category">Category</label><select id="senior-category" name="category" required defaultValue=""><option value="" disabled>Select category</option><option value="pg">PG</option><option value="jr">JR</option><option value="fmg">FMG</option><option value="faculty">Faculty</option></select></div>
       <div className="field-group"><label htmlFor="senior-department">Department / unit</label><input id="senior-department" name="department" required maxLength={120} /></div>
-      <div className="field-group"><label htmlFor="senior-gender">Gender</label><select id="senior-gender" name="gender" required defaultValue=""><option value="" disabled>Select gender</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="prefer_not_to_say">Prefer not to say</option></select></div>
+      <div className="field-group"><label htmlFor="senior-gender">Gender (optional)</label><select id="senior-gender" name="gender" defaultValue="prefer_not_to_say"><option value="prefer_not_to_say">Prefer not to say</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
       <div className="field-group"><label htmlFor="senior-password">Password</label><PasswordInput id="senior-password" name="password" autoComplete="new-password" required minLength={8} maxLength={256} /></div>
       <div className="field-group"><label htmlFor="senior-confirm">Confirm password</label><PasswordInput id="senior-confirm" name="confirm" autoComplete="new-password" required minLength={8} maxLength={256} /></div>
       <button className="submit-btn primary-gold" disabled={!ready || busy}>{busy ? "Creating account…" : "Create my account"}</button>

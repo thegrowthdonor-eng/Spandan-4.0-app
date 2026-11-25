@@ -73,8 +73,12 @@ export function AuthPortalClient({
         <div className="auth-form-shell">
           <div className="auth-form-head">
             <span className="auth-badge">NEW STUDENT REGISTRATION</span>
-            <h2>Create Profile</h2>
+            <h2>UG / Intern signup</h2>
             <p>Register once with your official college credentials. Verified offline at the counter.</p>
+          </div>
+
+          <div className="auth-form-switch">
+            <Link className="switch-btn" href="/account/join">PG / JR / FMG / Faculty signup</Link>
           </div>
 
           <SignUpForm
@@ -119,7 +123,7 @@ export function AuthPortalClient({
           </div>
           <div className="card-copy">
             <h3>Sign In</h3>
-            <p>Registered students &amp; organisers access with Batch &amp; Roll Number.</p>
+            <p>Sign in with your student credentials or registered mobile number.</p>
           </div>
         </button>
 
@@ -142,7 +146,7 @@ export function AuthPortalClient({
           </div>
           <div className="card-copy">
             <h3>Create Profile</h3>
-            <p>New MBBS students register here for official festival pass &amp; entries.</p>
+            <p>Find the signup options for UG, Interns, PG, JR, FMG and Faculty.</p>
           </div>
         </button>
 

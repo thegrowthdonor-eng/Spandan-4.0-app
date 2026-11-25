@@ -245,7 +245,7 @@ export function AccountHelpModal({
           <div className="help-topic-card">
             <div className="help-topic-title">
               <span className="help-topic-icon" aria-hidden="true">🎓</span>
-              <span>First Time Visiting? Create Profile</span>
+              <span>UG / Intern signup</span>
             </div>
             <p className="help-topic-desc">
               If you haven&apos;t registered your festival account yet, sign-in will not work until your profile is created.
@@ -276,12 +276,12 @@ export function AccountHelpModal({
           <div className="help-topic-card">
             <div className="help-topic-title">
               <span className="help-topic-icon" aria-hidden="true">🩺</span>
-              <span>PG / JR / Faculty Member?</span>
+              <span>PG / JR / FMG / Faculty signup</span>
             </div>
             <p className="help-topic-desc">
-              PGs, Junior Residents, and Faculty accounts are created via direct committee invitations.
-              If you need your setup link reissued or updated, please contact the festival registration desk or organising secretariat.
+              Ask the festival registration desk for the private signup link and open it to create your account.
             </p>
+            <Link href="/account/join" className="help-action-btn secondary" onClick={onClose}>Open signup</Link>
           </div>
 
           {/* Card 4: General FAQs */}

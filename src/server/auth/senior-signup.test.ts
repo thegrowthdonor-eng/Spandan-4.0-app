@@ -59,7 +59,9 @@ test("private signup accepts all four categories, normalises phone and rejects U
   for (const category of ["pg", "jr", "fmg", "faculty"]) {
     const parsed = seniorSignupSchema.parse({ ...payload, category });
     assert.equal(parsed.phone, "+919811111111");
+    assert.equal(seniorSignupSchema.parse({ ...payload, category, gender: undefined }).gender, "prefer_not_to_say");
   }
+  assert.equal(seniorSignupSchema.parse({ ...payload, gender: "" }).gender, "prefer_not_to_say");
   for (const change of [{ category: "ug" }, { phone: "123" }, { password: "short" }, { department: " " }, { gender: "invalid" }, { token: "short" }]) assert.equal(seniorSignupSchema.safeParse({ ...payload, ...change }).success, false);
   assert.equal(seniorLinkCommandSchema.safeParse({ action: "create", editionId: "00000000-0000-4000-8000-000000000001", expiresAt: "2000-01-01T00:00:00Z", maxAccounts: 10 }).success, false);
   assert.equal(seniorLinkCommandSchema.safeParse({ action: "suspend", profileId: "00000000-0000-4000-8000-000000000001", reason: " " }).success, false);

@@ -17,10 +17,20 @@ export type GalleryMomentRow = {
   occurred_at: string;
 };
 
+export type GalleryPostRow = Omit<GalleryMomentRow, "event_id" | "event_title" | "event_slug"> & {
+  event_slug: string | null;
+  event_title: string | null;
+};
+
+export function validateGalleryCaption(value: FormDataEntryValue | null) {
+  const caption = typeof value === "string" ? value.trim() : "";
+  return caption.length >= 1 && caption.length <= 1000 ? caption : null;
+}
+
 export function validateGalleryMomentDetails(input: GalleryMomentDetails) {
-  const caption = input.caption.trim();
+  const caption = validateGalleryCaption(input.caption);
   const occurredAt = new Date(input.occurredAt);
-  if (!galleryMomentIdPattern.test(input.eventId) || caption.length < 1 || caption.length > 1000 || Number.isNaN(occurredAt.valueOf())) {
+  if (!galleryMomentIdPattern.test(input.eventId) || !caption || Number.isNaN(occurredAt.valueOf())) {
     return null;
   }
   return { eventId: input.eventId, caption, occurredAt: occurredAt.toISOString() };
